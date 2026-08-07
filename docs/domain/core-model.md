@@ -314,9 +314,16 @@ These views do not change Copy ownership.
 
 ## WishlistItem
 
-A WishlistItem represents acquisition intent.
+A WishlistItem represents one user's acquisition intent.
 
-A WishlistItem may target either:
+It is independent from ownership. Owning a Copy does not automatically remove
+or forbid a WishlistItem. A collector may legitimately want another Copy, a
+better-condition Copy, another regional Edition, a duplicate for trade, or a
+sealed or special Edition in the future.
+
+Wishlist state must not be inferred only from current ownership.
+
+A WishlistItem targets exactly one of:
 
 1. a Game generally
 2. a specific Edition
@@ -331,19 +338,75 @@ and:
 
 are different intents.
 
-Conceptual preferences may include:
+A Game-level WishlistItem means the user wants the Game physically without
+requiring one exact Edition. An Edition-level WishlistItem means the user wants
+that specific physical Edition.
+
+A Game-level WishlistItem may later gain Edition preferences or exclusions.
+Those preferences are deliberately deferred.
+
+Wishlist visibility is separate from acquisition intent. Initial visibility is
+either private or public. Private WishlistItems are visible only to their owner
+and trusted Geek operations. Public visibility may later support public
+profiles, matching, and social discovery, but does not mean that the user
+accepts unsolicited offers.
+
+Acquisition preferences may include:
+
+- purchase interest
+- trade interest
+- optional maximum purchase price
+- optional maximum local trade distance
+- priority
+
+Purchase interest and trade interest are independent and may both be false so
+that a collector can track a collection goal without active acquisition intent.
+They are public-safe intent fields when the WishlistItem is public.
+
+Maximum purchase price is an optional Money value. Maximum purchase price,
+maximum trade distance, priority, and private notes are owner-private
+acquisition preferences. A public WishlistItem must never expose them.
+
+Maximum trade distance is expressed in kilometers. It is a preference, not a
+location, and does not reveal where the user lives.
+
+Priority expresses how urgently the owner wants the target. It is private
+because exposing it could create negotiation leverage.
+
+Future preferences may include:
 
 - preferred Editions
 - excluded Editions
 - minimum condition
 - completeness requirements
-- maximum price
-- maximum trade distance
-- willingness to buy
-- willingness to trade
 
 Wishlist preferences express intent and do not guarantee marketplace
 availability.
+
+Initial WishlistItem lifecycle states are:
+
+- active: the user currently wants or tracks the target
+- fulfilled: the user considers the acquisition goal satisfied
+- archived: the user no longer actively tracks the target
+
+Ownership changes must not automatically mark a WishlistItem fulfilled until
+explicit product rules define that behavior.
+
+A user may have at most one active WishlistItem for the same exact target:
+
+- one active Game-target WishlistItem for the same Game
+- one active Edition-target WishlistItem for the same Edition
+
+Historical fulfilled or archived items may coexist with a new active item for
+the same target.
+
+Future matching should interpret a Game target as potentially compatible with
+Copies whose Edition belongs to that Game. An Edition target is compatible only
+with Copies of that exact Edition unless future explicit fallback preferences
+say otherwise. Matching must eventually account for Copy visibility and trade
+availability, Wishlist visibility where required by the product flow,
+purchase/trade interest, distance, and future Edition, condition, and
+completeness preferences.
 
 ---
 
