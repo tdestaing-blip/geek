@@ -12,8 +12,8 @@ A Game is the abstract creative work. An Edition is a specific commercially
 released physical version of a Game. A Copy is one particular physical object
 owned by a user.
 
-This schema implements Game and Edition catalog data only. Copy is not
-implemented by this migration.
+The Catalog implements Game, Edition, and EditionComponent data. Copy belongs
+to the Ownership domain rather than the Catalog.
 
 ## Implemented tables
 
@@ -22,6 +22,7 @@ The Catalog consists of:
 - `platforms`: hardware or software platforms on which Editions were released
 - `games`: Geek-owned canonical identities for creative works
 - `editions`: specific physical commercial releases of Games
+- `edition_components`: expected physical contents of Editions
 - `edition_identifiers`: physical or catalog identifiers associated with an
   Edition
 - `game_provider_mappings`: mappings between Geek Games and external providers
@@ -45,6 +46,26 @@ An Edition may have multiple identifiers. Identifier lookup may return multiple
 results when catalog ambiguity exists. Physical identifiers are unique only
 within the same Edition, scheme, and value; Geek does not enforce global
 uniqueness unless the real-world data guarantees it.
+
+## Edition components
+
+An EditionComponent defines one expected physical component of an Edition.
+Examples of semantic component kinds include:
+
+- `primary_media`
+- `case`
+- `manual`
+- `insert`
+- `outer_box`
+- `bonus_media`
+- `collector_item`
+
+The `kind` is an intentionally extensible, catalog-controlled slug rather than
+a PostgreSQL enum. A per-Edition `component_key` identifies a component within
+one Edition; component keys are not globally unique.
+
+EditionComponents are publicly readable Catalog data. Normal clients may not
+create or modify them.
 
 ## Provider mappings
 
