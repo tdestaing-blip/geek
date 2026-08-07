@@ -162,8 +162,8 @@ Cosmetic catalog corrections must not create a new Edition.
 
 ## EditionIdentifier
 
-An EditionIdentifier associates an Edition with an external or physical
-identifier.
+An EditionIdentifier associates an Edition with physical or publisher-issued
+identification.
 
 Examples:
 
@@ -171,14 +171,14 @@ Examples:
 - UPC
 - JAN
 - publisher product code
-- external catalog provider ID
 
 An Edition may have multiple identifiers.
 
 The same identifier type may require contextual information such as
 region or source.
 
-External provider IDs are mappings, not Geek canonical IDs.
+External catalog provider IDs are not EditionIdentifiers. They belong in
+provider mappings and are not Geek canonical IDs.
 
 Geek must remain able to replace external catalog providers.
 
