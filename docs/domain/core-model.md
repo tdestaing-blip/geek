@@ -21,6 +21,7 @@ Core concepts:
 - Game
 - Edition
 - EditionIdentifier
+- EditionComponent
 - Platform
 
 ### Ownership
@@ -30,6 +31,7 @@ Describes physical objects owned by users.
 Core concepts:
 
 - Copy
+- CopyComponentState
 - Collection
 - WishlistItem
 
@@ -184,6 +186,36 @@ Geek must remain able to replace external catalog providers.
 
 ---
 
+## EditionComponent
+
+An EditionComponent represents one physical component expected to exist as
+part of an Edition.
+
+Examples include:
+
+- primary game disc
+- cartridge
+- plastic case
+- manual
+- registration card
+- map
+- outer cardboard box
+- bonus disc
+- collector item
+
+An Edition can have many EditionComponents. They describe what the commercial
+release contained, not whether a particular user's Copy still contains those
+components.
+
+For example, the French PAL GameCube Edition of The Wind Waker may contain:
+
+- Game disc
+- GameCube case
+- Manual
+- Nintendo registration insert
+
+---
+
 # 3. Ownership
 
 ## Copy
@@ -206,15 +238,14 @@ Thomas's particular physical copy of that Edition.
 
 A Copy belongs to exactly one Edition.
 
-A Copy has at most one current owner.
+A Copy has exactly one current owner while active.
 
 Conceptual properties may include:
 
 - id
 - owner
 - edition
-- condition
-- completeness
+- component states
 - personal photos
 - provenance
 - acquisition date
@@ -228,44 +259,34 @@ sale.
 
 ---
 
-## Copy condition
+## CopyComponentState
 
-Condition belongs to the Copy, never to the Edition.
+A CopyComponentState represents the observed state of one EditionComponent for
+one Copy.
 
-Condition must be capable of describing physical components separately.
+It may describe:
 
-For example:
+- whether the component is present, missing, or unknown
+- physical condition when present
+- optional notes
 
-- media / cartridge condition
-- box condition
-- manual condition
-- inserts
-- additional included components
+A CopyComponentState must reference an EditionComponent belonging to the same
+Edition as the Copy.
 
-Do not reduce condition to a single marketplace adjective when more
-structured information is available.
-
-Geek may derive simplified labels for presentation.
+Absence of a CopyComponentState means the component has not yet been assessed.
+It does not mean the component is missing or unknown.
 
 ---
 
-## Completeness
+## Derived condition and completeness
 
-Completeness describes which expected components of an Edition are
-present in a Copy.
+Completeness describes which expected EditionComponents are present in a Copy.
+Condition describes the observed physical state of components that are present.
 
-Examples:
-
-- loose
-- box included
-- manual included
-- complete
-- sealed
-
-Exact terminology may vary by platform and Edition.
-
-The domain model should support component-level completeness rather than
-assuming every game consists only of disc + box + manual.
+Geek should derive simplified presentation labels from structured component
+state where possible. Labels such as "Complete" or "Very good" are presentation
+summaries, not the canonical underlying physical facts. Do not store one
+authoritative overall condition or completeness label on Copy.
 
 ---
 
@@ -806,11 +827,20 @@ has many Editions
 
 Edition
 belongs to Game
+has many EditionComponents
 has many Copies
+
+EditionComponent
+belongs to Edition
 
 Copy
 belongs to Edition
 has one current owner
+has many CopyComponentStates
+
+CopyComponentState
+belongs to Copy
+references one EditionComponent from the same Edition
 
 User
 owns many Copies
