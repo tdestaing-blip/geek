@@ -5,6 +5,7 @@ overrides:
   react: 19.2.3
   react-dom: 19.2.3
 allowBuilds:
+  supabase: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - "@expo/cli@57.0.13"
@@ -14,3 +15,12 @@ minimumReleaseAgeExclude:
   - expo-file-system@57.0.2
   - expo-modules-core@57.0.10
   - expo@57.0.11
+  - "@supabase/cli-darwin-arm64@2.112.0"
+  - "@supabase/cli-darwin-x64@2.112.0"
+  - "@supabase/cli-linux-arm64-musl@2.112.0"
+  - "@supabase/cli-linux-arm64@2.112.0"
+  - "@supabase/cli-linux-x64-musl@2.112.0"
+  - "@supabase/cli-linux-x64@2.112.0"
+  - "@supabase/cli-windows-arm64@2.112.0"
+  - "@supabase/cli-windows-x64@2.112.0"
+  - supabase@2.112.0

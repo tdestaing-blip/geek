@@ -12,6 +12,10 @@
     "dev:mobile": "pnpm --filter @geek/mobile run dev",
     "dev:web": "pnpm --filter @geek/web run dev",
     "dev:admin": "pnpm --filter @geek/admin run dev",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
+    "db:reset": "supabase db reset",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint eslint.config.mjs && pnpm --recursive --if-present run lint",
@@ -21,6 +25,7 @@
     "@geek/config": "workspace:*",
     "eslint": "9.39.5",
     "prettier": "3.9.6",
+    "supabase": "2.112.0",
     "typescript": "6.0.3"
   },
   "prettier": "@geek/config/prettier"

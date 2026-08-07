@@ -1,0 +1,1 @@
+-- Infrastructure baseline. Product and domain tables are intentionally deferred.

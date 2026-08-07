@@ -54,6 +54,36 @@ pnpm dev:admin
 
 The web application uses port 3000. The admin application uses port 3001. The Expo CLI will print the available mobile launch options after it starts.
 
+## Local database
+
+The local database runs through the repository-pinned Supabase CLI and requires a running Docker-compatible container runtime. Install the repository dependencies before using the database commands.
+
+Start the local Supabase stack:
+
+```sh
+pnpm db:start
+```
+
+Inspect its current status:
+
+```sh
+pnpm db:status
+```
+
+Reset the local database and reapply all migrations:
+
+```sh
+pnpm db:reset
+```
+
+Stop the local stack:
+
+```sh
+pnpm db:stop
+```
+
+Committed database migrations live in `supabase/migrations/`.
+
 ## Linting
 
 ```sh
