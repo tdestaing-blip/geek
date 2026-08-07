@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+build/
+out/
+
+# Expo
+.expo/
+web-build/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Tooling and operating systems
+.eslintcache
+.DS_Store
+*.log
+pnpm-debug.log*

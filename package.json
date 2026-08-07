@@ -1,0 +1,27 @@
+{
+  "name": "geek",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": "^22.13.0 || ^24.3.0 || >=25.0.0",
+    "pnpm": ">=11.20.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @geek/mobile --filter @geek/web --filter @geek/admin run dev",
+    "dev:mobile": "pnpm --filter @geek/mobile run dev",
+    "dev:web": "pnpm --filter @geek/web run dev",
+    "dev:admin": "pnpm --filter @geek/admin run dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint eslint.config.mjs && pnpm --recursive --if-present run lint",
+    "typecheck": "pnpm --recursive --if-present run typecheck"
+  },
+  "devDependencies": {
+    "@geek/config": "workspace:*",
+    "eslint": "9.39.5",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3"
+  },
+  "prettier": "@geek/config/prettier"
+}
