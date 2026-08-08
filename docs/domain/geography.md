@@ -84,15 +84,50 @@ execute it for arbitrary users. It must not become a general-purpose client
 RPC.
 
 The distance function is a low-level geographic primitive, not a product-level
-discoverability rule. Future Search and Matching will expose an authorized
-higher-level operation that decides which users and results are discoverable
-before returning derived distance. Exact target coordinates remain
+discoverability rule. Reciprocal trade matching is the first authorized
+higher-level geographic operation. It discovers only users who satisfy
+bidirectional canonical Wishlist and Copy eligibility, accepts no target user
+ID, and returns fixed coarse distance buckets. Exact target coordinates remain
 inaccessible.
+
+Matching follows an explicit privacy pipeline:
+
+```text
+Exact private discovery location
+  -> server-derived privacy-safe Matching location
+  -> coarse distance and radius semantics
+```
+
+The Matching location is the centroid of a precision-6 geohash cell derived
+inside the trusted database operation for both caller and counterpart. It is
+not persistent state, and clients cannot write or read it. Matching never uses
+exact user-to-user distance as its authoritative geographic signal.
+
+The caller chooses one of the fixed 2, 5, 10, 25, 50, 100, or 200 kilometer
+boundaries. An exact-location `ST_DWithin` check uses the existing GiST index
+only as a conservative broad prefilter, expanded by 1.5 kilometers so it cannot
+remove any pair admitted by the coarse-centroid rule. Arbitrary public radius
+probes are rejected. A caller-owned Wishlist maximum trade distance is
+conservatively converted to the same coarse boundaries before it may narrow
+that caller's want. A counterpart's private maximum trade distance is neither
+read nor exposed in the first version.
+
+Users may be discoverable to an approximate neighborhood-scale cell. Moving
+within that cell does not alter the Matching location; crossing a cell boundary
+may produce a discrete result change. This intentionally trades geographic
+accuracy for privacy and can create bounded false positives or false negatives
+near radius boundaries. It does not provide perfect anonymity: repeated calls
+from many caller cells may reveal a counterpart's approximate cell. The design
+prevents exact locations within the same cell from being distinguished and
+removes meter-level chosen-origin triangulation from Matching. Rate limits and
+location-write policies remain useful future abuse controls.
 
 ## Deferred behavior
 
-This foundation does not implement geocoding, routing, maps, matching, search,
-live or background location, or TradeMeetingLocation.
+This foundation does not implement geocoding, routing, maps, live or background
+location, or TradeMeetingLocation. Reciprocal trade matching uses discovery
+locations only for eligibility and coarse presentation; a discovery location
+must never become a TradeMeetingLocation without explicit user action.
 
 Future search providers may consume coarse or derived projections, but exact
 private location remains canonical in PostgreSQL and must not be copied into
