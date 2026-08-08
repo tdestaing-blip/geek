@@ -91,14 +91,16 @@ Commitment-holding states are:
 
 - Listing: `active`, `reserved`
 - Auction: `scheduled`, `won`
+- TradeOffer: `accepted`
 
-Draft, paused, withdrawn, expired, ended, cancelled, and sold mechanisms do not
-hold a commitment. Draft Listings and draft Auctions may coexist. Historical
-mechanisms may coexist.
+Draft, paused, pending, declined, withdrawn, expired, ended, cancelled, and sold
+mechanisms do not hold a commitment. Draft Listings, draft Auctions, and
+pending TradeOffers may coexist. Historical mechanisms may coexist.
 
 The commitment is created, retained, or released atomically with its source
-Listing or Auction mutation. Source/Copy consistency is enforced by composite
-foreign keys. Normal clients have no direct access to the commitment table.
+Listing, Auction, or TradeOffer operation. Source/Copy consistency is enforced
+by composite foreign keys. Normal clients have no direct access to the
+commitment table.
 
 Any commitment blocks Copy ownership transfer. Establishing or maintaining an
 Auction commitment locks the Copy and verifies that the Auction seller is the
@@ -108,8 +110,9 @@ current owner. Trusted authority cannot bypass that invariant.
 
 The Copy row is the serialization boundary for commercial commitment
 establishment and ownership transfer. Concurrent Listing activation, Auction
-scheduling, and Copy transfer therefore cannot commit conflicting outcomes.
-Bid placement independently serializes on the Auction row.
+scheduling, TradeOffer acceptance, and Copy transfer therefore cannot commit
+conflicting outcomes. Bid placement independently serializes on the Auction
+row.
 
 Future Order completion for a won Auction must use one trusted transaction to:
 

@@ -116,9 +116,10 @@ Listing and cannot move historical sold or expired history back to `reserved`.
 
 An active or reserved Listing is an open commercial commitment and blocks Copy
 ownership transfer. The internal `copy_commercial_commitments` coordination
-table permits at most one open commitment per Copy across Listings and
-Auctions. Activating or reserving a Listing therefore fails while the Copy has
-a scheduled or won Auction.
+table permits at most one open commitment per Copy across Listings, Auctions,
+and accepted TradeOffers. Activating or reserving a Listing therefore fails
+while the Copy has a scheduled or won Auction or is reserved by an accepted
+TradeOffer.
 
 Historical draft, paused, withdrawn, expired, and sold Listings do not hold a
 commitment or block a transfer. They retain the `seller_id` of the seller who
@@ -148,9 +149,9 @@ clients cannot delete Listings.
 ## Commercial commitment concurrency
 
 The Copy row is the serialization boundary for Listing activation or
-reservation, Auction scheduling, and ownership transfer. Commitment changes
-are atomic with Listing mutations, and normal clients have no direct access to
-the internal commitment table.
+reservation, Auction scheduling, TradeOffer acceptance, and ownership transfer.
+Commitment changes are atomic with Listing mutations, and normal clients have
+no direct access to the internal commitment table.
 
 ## Future Order completion
 
