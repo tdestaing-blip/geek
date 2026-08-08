@@ -140,24 +140,31 @@ parent WishlistItem and trusted Geek operations. They remain private even when
 the parent WishlistItem is public. Owners may update their priority through the
 private details record.
 
-## Future matching semantics
+## Reciprocal trade matching semantics
 
-Matching is deliberately not implemented yet.
-
-Future matching should interpret targets as follows:
+Reciprocal local trade matching interprets targets as follows:
 
 - A Game-target WishlistItem is potentially compatible with Copies whose
   Edition belongs to that Game.
 - An Edition-target WishlistItem is compatible only with Copies of that exact
   Edition unless future explicit fallback preferences say otherwise.
 
-Matching must eventually consider:
+For the caller, all active WishlistItems with `trade_interest = true` may
+participate, whether private or public. This uses the caller's own private intent
+only to compute results for that same caller. Inactive items and purchase
+interest without trade interest do not participate.
 
-- Copy visibility
-- Copy trade availability
-- Wishlist visibility where required by the product flow
-- purchase interest
-- trade interest
-- distance
-- future Edition preferences
-- future condition and completeness requirements
+For a counterpart, only active, public WishlistItems with
+`trade_interest = true` may participate. A counterpart's private WishlistItems
+and private Wishlist details never affect first-version matching.
+
+For Matching only, the caller's private `max_trade_distance_km` is
+conservatively converted to the greatest supported 2, 5, 10, 25, 50, 100, or
+200 kilometer boundary that does not exceed it. A value below 2 contributes no
+match. This may narrow eligibility for its specific want without creating an
+arbitrary exact-distance threshold. The stored Wishlist preference is not
+changed. The counterpart's private maximum distance is deliberately not used or
+exposed until bilateral private-distance semantics are explicitly designed.
+
+Matching still requires an actual `open_to_trade` Copy on each side. Future
+Edition, condition, and completeness preferences remain deferred.

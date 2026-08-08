@@ -400,13 +400,12 @@ A user may have at most one active WishlistItem for the same exact target:
 Historical fulfilled or archived items may coexist with a new active item for
 the same target.
 
-Future matching should interpret a Game target as potentially compatible with
+Reciprocal local trade matching interprets a Game target as compatible with
 Copies whose Edition belongs to that Game. An Edition target is compatible only
 with Copies of that exact Edition unless future explicit fallback preferences
-say otherwise. Matching must eventually account for Copy visibility and trade
-availability, Wishlist visibility where required by the product flow,
-purchase/trade interest, distance, and future Edition, condition, and
-completeness preferences.
+say otherwise. Caller-owned active trade wants may participate regardless of
+Wishlist visibility. A counterpart's want participates only when it is active,
+public, and explicitly marked for trade interest.
 
 ---
 
@@ -929,7 +928,35 @@ projection, and subordinate to PostgreSQL as the canonical source of truth.
 
 ---
 
-# 14. Pricing
+# 14. Matching
+
+Matching answers a personalized opportunity question from canonical current
+state. It is distinct from Search, which begins with an explicit Catalog query.
+
+The first Matching capability is reciprocal local trade matching: find nearby
+collectors who own an `open_to_trade` Copy satisfying one of the caller's active
+trade wants and who publicly want an `open_to_trade` Copy owned by the caller.
+Both directions are required.
+
+A reciprocal match is a derived discovery opportunity. It is not persisted,
+does not create a TradeOffer, reservation, commercial commitment, or ownership
+change, and may disappear as Wishes, Copies, availability, visibility, or
+locations change.
+
+Copy visibility is independent from explicit trade availability. A private
+Copy may participate only when it is `open_to_trade`, and Matching exposes only
+its safe Copy, Game, and Edition identities. Counterpart-private WishlistItems
+and Wishlist private details never contribute to the first matching version.
+
+Matching uses private discovery locations internally, but returns only fixed
+coarse distance buckets. It accepts no target user ID and never returns exact
+coordinates or exact distance. Caller-owned per-Wishlist maximum trade distance
+may narrow that caller's result; counterpart-private distance preferences are
+deliberately not used.
+
+---
+
+# 15. Pricing
 
 Geek distinguishes:
 
@@ -957,7 +984,7 @@ purchase values.
 
 ---
 
-# 15. External market data
+# 16. External market data
 
 External pricing information is evidence used to generate estimates.
 
@@ -970,7 +997,7 @@ remain distinguishable.
 
 ---
 
-# 16. Privacy
+# 17. Privacy
 
 A Copy can contain both public and private information.
 
@@ -987,7 +1014,7 @@ Making a Copy public must never automatically expose all Copy fields.
 
 ---
 
-# 17. Identity and IDs
+# 18. Identity and IDs
 
 Geek owns canonical identity for all internal domain objects.
 
@@ -999,7 +1026,7 @@ The concrete ID format is deliberately not specified in this document.
 
 ---
 
-# 18. Core relationships
+# 19. Core relationships
 
 Conceptually:
 
@@ -1056,7 +1083,7 @@ confirms successful exchange and ownership transfer
 
 ---
 
-# 19. Important non-equivalences
+# 20. Important non-equivalences
 
 The following concepts must never be treated as equivalent:
 
@@ -1090,7 +1117,7 @@ These distinctions are foundational.
 
 ---
 
-# 20. Deferred decisions
+# 21. Deferred decisions
 
 This document deliberately does NOT decide:
 
@@ -1116,7 +1143,7 @@ These decisions require separate specifications.
 
 ---
 
-# 21. Domain design rule
+# 22. Domain design rule
 
 When adding future functionality, ask:
 

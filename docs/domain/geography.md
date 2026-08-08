@@ -84,15 +84,34 @@ execute it for arbitrary users. It must not become a general-purpose client
 RPC.
 
 The distance function is a low-level geographic primitive, not a product-level
-discoverability rule. Future Search and Matching will expose an authorized
-higher-level operation that decides which users and results are discoverable
-before returning derived distance. Exact target coordinates remain
-inaccessible.
+discoverability rule. Reciprocal trade matching is the first authorized
+higher-level geographic operation. It discovers only users who satisfy
+bidirectional canonical Wishlist and Copy eligibility, accepts no target user
+ID, and returns fixed coarse distance buckets rather than exact distance. Exact
+target coordinates remain inaccessible.
+
+Matching may read private discovery locations internally under definer
+security. The caller chooses one of the fixed 2, 5, 10, 25, 50, 100, or 200
+kilometer boundaries, and `ST_DWithin` provides the indexed geographic
+pre-filter. Arbitrary public radius probes are rejected. A caller-owned
+Wishlist maximum trade distance is conservatively converted to the same coarse
+boundaries before it may narrow that caller's want. A counterpart's private
+maximum trade distance is neither read nor exposed in the first version.
+
+Coarse filtering and result buckets reduce location inference but do not provide
+perfect anonymity. Repeated calls still reveal the presence of intentionally
+discoverable, reciprocally eligible users within known coarse boundaries. Not
+accepting a target user ID, rejecting arbitrary radius probes, avoiding exact
+distance ordering, and requiring reciprocal trade intent prevent the operation
+from becoming an arbitrary fine-grained distance oracle. Repeated changes to
+the caller's own location remain a future abuse-control concern.
 
 ## Deferred behavior
 
-This foundation does not implement geocoding, routing, maps, matching, search,
-live or background location, or TradeMeetingLocation.
+This foundation does not implement geocoding, routing, maps, live or background
+location, or TradeMeetingLocation. Reciprocal trade matching uses discovery
+locations only for eligibility and coarse presentation; a discovery location
+must never become a TradeMeetingLocation without explicit user action.
 
 Future search providers may consume coarse or derived projections, but exact
 private location remains canonical in PostgreSQL and must not be copied into

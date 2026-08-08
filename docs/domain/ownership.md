@@ -54,6 +54,16 @@ Collection visibility. A private Copy marked `open_to_trade` may appear through
 the minimum safe Trade discovery projection, while the owner's other private
 Copies and all private Copy metadata remain inaccessible.
 
+Reciprocal local trade matching uses `open_to_trade` as the Copy-level
+discoverability signal on both sides. General Copy visibility is irrelevant to
+trade eligibility: a private Copy may satisfy a reciprocal want, but the match
+projection exposes only its Copy, Game, and Edition identifiers. Unrelated
+private Copies remain undiscoverable. A public Copy is not considered tradeable
+unless it is explicitly `open_to_trade`.
+
+A match is derived discovery only. It does not create a TradeOffer, reservation,
+commercial commitment, or ownership change.
+
 ## Edition components
 
 EditionComponents define the expected physical contents of an Edition. They
