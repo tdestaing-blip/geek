@@ -103,11 +103,19 @@ A Copy may have at most one Listing in `active` or `reserved` state at a time.
 Historical, draft, and closed Listings may coexist with a later active Listing.
 
 The database validates that the Listing seller owns its Copy when the Listing
-identity is created or changed. It does not require that relationship to remain
-true forever, because a completed future transaction may transfer Copy
-ownership while the historical Listing retains its original seller. Copy
-ownership is not inferred from Listing, and creating a Listing never transfers
-ownership.
+identity is created or changed and whenever a seller-managed Listing is
+modified. A historical seller who no longer owns the Copy cannot edit or
+reactivate an old draft, paused, or withdrawn Listing.
+
+An active or reserved Listing is an open commercial commitment and blocks Copy
+ownership transfer. Historical draft, paused, withdrawn, expired, and sold
+Listings do not block a transfer. They retain the `seller_id` of the seller who
+established them, and that historical seller does not need to match the Copy's
+new current owner. A historical Listing cannot become seller-managed again
+unless its seller currently owns the Copy.
+
+Creating a Listing never transfers ownership, and ownership is not inferred
+from Listing.
 
 The database does not require `Copy.visibility = public`. Future marketplace
 queries need an explicit projection that makes the public-safe information for
@@ -121,8 +129,24 @@ active Listings and all Listings they own.
 
 Authenticated sellers may create Listings only for their own Copies and may
 update current commercial fields only while both the current and requested
-status are seller-manageable. Listing and Copy identity remain immutable
-through normal client updates. Normal clients cannot delete Listings.
+status are seller-manageable and they still own the referenced Copy. Listing
+and Copy identity remain immutable through normal client updates. Normal
+clients cannot delete Listings.
+
+## Future Order completion
+
+Future Order completion must use one database transaction and lock the Copy
+before mutating its Listing. That transaction must:
+
+1. transition the relevant Listing out of `active` or `reserved`
+2. transfer Copy ownership
+3. preserve the historical Listing seller and commercial data
+
+For example, a trusted workflow may transition a Listing from `reserved` to
+`sold` and then transfer `Copy.owner_id` to the buyer within the same
+transaction. The ownership-transfer guard prevents trusted workflows from
+accidentally leaving an active or reserved Listing whose historical seller no
+longer owns the Copy.
 
 ## Future Search semantics
 

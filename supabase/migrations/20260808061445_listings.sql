@@ -59,13 +59,29 @@ returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  referenced_owner_id uuid;
+  ownership_validation_required boolean := false;
 begin
-  if not exists (
-    select 1
-    from public.copies as referenced_copy
-    where referenced_copy.id = new.copy_id
-      and referenced_copy.owner_id = new.seller_id
-  ) then
+  if tg_op = 'INSERT' then
+    ownership_validation_required := true;
+  elsif new.copy_id is distinct from old.copy_id
+    or new.seller_id is distinct from old.seller_id
+    or new.status in ('draft', 'active', 'paused', 'withdrawn') then
+    ownership_validation_required := true;
+  end if;
+
+  if not ownership_validation_required then
+    return new;
+  end if;
+
+  select referenced_copy.owner_id
+  into referenced_owner_id
+  from public.copies as referenced_copy
+  where referenced_copy.id = new.copy_id
+  for update;
+
+  if referenced_owner_id is distinct from new.seller_id then
     raise exception 'Listing seller must own the referenced Copy.'
       using errcode = '23514';
   end if;
@@ -78,8 +94,37 @@ revoke all on function public.validate_listing_copy_ownership()
 from public, anon, authenticated;
 
 create trigger listings_validate_copy_ownership
-before insert or update of copy_id, seller_id on public.listings
+before insert or update on public.listings
 for each row execute function public.validate_listing_copy_ownership();
+
+create function public.prevent_open_listing_copy_ownership_transfer()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.owner_id is distinct from old.owner_id
+    and exists (
+      select 1
+      from public.listings as open_listing
+      where open_listing.copy_id = old.id
+        and open_listing.status in ('active', 'reserved')
+    ) then
+    raise exception 'Copy ownership cannot transfer while a Listing is active or reserved.'
+      using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_open_listing_copy_ownership_transfer()
+from public, anon, authenticated;
+
+create trigger copies_prevent_open_listing_ownership_transfer
+before update of owner_id on public.copies
+for each row
+execute function public.prevent_open_listing_copy_ownership_transfer();
 
 create trigger listings_set_updated_at
 before update on public.listings
@@ -147,8 +192,20 @@ to authenticated
 using (
   seller_id = (select auth.uid())
   and status in ('draft', 'active', 'paused', 'withdrawn')
+  and exists (
+    select 1
+    from public.copies
+    where copies.id = listings.copy_id
+      and copies.owner_id = (select auth.uid())
+  )
 )
 with check (
   seller_id = (select auth.uid())
   and status in ('draft', 'active', 'paused', 'withdrawn')
+  and exists (
+    select 1
+    from public.copies
+    where copies.id = listings.copy_id
+      and copies.owner_id = (select auth.uid())
+  )
 );
