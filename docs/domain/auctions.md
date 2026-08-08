@@ -55,6 +55,11 @@ Clients cannot directly create, update, or delete Bid rows. An authenticated
 bidder uses `place_auction_bid`, which derives bidder identity from `auth.uid()`
 and serializes concurrent bids by locking the Auction row.
 
+For controlled Bid placement, `auction_bids.created_at` is the
+server-authoritative serialized acceptance time. Geek samples it immediately
+after acquiring the Auction row lock and uses that same timestamp for both the
+bidding-window decision and the immutable Bid record.
+
 The first Bid must meet the starting amount. Each later Bid must meet the
 current amount plus the minimum increment. Proxy bidding, automatic bid
 amounts, and anti-sniping extensions are not implemented.

@@ -522,7 +522,7 @@ declare
   required_amount_minor bigint;
   accepted_bid_id uuid;
   accepted_bid_created_at timestamptz;
-  accepted_at timestamptz := clock_timestamp();
+  decision_at timestamptz;
 begin
   if caller_user_id is null then
     raise exception 'Authentication is required.' using errcode = '28000';
@@ -534,6 +534,8 @@ begin
   where auction.id = target_auction_id
   for update;
 
+  decision_at := pg_catalog.clock_timestamp();
+
   if not found then
     raise exception 'Auction does not exist.' using errcode = 'P0002';
   end if;
@@ -544,8 +546,8 @@ begin
 
   if target_auction.starts_at is null
     or target_auction.ends_at is null
-    or target_auction.starts_at > accepted_at
-    or accepted_at >= target_auction.ends_at then
+    or target_auction.starts_at > decision_at
+    or decision_at >= target_auction.ends_at then
     raise exception 'Auction is not currently accepting Bids.'
       using errcode = '23514';
   end if;
@@ -586,7 +588,7 @@ begin
     target_auction.id,
     caller_user_id,
     bid_amount_minor,
-    accepted_at
+    decision_at
   )
   returning id, auction_bids.created_at
   into accepted_bid_id, accepted_bid_created_at;
@@ -623,13 +625,15 @@ declare
   target_auction public.auctions%rowtype;
   reserve_amount_minor bigint;
   finalized_auction public.auctions%rowtype;
-  finalized_at timestamptz := clock_timestamp();
+  decision_at timestamptz;
 begin
   select auction.*
   into target_auction
   from public.auctions as auction
   where auction.id = target_auction_id
   for update;
+
+  decision_at := pg_catalog.clock_timestamp();
 
   if not found then
     raise exception 'Auction does not exist.' using errcode = 'P0002';
@@ -639,7 +643,7 @@ begin
     raise exception 'Auction is not scheduled.' using errcode = '23514';
   end if;
 
-  if target_auction.ends_at is null or finalized_at < target_auction.ends_at then
+  if target_auction.ends_at is null or decision_at < target_auction.ends_at then
     raise exception 'Auction bidding window has not ended.' using errcode = '23514';
   end if;
 
