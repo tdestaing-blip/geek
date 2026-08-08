@@ -432,7 +432,13 @@ For example, once a Copy is reserved through an accepted transaction,
 Geek must prevent another sale or accepted trade involving the same
 Copy.
 
-The exact technical locking mechanism will be defined later.
+Geek uses one internal commercial commitment per Copy to coordinate supported
+sale mechanisms. This is infrastructure rather than a user-facing marketplace
+object. Initially, active or reserved Listings and scheduled or won Auctions
+hold the commitment. Draft and historical mechanisms do not.
+
+The commitment prevents conflicting Listing and Auction supply and blocks Copy
+ownership transfer while the Copy is commercially committed.
 
 ---
 
@@ -526,9 +532,15 @@ seller geography.
 
 ## Auction
 
-An Auction represents a time-based method for selling a Copy.
+An Auction represents explicit intent by the current owner of one Copy to sell
+that Copy through competitive bidding during a defined time window.
 
-An Auction references a specific eligible Copy.
+Auction is not Listing and is not Copy. A Copy may exist without either, and
+Listing and Auction remain distinct commercial mechanisms.
+
+An Auction references exactly one Copy. The seller must own that Copy whenever
+the Auction is prepared or commercially committed. Auction preserves its
+historical seller identity after a legitimate future ownership transfer.
 
 Conceptual properties may include:
 
@@ -537,16 +549,43 @@ Conceptual properties may include:
 - seller
 - start time
 - end time
-- starting price
-- reserve price
-- current bid
-- bid history
+- starting amount and currency
+- minimum bid increment
+- private reserve amount
+- local pickup and shipping availability
+- current amount and bid count
+- immutable Bid history
 - status
 
 Auction timing must be server-authoritative.
 
-A Copy committed to an active Auction must not simultaneously be sold
-through another conflicting marketplace mechanism.
+A scheduled Auction represents a commitment for both its upcoming and current
+bidding window. A won Auction keeps that commitment pending future transaction
+completion. Neither may coexist with an active or reserved Listing for the same
+Copy.
+
+Initial persisted Auction statuses are:
+
+- draft
+- scheduled
+- won
+- ended
+- cancelled
+- sold
+
+Live is a temporal phase derived from a scheduled Auction's timestamps rather
+than a stored status. A scheduled Auction is upcoming before `starts_at`, live
+from `starts_at` inclusive until `ends_at` exclusive, and awaiting finalization
+at or after `ends_at`.
+
+The reserve amount is seller-private. Public Auction presentation exposes the
+current amount and bid count, never the reserve amount or bidder identities.
+
+Future Search may independently surface fixed-price Listings, Auctions,
+trade-compatible Copies, and collectors or public Copies. Geographic proximity
+is not a global Auction constraint: shipping Auctions may be discoverable
+throughout the supported territory. Exact seller coordinates never belong on
+Auction.
 
 Future support for multi-Copy auction lots may introduce an explicit lot
 concept.
@@ -973,6 +1012,9 @@ sells one Copy
 Auction
 auctions one Copy
 
+Bid
+belongs to one Auction and one bidder
+
 Order
 contains one or more OrderItems
 
@@ -999,6 +1041,10 @@ Game != Edition
 Edition != Copy
 
 Copy != Listing
+
+Copy != Auction
+
+Listing != Auction
 
 Listing != Order
 
@@ -1035,8 +1081,9 @@ This document deliberately does NOT decide:
 - pricing provider
 - shipping provider
 - ownership-event persistence strategy
-- reservation locking implementation
-- auction bid implementation
+- additional commercial commitment mechanisms beyond Listing and Auction
+- proxy/max bidding
+- automatic bid extension
 - dispute mechanics
 - rating mechanics
 - tax implementation
