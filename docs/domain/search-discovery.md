@@ -47,17 +47,27 @@ useful without allowing one- or two-character fuzzy fan-out.
 Candidate bounding follows canonical entity boundaries. Each token produces at
 most 200 strongest textual matches independently for Games, Platforms, and
 Edition names. Exact matches precede prefixes, substrings, and trigram matches,
-with canonical UUIDs providing deterministic tie-breaking.
+with canonical UUIDs providing deterministic tie-breaking. These bounded match
+sets are candidate seeds only; membership in one of them is not semantic proof
+that an Edition does or does not satisfy a token.
 
-Edition eligibility is then derived through `Edition.game_id` and
-`Edition.platform_id`. Every distinct token must match at least one of the
-Edition's Game, Platform, or Edition-name dimensions; different tokens may be
-satisfied by different dimensions. Membership of an exactly matched Game or
-Platform is never truncated before applying this all-token semantic test. Each
-canonical entity seed retains at most 200 Editions after that test, and their
-union receives a final deterministic 200-Edition cap before result ranking.
-This bounds relationship fan-out and final ranking work without sacrificing
-normal cross-field recall such as `Zelda GameCube`.
+An Edition that enters through any seed is evaluated from its own joined
+canonical Game title, Platform name, and Edition name. Every distinct token
+must directly match at least one of those three fields, and different tokens
+may be satisfied by different fields. Eligibility and match quality therefore
+do not depend on which seed introduced the Edition or whether an unrelated
+equal-score entity occupied a bounded seed slot. Phrase seeds follow the same
+rule: they may introduce and boost a candidate, but they do not replace direct
+evaluation of that candidate's canonical fields.
+
+Edition membership is derived through `Edition.game_id` and
+`Edition.platform_id`. Membership of a matched Game or Platform is not
+truncated before applying the all-token semantic test. Each canonical entity
+seed retains at most 200 Editions after that test, and their union receives a
+final deterministic 200-Edition cap before result ranking. This separates
+bounded candidate entry from semantic truth, preserving exact cross-field
+recall such as `Zelda GameCube` and `Zelda Standard Edition` while bounding
+relationship fan-out and final ranking work.
 
 ## Buy
 

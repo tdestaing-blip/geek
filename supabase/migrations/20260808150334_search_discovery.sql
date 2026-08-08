@@ -346,217 +346,316 @@ begin
       limit 200
     ) as candidate
   ),
-  effective_game_token_matches as (
-    select
-      matched_game.value,
-      matched_game.game_id,
-      matched_game.match_score
+  game_entity_seeds as (
+    select matched_game.game_id
     from token_game_matches as matched_game
 
-    union all
+    union
 
-    select
-      query_term.value,
-      matched_game.id as game_id,
-      matched_game.match_score
+    select matched_game.id
     from phrase_game_matches as matched_game
-    cross join query_terms as query_term
-    where matched_game.canonical_title
-      ilike '%' || query_term.value || '%'
-  ),
-  effective_platform_token_matches as (
-    select
-      matched_platform.value,
-      matched_platform.platform_id,
-      matched_platform.match_score
-    from token_platform_matches as matched_platform
-
-    union all
-
-    select
-      query_term.value,
-      matched_platform.id as platform_id,
-      matched_platform.match_score
-    from phrase_platform_matches as matched_platform
-    join public.platforms as platform on platform.id = matched_platform.id
-    cross join query_terms as query_term
-    where platform.name ilike '%' || query_term.value || '%'
-  ),
-  effective_edition_name_token_matches as (
-    select
-      matched_edition_name.value,
-      matched_edition_name.edition_id,
-      matched_edition_name.match_score
-    from token_edition_name_matches as matched_edition_name
-
-    union all
-
-    select
-      query_term.value,
-      matched_edition_name.id as edition_id,
-      matched_edition_name.match_score
-    from phrase_edition_name_matches as matched_edition_name
-    join public.editions as edition on edition.id = matched_edition_name.id
-    cross join query_terms as query_term
-    where edition.edition_name ilike '%' || query_term.value || '%'
-  ),
-  game_entity_seeds as (
-    select distinct matched_game.game_id
-    from effective_game_token_matches as matched_game
   ),
   platform_entity_seeds as (
-    select distinct matched_platform.platform_id
-    from effective_platform_token_matches as matched_platform
+    select matched_platform.platform_id
+    from token_platform_matches as matched_platform
+
+    union
+
+    select matched_platform.id
+    from phrase_platform_matches as matched_platform
   ),
   edition_name_entity_seeds as (
-    select distinct matched_edition_name.edition_id
-    from effective_edition_name_token_matches as matched_edition_name
+    select matched_edition_name.edition_id
+    from token_edition_name_matches as matched_edition_name
+
+    union
+
+    select matched_edition_name.id
+    from phrase_edition_name_matches as matched_edition_name
   ),
-  game_seed_candidates as (
-    select ranked_candidate.edition_id
-    from (
-      select
-        edition.id as edition_id,
-        pg_catalog.row_number() over (
-          partition by edition.game_id
-          order by edition.id
-        ) as seed_rank
-      from game_entity_seeds as seed
-      join public.editions as edition on edition.game_id = seed.game_id
-      where not exists (
-        select 1
-        from query_terms as query_term
-        where not (
-          exists (
-            select 1
-            from effective_game_token_matches as matched_game
-            where matched_game.value = query_term.value
-              and matched_game.game_id = edition.game_id
-          )
-          or exists (
-            select 1
-            from effective_platform_token_matches as matched_platform
-            where matched_platform.value = query_term.value
-              and matched_platform.platform_id = edition.platform_id
-          )
-          or exists (
-            select 1
-            from effective_edition_name_token_matches as matched_edition_name
-            where matched_edition_name.value = query_term.value
-              and matched_edition_name.edition_id = edition.id
-          )
-        )
-      )
-    ) as ranked_candidate
-    where ranked_candidate.seed_rank <= 200
-  ),
-  platform_seed_candidates as (
-    select ranked_candidate.edition_id
-    from (
-      select
-        edition.id as edition_id,
-        pg_catalog.row_number() over (
-          partition by edition.platform_id
-          order by edition.id
-        ) as seed_rank
-      from platform_entity_seeds as seed
-      join public.editions as edition on edition.platform_id = seed.platform_id
-      where not exists (
-        select 1
-        from query_terms as query_term
-        where not (
-          exists (
-            select 1
-            from effective_game_token_matches as matched_game
-            where matched_game.value = query_term.value
-              and matched_game.game_id = edition.game_id
-          )
-          or exists (
-            select 1
-            from effective_platform_token_matches as matched_platform
-            where matched_platform.value = query_term.value
-              and matched_platform.platform_id = edition.platform_id
-          )
-          or exists (
-            select 1
-            from effective_edition_name_token_matches as matched_edition_name
-            where matched_edition_name.value = query_term.value
-              and matched_edition_name.edition_id = edition.id
-          )
-        )
-      )
-    ) as ranked_candidate
-    where ranked_candidate.seed_rank <= 200
-  ),
-  edition_name_seed_candidates as (
-    select edition.id as edition_id
+  seed_edition_candidates as (
+    select
+      'game'::text as seed_kind,
+      seed.game_id as seed_id,
+      edition.id as edition_id,
+      edition.game_id,
+      edition.platform_id,
+      edition.edition_name
+    from game_entity_seeds as seed
+    join public.editions as edition on edition.game_id = seed.game_id
+
+    union all
+
+    select
+      'platform'::text as seed_kind,
+      seed.platform_id as seed_id,
+      edition.id as edition_id,
+      edition.game_id,
+      edition.platform_id,
+      edition.edition_name
+    from platform_entity_seeds as seed
+    join public.editions as edition on edition.platform_id = seed.platform_id
+
+    union all
+
+    select
+      'edition_name'::text as seed_kind,
+      seed.edition_id as seed_id,
+      edition.id as edition_id,
+      edition.game_id,
+      edition.platform_id,
+      edition.edition_name
     from edition_name_entity_seeds as seed
     join public.editions as edition on edition.id = seed.edition_id
-    where not exists (
-      select 1
-      from query_terms as query_term
-      where not (
-        exists (
-          select 1
-          from effective_game_token_matches as matched_game
-          where matched_game.value = query_term.value
-            and matched_game.game_id = edition.game_id
-        )
-        or exists (
-          select 1
-          from effective_platform_token_matches as matched_platform
-          where matched_platform.value = query_term.value
-            and matched_platform.platform_id = edition.platform_id
-        )
-        or exists (
-          select 1
-          from effective_edition_name_token_matches as matched_edition_name
-          where matched_edition_name.value = query_term.value
-            and matched_edition_name.edition_id = edition.id
-        )
-      )
-    )
   ),
-  semantically_eligible_edition_ids as (
-    select candidate.edition_id from game_seed_candidates as candidate
-    union
-    select candidate.edition_id from platform_seed_candidates as candidate
-    union
-    select candidate.edition_id from edition_name_seed_candidates as candidate
+  seed_candidate_documents as (
+    select
+      candidate.seed_kind,
+      candidate.seed_id,
+      candidate.edition_id,
+      game.canonical_title,
+      platform.name as platform_name,
+      candidate.edition_name,
+      case
+        when pg_catalog.lower(game.canonical_title) = normalized_query
+          then 4000.0
+        when pg_catalog.lower(game.canonical_title) like normalized_query || '%'
+          then 3000.0
+            + case
+              when pg_catalog.char_length(normalized_query) >= 3
+                then extensions.similarity(
+                  game.canonical_title,
+                  normalized_query
+                )
+              else 0.0
+            end
+        when pg_catalog.char_length(normalized_query) >= 3
+          and game.canonical_title ilike '%' || normalized_query || '%'
+          then 2000.0
+            + extensions.similarity(game.canonical_title, normalized_query)
+        when pg_catalog.char_length(normalized_query) >= 3
+          and game.canonical_title operator(extensions.%) normalized_query
+          then 1000.0
+            + extensions.similarity(game.canonical_title, normalized_query)
+        else 0.0
+      end as game_phrase_score,
+      case
+        when pg_catalog.lower(platform.name) = normalized_query then 4000.0
+        when pg_catalog.lower(platform.name) like normalized_query || '%'
+          then 3000.0
+            + case
+              when pg_catalog.char_length(normalized_query) >= 3
+                then extensions.similarity(platform.name, normalized_query)
+              else 0.0
+            end
+        when pg_catalog.char_length(normalized_query) >= 3
+          and platform.name ilike '%' || normalized_query || '%'
+          then 2000.0
+            + extensions.similarity(platform.name, normalized_query)
+        when pg_catalog.char_length(normalized_query) >= 3
+          and platform.name operator(extensions.%) normalized_query
+          then 1000.0
+            + extensions.similarity(platform.name, normalized_query)
+        else 0.0
+      end as platform_phrase_score,
+      case
+        when pg_catalog.lower(candidate.edition_name) = normalized_query
+          then 4000.0
+        when pg_catalog.lower(candidate.edition_name)
+          like normalized_query || '%'
+          then 3000.0
+            + case
+              when pg_catalog.char_length(normalized_query) >= 3
+                then extensions.similarity(
+                  candidate.edition_name,
+                  normalized_query
+                )
+              else 0.0
+            end
+        when pg_catalog.char_length(normalized_query) >= 3
+          and candidate.edition_name ilike '%' || normalized_query || '%'
+          then 2000.0
+            + extensions.similarity(candidate.edition_name, normalized_query)
+        when pg_catalog.char_length(normalized_query) >= 3
+          and candidate.edition_name operator(extensions.%) normalized_query
+          then 1000.0
+            + extensions.similarity(candidate.edition_name, normalized_query)
+        else 0.0
+      end as edition_name_phrase_score
+    from seed_edition_candidates as candidate
+    join public.games as game on game.id = candidate.game_id
+    join public.platforms as platform on platform.id = candidate.platform_id
+  ),
+  seed_candidate_token_scores as (
+    select
+      candidate.seed_kind,
+      candidate.seed_id,
+      candidate.edition_id,
+      query_term.value,
+      greatest(
+        case
+          when pg_catalog.lower(candidate.canonical_title) = query_term.value
+            then 4000.0
+          when pg_catalog.char_length(query_term.value) < 3
+            and candidate.game_phrase_score > 0.0
+            and query_term.value = any(
+              pg_catalog.regexp_split_to_array(
+                pg_catalog.lower(candidate.canonical_title),
+                '[^[:alnum:]]+'
+              )
+            )
+            then 4000.0
+          when pg_catalog.lower(candidate.canonical_title)
+            like query_term.value || '%'
+            then 3000.0
+              + case
+                when pg_catalog.char_length(query_term.value) >= 3
+                  then extensions.similarity(
+                    candidate.canonical_title,
+                    query_term.value
+                  )
+                else 0.0
+              end
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.canonical_title ilike '%' || query_term.value || '%'
+            then 2000.0
+              + extensions.similarity(
+                candidate.canonical_title,
+                query_term.value
+              )
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.canonical_title
+              operator(extensions.%) query_term.value
+            then 1000.0
+              + extensions.similarity(
+                candidate.canonical_title,
+                query_term.value
+              )
+          else 0.0
+        end,
+        case
+          when pg_catalog.lower(candidate.platform_name) = query_term.value
+            then 4000.0
+          when pg_catalog.char_length(query_term.value) < 3
+            and candidate.platform_phrase_score > 0.0
+            and query_term.value = any(
+              pg_catalog.regexp_split_to_array(
+                pg_catalog.lower(candidate.platform_name),
+                '[^[:alnum:]]+'
+              )
+            )
+            then 4000.0
+          when pg_catalog.lower(candidate.platform_name)
+            like query_term.value || '%'
+            then 3000.0
+              + case
+                when pg_catalog.char_length(query_term.value) >= 3
+                  then extensions.similarity(
+                    candidate.platform_name,
+                    query_term.value
+                  )
+                else 0.0
+              end
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.platform_name ilike '%' || query_term.value || '%'
+            then 2000.0
+              + extensions.similarity(
+                candidate.platform_name,
+                query_term.value
+              )
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.platform_name
+              operator(extensions.%) query_term.value
+            then 1000.0
+              + extensions.similarity(
+                candidate.platform_name,
+                query_term.value
+              )
+          else 0.0
+        end,
+        case
+          when pg_catalog.lower(candidate.edition_name) = query_term.value
+            then 4000.0
+          when pg_catalog.char_length(query_term.value) < 3
+            and candidate.edition_name_phrase_score > 0.0
+            and query_term.value = any(
+              pg_catalog.regexp_split_to_array(
+                pg_catalog.lower(candidate.edition_name),
+                '[^[:alnum:]]+'
+              )
+            )
+            then 4000.0
+          when pg_catalog.lower(candidate.edition_name)
+            like query_term.value || '%'
+            then 3000.0
+              + case
+                when pg_catalog.char_length(query_term.value) >= 3
+                  then extensions.similarity(
+                    candidate.edition_name,
+                    query_term.value
+                  )
+                else 0.0
+              end
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.edition_name ilike '%' || query_term.value || '%'
+            then 2000.0
+              + extensions.similarity(
+                candidate.edition_name,
+                query_term.value
+              )
+          when pg_catalog.char_length(query_term.value) >= 3
+            and candidate.edition_name
+              operator(extensions.%) query_term.value
+            then 1000.0
+              + extensions.similarity(
+                candidate.edition_name,
+                query_term.value
+              )
+          else 0.0
+        end
+      ) as token_score,
+      greatest(
+        candidate.game_phrase_score,
+        candidate.platform_phrase_score,
+        candidate.edition_name_phrase_score
+      ) as phrase_score
+    from seed_candidate_documents as candidate
+    cross join query_terms as query_term
+  ),
+  semantic_seed_candidates as (
+    select
+      candidate.seed_kind,
+      candidate.seed_id,
+      candidate.edition_id,
+      pg_catalog.sum(candidate.token_score)
+        + pg_catalog.max(candidate.phrase_score) as candidate_score
+    from seed_candidate_token_scores as candidate
+    group by candidate.seed_kind, candidate.seed_id, candidate.edition_id
+    having pg_catalog.bool_and(candidate.token_score > 0.0)
+  ),
+  ranked_semantic_seed_candidates as (
+    select
+      candidate.edition_id,
+      candidate.candidate_score,
+      pg_catalog.row_number() over (
+        partition by candidate.seed_kind, candidate.seed_id
+        order by candidate.candidate_score desc, candidate.edition_id
+      ) as seed_rank
+    from semantic_seed_candidates as candidate
+  ),
+  bounded_semantic_seed_candidates as (
+    select
+      candidate.edition_id,
+      candidate.candidate_score
+    from ranked_semantic_seed_candidates as candidate
+    where candidate.seed_rank <= 200
   ),
   semantic_edition_candidates as (
     select
       candidate.edition_id,
-      (
-        select pg_catalog.sum(
-          greatest(
-            coalesce((
-              select pg_catalog.max(matched_game.match_score)
-              from effective_game_token_matches as matched_game
-              join public.editions as edition
-                on edition.id = candidate.edition_id
-              where matched_game.value = query_term.value
-                and matched_game.game_id = edition.game_id
-            ), 0.0),
-            coalesce((
-              select pg_catalog.max(matched_platform.match_score)
-              from effective_platform_token_matches as matched_platform
-              join public.editions as edition
-                on edition.id = candidate.edition_id
-              where matched_platform.value = query_term.value
-                and matched_platform.platform_id = edition.platform_id
-            ), 0.0),
-            coalesce((
-              select pg_catalog.max(matched_edition_name.match_score)
-              from effective_edition_name_token_matches as matched_edition_name
-              where matched_edition_name.value = query_term.value
-                and matched_edition_name.edition_id = candidate.edition_id
-            ), 0.0)
-          )
-        )
-        from query_terms as query_term
-      ) as candidate_score
-    from semantically_eligible_edition_ids as candidate
+      pg_catalog.max(candidate.candidate_score) as candidate_score
+    from bounded_semantic_seed_candidates as candidate
+    group by candidate.edition_id
   ),
   bounded_edition_candidates as (
     select
