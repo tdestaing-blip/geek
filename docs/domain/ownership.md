@@ -49,9 +49,10 @@ Trade availability is independent from visibility. Initial values are:
 Trade availability does not create a TradeOffer. A Copy may be public but not
 open to trade.
 
-A private Copy cannot be meaningfully discoverable for trade, but the database
-does not enforce visibility and trade availability as a destructive coupling.
-Product behavior may guide users toward making tradeable Copies public.
+Trade availability is explicit discoverability intent independent from general
+Collection visibility. A private Copy marked `open_to_trade` may appear through
+the minimum safe Trade discovery projection, while the owner's other private
+Copies and all private Copy metadata remain inaccessible.
 
 ## Edition components
 

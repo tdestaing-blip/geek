@@ -893,15 +893,39 @@ preferences must never be conflated.
 
 # 13. Search
 
-Search results are projections over domain data.
+Search begins with explicit user intent, such as a Game title, a Platform, or a
+specific Edition. It is distinct from Matching, which will later combine what a
+user owns or wants with reciprocal intent, geography, availability, and other
+ranking signals.
 
-Search does not own canonical catalog or ownership data.
+One search target may lead to several semantically distinct discovery channels:
 
-Search indexes may contain denormalized representations for performance.
+- Catalog: Games and Editions
+- Buy: active fixed-price Listings
+- Auctions: scheduled Auctions that have not reached their end time
+- Trade: Copies explicitly marked `open_to_trade`
+- Collectors: Copies whose Collection visibility is public
 
-The canonical source of truth remains Geek's primary data model.
+These channels must not be collapsed into one generic marketplace result type.
+Visibility and availability remain independent. An active Listing or a Copy
+marked `open_to_trade` is explicit discoverability intent and may be projected
+through a narrowly defined safe result even when the Copy's general Collection
+visibility is private. Collector discovery, by contrast, includes only public
+Copies.
 
-Search indexes must be replaceable and rebuildable.
+Search results are read projections over canonical Game, Edition, Copy,
+Listing, and Auction state. Search does not own canonical catalog, ownership,
+or commercial data. Search projections must return Geek canonical IDs and must
+never use external provider identifiers as identity.
+
+Search must not expose private Copy details, private Wishlist preferences,
+Auction reserve amounts, Bid identities or raw other-user Bids, or exact user
+coordinates. Shipping capability does not currently encode destination
+coverage and must not be treated as a proximity restriction.
+
+A future external search index may contain denormalized representations for
+performance, but it must be replaceable, rebuildable, privacy-reviewed before
+projection, and subordinate to PostgreSQL as the canonical source of truth.
 
 ---
 
