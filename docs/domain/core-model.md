@@ -432,12 +432,14 @@ Geek must prevent another sale or accepted trade involving the same
 Copy.
 
 Geek uses one internal commercial commitment per Copy to coordinate supported
-sale mechanisms. This is infrastructure rather than a user-facing marketplace
-object. Initially, active or reserved Listings and scheduled or won Auctions
-hold the commitment. Draft and historical mechanisms do not.
+ownership-transfer mechanisms. This is infrastructure rather than a user-facing
+marketplace object. Active or reserved Listings, scheduled or won Auctions, and
+accepted TradeOffers hold the commitment. Draft Listings, draft Auctions,
+pending TradeOffers, and historical mechanisms do not.
 
-The commitment prevents conflicting Listing and Auction supply and blocks Copy
-ownership transfer while the Copy is commercially committed.
+The commitment prevents conflicting direct-sale, Auction, and accepted Trade
+supply and blocks Copy ownership transfer while the Copy is commercially
+committed.
 
 ---
 
@@ -682,29 +684,64 @@ The agreed commercial values must be preserved on the Order.
 
 ## TradeOffer
 
-A TradeOffer represents a proposed exchange between two users.
+A TradeOffer represents an explicit proposal from one user to another to
+exchange one or more physical Copies.
 
 A TradeOffer contains two sides:
 
-Party A offers:
+The proposer offers:
 
 - one or more Copies
-- optional monetary compensation
 
-Party B offers:
+The recipient is asked to offer:
 
 - one or more Copies
-- optional monetary compensation
 
-A TradeOffer may therefore represent:
+A TradeOffer may also contain one optional positive monetary adjustment paid
+in either direction. It therefore may represent:
 
 - one Copy for one Copy
 - multiple Copies for one Copy
 - multiple Copies for multiple Copies
 - Copy plus money for Copy
-- other balanced combinations supported by future product rules
 
 Trade must never be modeled as inherently one-to-one.
+
+---
+
+## TradeOffer lifecycle
+
+Initial TradeOffer statuses are:
+
+- pending: the proposal exists, but no Copy is reserved
+- accepted: the recipient accepted and every involved Copy is reserved by this
+  TradeOffer
+- declined: the recipient rejected the proposal
+- cancelled: the proposer withdrew the proposal before acceptance
+- expired: the pending proposal's optional expiration time passed
+
+The proposer may transition a pending TradeOffer to cancelled. The recipient
+may transition a pending TradeOffer to declined or accepted. Trusted Geek
+infrastructure may transition a pending TradeOffer to expired. No other
+transition is initially valid.
+
+TradeOffer terms are immutable after creation. Changing the participants,
+Copies, monetary adjustment, or expiration requires cancelling the pending
+offer and creating another one. Counter offers are not implemented.
+
+A pending TradeOffer holds no reservation or commercial commitment. Multiple
+pending TradeOffers may reference the same Copy, and a pending offer may become
+stale as ownership, trade availability, or commercial commitments change.
+
+Accepting a TradeOffer revalidates every Copy and atomically reserves all
+involved Copies through Geek's shared Copy commitment infrastructure. Partial
+acceptance is invalid. An accepted TradeOffer does not transfer ownership,
+create a TradeMeeting, or prove that an exchange occurred.
+
+A TradeOffer does not need to originate from Matching and does not depend on
+Wishlist state after creation. Matching is derived discovery; a TradeOffer is
+an explicit proposal defined by its participants, Copies, optional monetary
+adjustment, and lifecycle.
 
 ---
 
@@ -723,7 +760,10 @@ An accepted TradeOffer reserves the participating Copies.
 
 Ownership transfers only when the trade is successfully completed.
 
-The exact reservation and expiration rules will be specified later.
+Future TradeCompletion must atomically validate an accepted TradeOffer and its
+commitments, release or transition its reservations, transfer the Copies in
+both directions, preserve TradeOffer history, and create TradeCompletion
+history. TradeCompletion is not implemented by the TradeOffer foundation.
 
 ---
 
@@ -1132,7 +1172,8 @@ This document deliberately does NOT decide:
 - pricing provider
 - shipping provider
 - ownership-event persistence strategy
-- additional commercial commitment mechanisms beyond Listing and Auction
+- additional commercial commitment mechanisms beyond Listing, Auction, and
+  accepted TradeOffer
 - proxy/max bidding
 - automatic bid extension
 - dispute mechanics
