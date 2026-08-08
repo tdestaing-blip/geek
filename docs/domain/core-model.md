@@ -775,25 +775,48 @@ architecture is designed.
 
 Geek distinguishes:
 
-## Private location
+## PrivateUserLocation
 
-Precise location data owned by a user.
+PrivateUserLocation represents a user-supplied location used for discovery and
+distance calculations.
 
-Never public.
+It may eventually originate from device location, postal-code geocoding, a
+manually selected map position, or city selection. The origin mechanism is not
+defined yet.
 
-## Discovery area
+Precise coordinates are private account and discovery infrastructure. They do
+not belong to public Profile identity and must never be exposed through public
+profiles, public table reads, public API payloads, analytics, logs, or
+client-facing search indexes.
 
-An intentionally approximate representation used for:
+## Discovery presentation
 
-- nearby search
-- collection matching
-- distance estimation
+Public product surfaces may eventually expose derived values such as
+approximate distance, city or broad area, or "near you." These presentation
+values are not equivalent to exact stored coordinates. Clients must not need
+another user's coordinates merely to display nearby results.
 
-## Meeting location
+## TradeMeetingLocation
 
-A location explicitly proposed and agreed upon for a specific trade.
+TradeMeetingLocation will represent a location explicitly proposed and agreed
+upon for one Trade. It is deliberately not implemented yet and must remain
+separate from PrivateUserLocation.
 
-These three concepts must never be conflated.
+A user's private discovery location must never become a meeting location
+without explicit user action.
+
+## Radius
+
+A search or trade radius is a preference, not a location. Wishlist maximum
+trade distance is one example.
+
+## Location freshness
+
+A PrivateUserLocation may eventually record its source, user confirmation, and
+last-updated timestamp. Automatic freshness behavior is deliberately deferred.
+
+Private location, derived discovery presentation, meeting location, and radius
+preferences must never be conflated.
 
 ---
 
