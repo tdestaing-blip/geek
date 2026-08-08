@@ -82,6 +82,12 @@ These statuses are system-managed:
 - `sold`
 - `expired`
 
+Although `reserved` is system-managed, it remains an open commercial
+commitment tied to the Copy's current owner. Entering or remaining `reserved`
+requires current Copy ownership; trusted system authority does not bypass that
+integrity rule. A historical Listing whose seller no longer owns the Copy
+cannot be moved back to `reserved`.
+
 Normal clients cannot set system-managed statuses or modify other commercial
 fields on a Listing that is already in a system-managed status. Future trusted
 transaction and expiration workflows will manage those states. This foundation
@@ -103,9 +109,10 @@ A Copy may have at most one Listing in `active` or `reserved` state at a time.
 Historical, draft, and closed Listings may coexist with a later active Listing.
 
 The database validates that the Listing seller owns its Copy when the Listing
-identity is created or changed and whenever a seller-managed Listing is
-modified. A historical seller who no longer owns the Copy cannot edit or
-reactivate an old draft, paused, or withdrawn Listing.
+identity is created or changed, whenever a seller-managed Listing is modified,
+and whenever an update results in `reserved`. A historical seller who no longer
+owns the Copy cannot edit or reactivate an old draft, paused, or withdrawn
+Listing and cannot move historical sold or expired history back to `reserved`.
 
 An active or reserved Listing is an open commercial commitment and blocks Copy
 ownership transfer. Historical draft, paused, withdrawn, expired, and sold

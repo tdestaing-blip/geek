@@ -67,7 +67,7 @@ begin
     ownership_validation_required := true;
   elsif new.copy_id is distinct from old.copy_id
     or new.seller_id is distinct from old.seller_id
-    or new.status in ('draft', 'active', 'paused', 'withdrawn') then
+    or new.status in ('draft', 'active', 'paused', 'withdrawn', 'reserved') then
     ownership_validation_required := true;
   end if;
 
