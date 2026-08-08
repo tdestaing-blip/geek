@@ -19,9 +19,9 @@ Geek will use PostgreSQL PostGIS for canonical geographic distance operations.
 Exact user discovery coordinates will be stored in a dedicated private table.
 Normal client roles receive no direct SELECT privilege on exact coordinates.
 
-Geographic discovery will later be exposed through controlled server-side
-queries or functions that return only the data required by the product
-experience, such as compatible result IDs and derived distance.
+Geographic discovery is exposed only through controlled server-side queries or
+functions that return the data required by the product experience, such as
+compatible result IDs and intentionally coarse distance.
 
 `distance_from_me_to_user(target_user_id)` is an internal database primitive.
 Normal clients cannot execute arbitrary user-to-user distance lookup, and the
@@ -30,7 +30,12 @@ Matching will expose an authorized higher-level operation that first decides
 which users or results are discoverable and only then returns derived distance.
 Exact target coordinates remain inaccessible.
 
-The initial schema prepares this architecture without implementing matching.
+Reciprocal trade Matching implements this architecture by deriving an ephemeral
+precision-6 geohash-cell centroid from each exact private location. All
+authoritative Matching radius, bucket, and ordering decisions use those derived
+locations. Clients cannot read or write them. Exact points may participate only
+in a conservatively expanded indexed prefilter that cannot exclude a pair
+admitted by the coarse predicate.
 
 ## Why not coordinates on profiles
 
@@ -53,3 +58,8 @@ nearby discovery.
 Low-level distance computation does not establish product-level authorization
 to discover another user. Future search and matching workflows must add those
 eligibility rules before exposing results.
+
+Approximation is an intentional privacy boundary, not perfect anonymity. A
+Matching result can disclose an intentionally discoverable user's approximate
+cell, and cell-boundary changes can be observable, but exact locations within a
+cell must remain indistinguishable to Matching.

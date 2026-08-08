@@ -1,3 +1,49 @@
+create or replace function public.derive_matching_location(
+  exact_location extensions.geography
+)
+returns extensions.geography
+language sql
+immutable
+strict
+parallel safe
+set search_path = ''
+as $$
+  with coordinate as (
+    select
+      extensions.st_x(exact_location::extensions.geometry) as longitude,
+      extensions.st_y(exact_location::extensions.geometry) as latitude
+  )
+  select extensions.st_setsrid(
+    extensions.st_makepoint(
+      -180.0 + (
+        least(
+          pg_catalog.floor(
+            (coordinate.longitude + 180.0) / 0.010986328125
+          )::integer,
+          32767
+        ) + 0.5
+      ) * 0.010986328125,
+      -90.0 + (
+        least(
+          pg_catalog.floor(
+            (coordinate.latitude + 90.0) / 0.0054931640625
+          )::integer,
+          32767
+        ) + 0.5
+      ) * 0.0054931640625
+    ),
+    4326
+  )::extensions.geography
+  from coordinate;
+$$;
+
+revoke all on function public.derive_matching_location(extensions.geography)
+from public;
+revoke all on function public.derive_matching_location(extensions.geography)
+from anon;
+revoke all on function public.derive_matching_location(extensions.geography)
+from authenticated;
+
 create or replace function public.get_reciprocal_trade_matches(
   max_distance_km integer default 25,
   result_limit integer default 20,
@@ -19,6 +65,8 @@ as $$
 declare
   caller_user_id uuid := auth.uid();
   caller_location extensions.geography;
+  caller_matching_location extensions.geography;
+  coarse_prefilter_margin_meters constant double precision := 1500.0;
   requested_distance_meters double precision;
 begin
   if caller_user_id is null then
@@ -58,6 +106,8 @@ begin
       message = 'A discovery location is required for reciprocal trade matching.';
   end if;
 
+  caller_matching_location := public.derive_matching_location(caller_location);
+
   requested_distance_meters := max_distance_km::double precision * 1000.0;
 
   return query
@@ -95,17 +145,27 @@ begin
     select pg_catalog.count(*)::integer as want_count
     from my_active_trade_wants
   ),
-  nearby_user_distances as materialized (
+  nearby_location_candidates as materialized (
     select
       location.user_id as counterpart_id,
-      extensions.st_distance(caller_location, location.location) as distance_meters
+      public.derive_matching_location(location.location)
+        as counterpart_matching_location
     from public.user_discovery_locations as location
     where location.user_id <> caller_user_id
       and extensions.st_dwithin(
         location.location,
         caller_location,
-        requested_distance_meters
+        requested_distance_meters + coarse_prefilter_margin_meters
       )
+  ),
+  nearby_user_distances as materialized (
+    select
+      candidate.counterpart_id,
+      extensions.st_distance(
+        caller_matching_location,
+        candidate.counterpart_matching_location
+      ) as distance_meters
+    from nearby_location_candidates as candidate
   ),
   nearby_users as materialized (
     select

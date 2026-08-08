@@ -33,10 +33,24 @@ remain exact. Both reciprocal directions must exist.
 ## Geographic privacy boundary
 
 The matching operation is the higher-level authorized geographic operation
-anticipated by ADR 0002. It uses `ST_DWithin` against private geography, accepts
-no target user ID, and exposes only fixed coarse distance buckets. Exact
-coordinates and exact distance are not returned or used as a ranking
+anticipated by ADR 0002. It accepts no target user ID and exposes only fixed
+coarse distance buckets. Exact coordinates and exact user-to-user distance are
+not returned, used for authoritative eligibility, or used as a ranking
 tie-breaker.
+
+For every request, PostgreSQL converts the caller's and each candidate's exact
+private discovery location to the centroid of its precision-6 geohash cell.
+This server-derived Matching location is ephemeral: it is neither persisted nor
+client-writable. Precision 6 produces neighborhood-scale cells approximately
+0.78–0.89 kilometers wide and 0.61 kilometers high at representative French
+latitudes.
+
+All authoritative radius, bucket, and ordering decisions use distance between
+the two Matching locations. The existing exact-location GiST index remains
+useful through an `ST_DWithin` candidate prefilter expanded by 1.5 kilometers.
+That margin exceeds twice the maximum precision-6 center-to-corner displacement
+(about 0.683 kilometers at the equator), so the prefilter is a superset of the
+coarse predicate rather than a correctness boundary.
 
 The caller may request only the same fixed boundaries used by presentation: 2,
 5, 10, 25, 50, 100, or 200 kilometers. Arbitrary radius probes are rejected
@@ -56,12 +70,21 @@ A counterpart's private maximum distance is deliberately not consulted because
 bilateral private-distance semantics have not been established and the private
 threshold could become inferable.
 
-Coarse buckets are a risk reduction, not a claim of perfect anonymity. Results
-still reveal that an intentionally discoverable reciprocal user is within a
-known coarse boundary. Repeated caller-location changes retain some
-triangulation risk even though neither the RPC parameter nor a private Wishlist
-maximum provides finer-than-bucket probes. Future controls may include rate
-limits and location-write policies; they are not part of this decision.
+Coarse locations and buckets are a risk reduction, not a claim of perfect
+anonymity. Results still reveal that an intentionally discoverable reciprocal
+user is within a known coarse boundary, and observations from many caller cells
+may reveal the target's approximate Matching cell. Exact locations within one
+cell are indistinguishable to Matching, so meter-level caller movement cannot
+recreate the chosen-origin triangulation oracle. Crossing a cell boundary can
+discretely change results. Future controls may include rate limits and
+location-write policies; they remain complementary and are not part of this
+decision.
+
+Centroid-based geography intentionally trades accuracy for privacy. Near a
+selected radius, a user's exact physical separation and Matching separation can
+fall on opposite sides of the boundary. This bounded false-positive or
+false-negative behavior is accepted for local discovery; returned buckets are
+approximate and make no exact-distance claim.
 
 ## Security boundary
 
