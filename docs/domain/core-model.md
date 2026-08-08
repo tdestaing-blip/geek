@@ -440,15 +440,22 @@ The exact technical locking mechanism will be defined later.
 
 ## Listing
 
-A Listing represents an owner's explicit intent to sell a Copy at a
-defined direct-sale price.
+A Listing represents explicit intent by the current owner of one Copy to sell
+that Copy for a fixed asking price.
 
-A Listing references a specific Copy.
+A Listing is not the Copy. A Copy may exist without a Listing, and removing or
+closing a Listing does not remove the Copy.
 
-The Listing does not own the physical object.
+A Listing references exactly one Copy. The seller must own that Copy when the
+Listing is created. Creating a Listing does not transfer ownership; the Copy's
+current owner remains authoritative.
 
-The Copy remains owned by the seller until the relevant ownership
-transfer is completed.
+The Listing preserves the seller identity established at creation. After a
+legitimate future ownership transfer, a historical Listing's seller does not
+need to equal the Copy's new current owner.
+
+One Copy may have at most one active or reserved direct-sale Listing at a time.
+Historical, draft, or otherwise closed Listings may coexist.
 
 Conceptual properties may include:
 
@@ -456,17 +463,25 @@ Conceptual properties may include:
 - copy
 - seller
 - asking price
-- currency
-- offers allowed
-- fulfillment options
-- local availability
+- local pickup availability
 - shipping availability
 - published timestamp
 - status
 
-Listing price is not an intrinsic property of the Copy.
+The asking price is a Money value with an integer minor amount and explicit
+currency. It belongs to the Listing, not the Copy. Estimated market value and
+the owner's private purchase price remain separate concepts.
 
-Changing or removing a Listing must not destroy the Copy.
+A Listing may support local pickup, shipping, or both. An active Listing must
+support at least one of them. Local pickup does not mean that the Listing is
+only discoverable locally, and buyer geography does not belong on Listing.
+
+Seller coordinates must never be copied into Listing. Future local-sale
+discovery derives locality through controlled geographic infrastructure.
+
+Changing, closing, or removing a Listing must not destroy the Copy. Direct
+client deletion is not supported, and Listings that participate in commercial
+history must not be destructively deleted.
 
 ---
 
@@ -482,11 +497,28 @@ Conceptually, a Listing may move through states such as:
 - expired
 - withdrawn
 
-The final state machine will be specified separately.
+Draft Listings are not publicly available. Active Listings are available for
+purchase. Reserved Listings are temporarily committed to an in-progress
+transaction. Paused, expired, and withdrawn Listings are unavailable but
+retained. Sold means a commercial transaction consumed the Listing.
+
+Normal sellers may manage draft, active, paused, and withdrawn states. Reserved,
+sold, and expired are system-managed states that require trusted workflows.
+Normal clients cannot modify a Listing while it is in a system-managed state.
 
 A sold Listing must not automatically imply successful fulfillment.
 
 That belongs to the Order lifecycle.
+
+An active Listing may need a future marketplace projection that exposes the
+associated Copy's public-safe marketplace data even when the owner's collection
+visibility is private. That concern must not make private Copy metadata public
+or globally change Copy privacy semantics.
+
+Future Search must distinguish active direct-sale Listings from tradeable
+Copies and Auctions. Shipping-enabled Listings may be considered beyond local
+proximity, while local Listings may be ranked or filtered using controlled
+seller geography.
 
 ---
 
