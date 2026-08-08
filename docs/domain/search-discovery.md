@@ -36,6 +36,20 @@ Ranking is deterministic and favors exact matches, then prefixes, then
 substring and trigram similarity. It does not use popularity, personalization,
 or recommendation signals.
 
+Catalog queries are normalized by trimming outer whitespace, collapsing
+repeated whitespace, and lowercasing before search. A normalized query is
+limited to 120 characters and eight distinct tokens. Repeated tokens are
+deduplicated before candidate expansion. Tokens shorter than three characters
+use only indexed exact and prefix matching; substring and trigram expansion
+require at least three characters. This keeps short identifiers such as `F1`
+useful without allowing one- or two-character fuzzy fan-out.
+
+Candidate expansion is capped at 200 strongest Edition candidates for each
+token and searched field, with the same cap for each full-phrase field branch
+and Game candidates. The cap bounds intermediate work before final pagination;
+200 is large enough for useful multi-field recall at the current Catalog scale
+while preventing result limits from hiding unbounded candidate generation.
+
 ## Buy
 
 Buy discovery contains only active fixed-price Listings. A Listing is explicit
@@ -101,7 +115,9 @@ the Game. With an Edition target, results are restricted to that exact Edition.
 An Edition that does not belong to the supplied Game is rejected rather than
 silently producing misleading results.
 
-Results use bounded offset pagination and deterministic ordering. Search does
+Results use bounded offset pagination and deterministic ordering. The offset is
+validated but not given an arbitrary ceiling; large-offset usage should be
+observed and may move to cursor pagination when scale justifies it. Search does
 not calculate proximity, currency conversion, cheapest cross-currency price,
 estimated market value, or shipping territory.
 

@@ -73,6 +73,14 @@ The initial search path is simple, transactional with canonical state, and easy
 to validate. Trigram indexes improve common Catalog title and label lookups,
 while bounded pagination limits query and payload size.
 
+Public Catalog search also has explicit complexity boundaries: normalized
+queries are limited to 120 characters and eight distinct tokens, duplicate
+tokens are removed before expansion, tokens below three characters use indexed
+exact/prefix matching instead of fuzzy expansion, and every token/field or
+phrase/field candidate branch is capped at 200 strongest candidates. These
+bounds apply before final result pagination because a small response limit does
+not itself bound intermediate search work.
+
 Joined multi-field Edition search and aggregate discovery remain live
 PostgreSQL reads. They are appropriate for the current stage, but query plans
 and traffic must be observed as Catalog and marketplace volume grow. A future
