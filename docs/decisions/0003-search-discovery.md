@@ -76,10 +76,16 @@ while bounded pagination limits query and payload size.
 Public Catalog search also has explicit complexity boundaries: normalized
 queries are limited to 120 characters and eight distinct tokens, duplicate
 tokens are removed before expansion, tokens below three characters use indexed
-exact/prefix matching instead of fuzzy expansion, and every token/field or
-phrase/field candidate branch is capped at 200 strongest candidates. These
-bounds apply before final result pagination because a small response limit does
-not itself bound intermediate search work.
+exact/prefix matching instead of fuzzy expansion, and textual Game, Platform,
+and Edition-name match sets are capped at 200 strongest canonical entities.
+Edition token satisfaction is resolved afterward through canonical Game and
+Platform relationships. Each canonical entity seed is capped at 200 Editions
+only after its Editions pass the complete all-token semantic test, and the
+combined semantically eligible set receives a final 200-Edition cap before
+result ranking. An exactly matched Game or Platform's membership is not
+truncated before semantic intersection. These bounds apply before final result
+pagination because a small response limit does not itself bound intermediate
+search work.
 
 Joined multi-field Edition search and aggregate discovery remain live
 PostgreSQL reads. They are appropriate for the current stage, but query plans

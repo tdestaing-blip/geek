@@ -44,11 +44,20 @@ use only indexed exact and prefix matching; substring and trigram expansion
 require at least three characters. This keeps short identifiers such as `F1`
 useful without allowing one- or two-character fuzzy fan-out.
 
-Candidate expansion is capped at 200 strongest Edition candidates for each
-token and searched field, with the same cap for each full-phrase field branch
-and Game candidates. The cap bounds intermediate work before final pagination;
-200 is large enough for useful multi-field recall at the current Catalog scale
-while preventing result limits from hiding unbounded candidate generation.
+Candidate bounding follows canonical entity boundaries. Each token produces at
+most 200 strongest textual matches independently for Games, Platforms, and
+Edition names. Exact matches precede prefixes, substrings, and trigram matches,
+with canonical UUIDs providing deterministic tie-breaking.
+
+Edition eligibility is then derived through `Edition.game_id` and
+`Edition.platform_id`. Every distinct token must match at least one of the
+Edition's Game, Platform, or Edition-name dimensions; different tokens may be
+satisfied by different dimensions. Membership of an exactly matched Game or
+Platform is never truncated before applying this all-token semantic test. Each
+canonical entity seed retains at most 200 Editions after that test, and their
+union receives a final deterministic 200-Edition cap before result ranking.
+This bounds relationship fan-out and final ranking work without sacrificing
+normal cross-field recall such as `Zelda GameCube`.
 
 ## Buy
 
