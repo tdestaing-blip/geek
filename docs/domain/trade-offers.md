@@ -25,7 +25,6 @@ Julie gives:
 A TradeOffer:
 
 - does not transfer ownership
-- does not create a TradeMeeting
 - does not prove completion
 - does not need to originate from a reciprocal Match
 - does not depend on Wishlist state after creation
@@ -165,8 +164,8 @@ It also blocks ownership transfer while an accepted TradeOffer holds a Copy.
 Deterministic Copy-first locking serializes overlapping acceptances and avoids
 arbitrary multi-Copy lock order.
 
-Acceptance does not transfer ownership, create a TradeMeeting, or prove the
-physical exchange occurred.
+Acceptance does not transfer ownership or prove the physical exchange occurred.
+Participants coordinate the exchange itself in their Conversation.
 
 ## Cancellation, decline, and expiration
 
@@ -221,5 +220,7 @@ The current ownership-transfer guard blocks transfer while commitments exist.
 Future completion must therefore release or transition the relevant
 `trade_offer` commitments and transfer ownership inside one transaction.
 
-TradeMeeting, TradeCompletion, ownership transfer, messaging, negotiation,
-counter offers, payment, escrow, shipping, and notifications remain deferred.
+TradeCompletion, ownership transfer, negotiation, counter offers, payment,
+escrow, shipping, and notifications remain deferred. A TradeOffer may be
+referenced from the Conversation between its two participants; that reference
+belongs to the Messaging domain and never duplicates offer terms or status.

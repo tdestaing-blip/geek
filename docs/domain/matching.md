@@ -156,6 +156,6 @@ TradeOffer, reservation, commercial commitment, negotiation, meeting, or
 ownership transfer. It may disappear immediately when a Wishlist, Copy,
 ownership, trade availability, visibility, or discovery location changes.
 
-TradeOffer, TradeMeeting, completion, value balancing, notifications, and
+TradeOffer, completion, value balancing, notifications, and
 recommendations unrelated to explicit reciprocal Wishlist intent remain
 deferred.

@@ -10,7 +10,7 @@ It is intentionally independent from database implementation.
 
 ## 1. Domain boundaries
 
-Geek has four primary domain areas:
+Geek has five primary domain areas:
 
 ### Catalog
 
@@ -53,8 +53,17 @@ Describes direct exchanges between users.
 Core concepts:
 
 - TradeOffer
-- TradeMeeting
 - TradeCompletion
+
+### Communication
+
+Describes how two users coordinate a trade inside Geek.
+
+Core concepts:
+
+- Conversation
+- Message
+- ConversationTradeOffer
 
 These domains may reference each other but must not be conflated.
 
@@ -735,8 +744,8 @@ stale as ownership, trade availability, or commercial commitments change.
 
 Accepting a TradeOffer revalidates every Copy and atomically reserves all
 involved Copies through Geek's shared Copy commitment infrastructure. Partial
-acceptance is invalid. An accepted TradeOffer does not transfer ownership,
-create a TradeMeeting, or prove that an exchange occurred.
+acceptance is invalid. An accepted TradeOffer does not transfer ownership or
+prove that an exchange occurred.
 
 A TradeOffer does not need to originate from Matching and does not depend on
 Wishlist state after creation. Matching is derived discovery; a TradeOffer is
@@ -767,24 +776,15 @@ history. TradeCompletion is not implemented by the TradeOffer foundation.
 
 ---
 
-## TradeMeeting
+## Trade coordination
 
-A TradeMeeting represents the agreed logistics for a local physical
-exchange.
+Geek has no TradeMeeting object. Participants coordinate a local physical
+exchange inside the Conversation they already share.
 
-It is separate from the users' private home locations.
-
-Conceptual properties may include:
-
-- agreed public meeting place
-- approximate area
-- agreed date and time
-- participant confirmations
-- status
-
-A meeting location must be explicitly agreed upon by participants.
-
-User home coordinates are never exposed as part of this object.
+Logistics such as where and when to meet are user-authored message content
+agreed between the two participants. Geek does not model a meeting as canonical
+state, does not derive a meeting place from either user's private location, and
+never exposes home coordinates for coordination purposes.
 
 ---
 
@@ -808,7 +808,52 @@ Those mechanics are not defined here.
 
 ---
 
-# 9. Money
+# 9. Messaging
+
+Messaging exists so two collectors can coordinate a trade inside Geek without
+disclosing a phone number, an email address, or an exact personal location.
+
+The product flow is Matching or Discovery, then Conversation, then TradeOffer,
+then Conversation coordination, then future TradeCompletion.
+
+## Conversation
+
+A Conversation is a private one-to-one channel between exactly two users.
+Exactly one canonical Conversation exists per unordered user pair, and its
+participants are immutable historical identity. A Conversation holds no messages
+and no trade state of its own, and a user cannot open one with themselves.
+
+A Conversation is not a Match, not a TradeOffer, and not a commercial
+commitment. Messaging creates no reservation and no ownership effect.
+
+## Message
+
+A Message is immutable, user-authored, plain-text communication belonging to one
+Conversation. Its sender must be one of the two participants. History is
+append-only and ordered by server-authoritative creation time.
+
+## ConversationTradeOffer
+
+A ConversationTradeOffer is an immutable reference connecting an existing
+TradeOffer to the Conversation between those same two participants. It stores
+only the reference; TradeOffer status and terms remain canonical in the Trade
+domain and must never be duplicated into Messaging.
+
+A TradeOffer may appear in at most one Conversation, while a Conversation may
+accumulate many TradeOffers over time.
+
+## Contact policy
+
+The messaging foundation lets any authenticated user contact any other Geek
+profile. That is deliberately minimal and is not sufficient for public launch.
+Contact gating, blocking, reporting, rate limits, spam controls, and moderation
+are required safety work before Geek opens messaging publicly.
+
+Messaging specifics are defined in the Messaging domain document.
+
+---
+
+# 10. Money
 
 Money is a value object.
 
@@ -835,7 +880,7 @@ conversion operation is performed.
 
 ---
 
-# 10. Ownership
+# 11. Ownership
 
 Ownership is a critical domain fact.
 
@@ -860,7 +905,7 @@ auditability.
 
 ---
 
-# 11. Reservations
+# 12. Reservations
 
 A reservation prevents the same Copy from being committed to multiple
 incompatible transactions.
@@ -881,7 +926,7 @@ architecture is designed.
 
 ---
 
-# 12. Geographic concepts
+# 13. Geographic concepts
 
 Geek distinguishes:
 
@@ -906,14 +951,14 @@ approximate distance, city or broad area, or "near you." These presentation
 values are not equivalent to exact stored coordinates. Clients must not need
 another user's coordinates merely to display nearby results.
 
-## TradeMeetingLocation
+## Agreed meeting place
 
-TradeMeetingLocation will represent a location explicitly proposed and agreed
-upon for one Trade. It is deliberately not implemented yet and must remain
-separate from PrivateUserLocation.
+A meeting place for one Trade is agreed by the participants as message content
+inside their Conversation. It is not a Geek-modelled location object and must
+remain entirely separate from PrivateUserLocation.
 
-A user's private discovery location must never become a meeting location
-without explicit user action.
+A user's private discovery location must never become a meeting place, and Geek
+must never derive or suggest one from it.
 
 ## Radius
 
@@ -930,7 +975,7 @@ preferences must never be conflated.
 
 ---
 
-# 13. Search
+# 14. Search
 
 Search begins with explicit user intent, such as a Game title, a Platform, or a
 specific Edition. It is distinct from Matching, which will later combine what a
@@ -968,7 +1013,7 @@ projection, and subordinate to PostgreSQL as the canonical source of truth.
 
 ---
 
-# 14. Matching
+# 15. Matching
 
 Matching answers a personalized opportunity question from canonical current
 state. It is distinct from Search, which begins with an explicit Catalog query.
@@ -996,7 +1041,7 @@ deliberately not used.
 
 ---
 
-# 15. Pricing
+# 16. Pricing
 
 Geek distinguishes:
 
@@ -1024,7 +1069,7 @@ purchase values.
 
 ---
 
-# 16. External market data
+# 17. External market data
 
 External pricing information is evidence used to generate estimates.
 
@@ -1037,7 +1082,7 @@ remain distinguishable.
 
 ---
 
-# 17. Privacy
+# 18. Privacy
 
 A Copy can contain both public and private information.
 
@@ -1054,7 +1099,7 @@ Making a Copy public must never automatically expose all Copy fields.
 
 ---
 
-# 18. Identity and IDs
+# 19. Identity and IDs
 
 Geek owns canonical identity for all internal domain objects.
 
@@ -1066,7 +1111,7 @@ The concrete ID format is deliberately not specified in this document.
 
 ---
 
-# 19. Core relationships
+# 20. Core relationships
 
 Conceptually:
 
@@ -1115,15 +1160,21 @@ references one Copy
 TradeOffer
 proposes exchange of multiple Copies between two users
 
-TradeMeeting
-coordinates local fulfillment of an accepted TradeOffer
-
 TradeCompletion
 confirms successful exchange and ownership transfer
 
+Conversation
+connects exactly two users as one canonical private channel
+
+Message
+belongs to one Conversation and is authored by one participant
+
+ConversationTradeOffer
+references one TradeOffer from the Conversation between the same two users
+
 ---
 
-# 20. Important non-equivalences
+# 21. Important non-equivalences
 
 The following concepts must never be treated as equivalent:
 
@@ -1149,6 +1200,10 @@ Reservation != Ownership
 
 Trade acceptance != Trade completion
 
+Conversation != TradeOffer
+
+Message != TradeOffer state
+
 Approximate discovery location != Exact user location
 
 External provider identity != Geek identity
@@ -1157,7 +1212,7 @@ These distinctions are foundational.
 
 ---
 
-# 21. Deferred decisions
+# 22. Deferred decisions
 
 This document deliberately does NOT decide:
 
@@ -1184,7 +1239,7 @@ These decisions require separate specifications.
 
 ---
 
-# 22. Domain design rule
+# 23. Domain design rule
 
 When adding future functionality, ask:
 

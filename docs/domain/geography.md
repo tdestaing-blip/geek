@@ -42,14 +42,14 @@ These values are presentation projections, not exact stored coordinates.
 Clients must not require another user's precise coordinates merely to render
 nearby results.
 
-## TradeMeetingLocation
+## Agreed meeting place
 
-TradeMeetingLocation is deliberately not implemented here. It will represent a
-location explicitly proposed and agreed upon for one Trade.
+Geek does not model a meeting location. Participants agree where to meet as
+message content inside their Conversation.
 
-It must remain semantically separate from PrivateUserLocation. Geek must never
-reuse a user's private discovery location as a meeting location without
-explicit user action.
+An agreed meeting place must remain semantically separate from
+PrivateUserLocation. Geek must never reuse, derive, or suggest a user's private
+discovery location as a meeting place.
 
 ## Radius
 
@@ -124,10 +124,10 @@ location-write policies remain useful future abuse controls.
 
 ## Deferred behavior
 
-This foundation does not implement geocoding, routing, maps, live or background
-location, or TradeMeetingLocation. Reciprocal trade matching uses discovery
-locations only for eligibility and coarse presentation; a discovery location
-must never become a TradeMeetingLocation without explicit user action.
+This foundation does not implement geocoding, routing, maps, or live or
+background location. Reciprocal trade matching uses discovery locations only for
+eligibility and coarse presentation; a discovery location must never become an
+agreed meeting place.
 
 Future search providers may consume coarse or derived projections, but exact
 private location remains canonical in PostgreSQL and must not be copied into
