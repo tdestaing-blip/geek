@@ -14,6 +14,12 @@ importers:
       "@geek/config":
         specifier: workspace:*
         version: link:packages/config
+      "@supabase/ssr":
+        specifier: 0.12.4
+        version: 0.12.4(@supabase/supabase-js@2.112.2)
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
       eslint:
         specifier: 9.39.5
         version: 9.39.5(supports-color@8.1.1)
@@ -29,6 +35,15 @@ importers:
 
   apps/admin:
     dependencies:
+      "@geek/supabase":
+        specifier: workspace:*
+        version: link:../../packages/supabase
+      "@supabase/ssr":
+        specifier: 0.12.4
+        version: 0.12.4(@supabase/supabase-js@2.112.2)
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
       next:
         specifier: 16.3.0
         version: 16.3.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@26.1.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -60,6 +75,15 @@ importers:
 
   apps/mobile:
     dependencies:
+      "@geek/supabase":
+        specifier: workspace:*
+        version: link:../../packages/supabase
+      "@react-native-async-storage/async-storage":
+        specifier: 3.1.1
+        version: 3.1.1(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
       expo:
         specifier: 57.0.11
         version: 57.0.11(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@57.0.1)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)
@@ -85,6 +109,15 @@ importers:
 
   apps/web:
     dependencies:
+      "@geek/supabase":
+        specifier: workspace:*
+        version: link:../../packages/supabase
+      "@supabase/ssr":
+        specifier: 0.12.4
+        version: 0.12.4(@supabase/supabase-js@2.112.2)
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
       next:
         specifier: 16.3.0
         version: 16.3.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@26.1.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -149,6 +182,22 @@ importers:
         version: 6.0.3
 
   packages/domain:
+    devDependencies:
+      "@geek/config":
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5(supports-color@8.1.1)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  packages/supabase:
+    dependencies:
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
     devDependencies:
       "@geek/config":
         specifier: workspace:*
@@ -1553,6 +1602,15 @@ packages:
       }
     engines: { node: ">=12.4.0" }
 
+  "@react-native-async-storage/async-storage@3.1.1":
+    resolution:
+      {
+        integrity: sha512-z+PnLz1n6ECKhgoHZHkfc+dijXZEyZnNFSajbtE0NEbsJhmX8x9GlOeiMQIKX2E4DUqPSgfIh4FYBv1M49KgPQ==,
+      }
+    peerDependencies:
+      react: 19.2.3
+      react-native: "*"
+
   "@react-native/assets-registry@0.86.2":
     resolution:
       {
@@ -1658,6 +1716,13 @@ packages:
         integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==,
       }
 
+  "@supabase/auth-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-l1InCp4j98d09LZ6+RgubgF4eVPGBGXcLEhFusLg1qUCHJ2IEkYu5FohKK+eaFmIOwEk0kqG/j/lycw5e15mcQ==,
+      }
+    engines: { node: ">=22.0.0" }
+
   "@supabase/cli-darwin-arm64@2.112.0":
     resolution:
       {
@@ -1725,6 +1790,60 @@ packages:
       }
     cpu: [x64]
     os: [win32]
+
+  "@supabase/functions-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-oMuSWN0ERmrG9S6kOM0bwhHmESGVl3kMtkZl2dNCU/r89hMiziX4GfD1omNo9QcBDele4N0GwSZ7hdbpuiA35A==,
+      }
+    engines: { node: ">=22.0.0" }
+
+  "@supabase/phoenix@0.4.5":
+    resolution:
+      {
+        integrity: sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==,
+      }
+
+  "@supabase/postgrest-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-ewhhtRny/HFRGhUTTg/PsqIatsl8OhW8Eha/Tz4S+SRAXBnuhKei9ZpsQTgL/3XcH9UEwuPQyQgQ9itq7nRQeg==,
+      }
+    engines: { node: ">=22.0.0" }
+
+  "@supabase/realtime-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-cd9/CEUJ6Go13FxtfiuC5rYELJtuQzVzTXlGG+XjSppjDS+anq+xo++WQe7ZRUNTuHOCeyKRwmx9Hw/OQJ04ig==,
+      }
+    engines: { node: ">=22.0.0" }
+
+  "@supabase/ssr@0.12.4":
+    resolution:
+      {
+        integrity: sha512-xHzcgI8cC1TpBKSwJcR5Yd8CCwfIq0SBc5yb4yz/YFw5tbCrEQ0QT3a+2jymCxHgQWLfzwN93HZ6eRbcoMkOlA==,
+      }
+    peerDependencies:
+      "@supabase/supabase-js": ^2.111.0
+
+  "@supabase/storage-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-6jyBq/J1iXOHNpbjCZS7gFcDk49iM1MCJUVkDl71gLd/+XnLDzpUBs8icGebtwiHpl4kVszxIRDYAosbF4Rsig==,
+      }
+    engines: { node: ">=22.0.0" }
+
+  "@supabase/supabase-js@2.112.2":
+    resolution:
+      {
+        integrity: sha512-UyI1epU9B4X51HvNpkmlwTdF20fEcz2vyvrcDKVzFN4jZN41f5iQRqsiIQjAY5OVJD6ljqA/1g9JQeOTvFHpkA==,
+      }
+    engines: { node: ">=22.0.0" }
+    peerDependencies:
+      "@opentelemetry/api": ">=1.0.0"
+    peerDependenciesMeta:
+      "@opentelemetry/api":
+        optional: true
 
   "@swc/helpers@0.5.15":
     resolution:
@@ -2688,6 +2807,13 @@ packages:
       {
         integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==,
       }
+
+  cookie@1.1.1:
+    resolution:
+      {
+        integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==,
+      }
+    engines: { node: ">=18" }
 
   core-js-compat@3.50.0:
     resolution:
@@ -3699,6 +3825,19 @@ packages:
         integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==,
       }
     engines: { node: ">= 14" }
+
+  iceberg-js@0.8.1:
+    resolution:
+      {
+        integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==,
+      }
+    engines: { node: ">=20.0.0" }
+
+  idb@8.0.3:
+    resolution:
+      {
+        integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==,
+      }
 
   ignore@5.3.2:
     resolution:
@@ -7121,6 +7260,12 @@ snapshots:
 
   "@nolyfill/is-core-module@1.0.39": {}
 
+  "@react-native-async-storage/async-storage@3.1.1(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)":
+    dependencies:
+      idb: 8.0.3
+      react: 19.2.3
+      react-native: 0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+
   "@react-native/assets-registry@0.86.2": {}
 
   "@react-native/babel-plugin-codegen@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)":
@@ -7203,6 +7348,10 @@ snapshots:
 
   "@sinclair/typebox@0.27.12": {}
 
+  "@supabase/auth-js@2.112.2":
+    dependencies:
+      tslib: 2.8.1
+
   "@supabase/cli-darwin-arm64@2.112.0":
     optional: true
 
@@ -7226,6 +7375,39 @@ snapshots:
 
   "@supabase/cli-windows-x64@2.112.0":
     optional: true
+
+  "@supabase/functions-js@2.112.2":
+    dependencies:
+      tslib: 2.8.1
+
+  "@supabase/phoenix@0.4.5": {}
+
+  "@supabase/postgrest-js@2.112.2":
+    dependencies:
+      tslib: 2.8.1
+
+  "@supabase/realtime-js@2.112.2":
+    dependencies:
+      "@supabase/phoenix": 0.4.5
+      tslib: 2.8.1
+
+  "@supabase/ssr@0.12.4(@supabase/supabase-js@2.112.2)":
+    dependencies:
+      "@supabase/supabase-js": 2.112.2
+      cookie: 1.1.1
+
+  "@supabase/storage-js@2.112.2":
+    dependencies:
+      iceberg-js: 0.8.1
+      tslib: 2.8.1
+
+  "@supabase/supabase-js@2.112.2":
+    dependencies:
+      "@supabase/auth-js": 2.112.2
+      "@supabase/functions-js": 2.112.2
+      "@supabase/postgrest-js": 2.112.2
+      "@supabase/realtime-js": 2.112.2
+      "@supabase/storage-js": 2.112.2
 
   "@swc/helpers@0.5.15":
     dependencies:
@@ -7841,6 +8023,8 @@ snapshots:
       - supports-color
 
   convert-source-map@2.0.0: {}
+
+  cookie@1.1.1: {}
 
   core-js-compat@3.50.0:
     dependencies:
@@ -8628,6 +8812,10 @@ snapshots:
       debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
+
+  iceberg-js@0.8.1: {}
+
+  idb@8.0.3: {}
 
   ignore@5.3.2: {}
 

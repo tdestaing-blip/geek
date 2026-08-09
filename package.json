@@ -16,13 +16,17 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
+    "db:types": "supabase gen types --local --lang typescript --schema public > packages/supabase/src/database.types.ts && prettier --write --log-level warn packages/supabase/src/database.types.ts",
+    "db:smoke": "node scripts/supabase-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint eslint.config.mjs && pnpm --recursive --if-present run lint",
+    "lint": "eslint eslint.config.mjs scripts && pnpm --recursive --if-present run lint",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {
     "@geek/config": "workspace:*",
+    "@supabase/ssr": "0.12.4",
+    "@supabase/supabase-js": "2.112.2",
     "eslint": "9.39.5",
     "prettier": "3.9.6",
     "supabase": "2.112.0",
