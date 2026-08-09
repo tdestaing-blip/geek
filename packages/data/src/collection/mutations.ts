@@ -1,0 +1,130 @@
+import type { Copy, CopyTradeAvailability, CopyVisibility } from "@geek/domain";
+import type { GeekSupabaseClient } from "@geek/supabase";
+
+import { resolveCaller } from "../caller";
+import type { OwnedEntityResult, OwnedResult } from "../result";
+import { databaseFailure, mapRows } from "../result";
+import { toCopy } from "./mapping";
+
+/**
+ * The two ownership writes the current schema already supports safely.
+ *
+ * Both go through ordinary authenticated inserts and updates under existing
+ * row-level security, which grants the owner exactly these columns and no
+ * others. Nothing here invents a database function or a policy to make a future
+ * screen easier: `owner_id` cannot be written to anything but the caller, and
+ * ownership transfer is a server-side operation that no client may perform.
+ */
+
+const RETURNING = "id, edition_id, owner_id, visibility, trade_availability, created_at";
+
+/** What the owner may decide when adding a Copy. */
+export type AddCopyInput = {
+  readonly editionId: string;
+  /** Defaults to private, matching the column default. */
+  readonly visibility?: CopyVisibility;
+  /** Defaults to not open to trade, matching the column default. */
+  readonly tradeAvailability?: CopyTradeAvailability;
+};
+
+/**
+ * Adds a Copy of an Edition to the caller's collection.
+ *
+ * The owner is the caller, never an argument. The insert policy would reject
+ * anything else, but not being able to express it is better than being refused.
+ *
+ * The defaults are the cautious ones: a new Copy is private and closed to
+ * trade until its owner says otherwise. An Edition id that does not exist comes
+ * back as a `failed` outcome carrying the foreign-key violation, since that is
+ * a caller bug rather than a state a screen should render.
+ */
+export async function addCopy(
+  client: GeekSupabaseClient,
+  input: AddCopyInput,
+): Promise<OwnedResult<Copy>> {
+  const caller = await resolveCaller(client);
+
+  if (caller.outcome !== "ok") {
+    return caller;
+  }
+
+  const { data, error } = await client
+    .from("copies")
+    .insert({
+      owner_id: caller.userId,
+      edition_id: input.editionId,
+      ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
+      ...(input.tradeAvailability === undefined
+        ? {}
+        : { trade_availability: input.tradeAvailability }),
+    })
+    .select(RETURNING)
+    .single();
+
+  if (error !== null) {
+    return databaseFailure(error);
+  }
+
+  return mapRows(() => toCopy(data));
+}
+
+/** The owner-controlled flags on a Copy. */
+export type CopyAvailabilityUpdate = {
+  readonly visibility?: CopyVisibility;
+  readonly tradeAvailability?: CopyTradeAvailability;
+};
+
+/**
+ * Changes how a Copy is exposed: visible in a public collection, open to trade,
+ * or neither.
+ *
+ * These two columns are the only ones an owner may update, which is a
+ * deliberate property of the schema rather than a limitation of this function.
+ * Condition, components and private details each have their own boundary, and
+ * an owner cannot rewrite `edition_id` to turn their Copy into a different
+ * release.
+ *
+ * A Copy that is not the caller's is `not_found` — the update matches no row,
+ * and saying anything more precise would confirm that someone else's Copy
+ * exists.
+ */
+export async function updateCopyAvailability(
+  client: GeekSupabaseClient,
+  copyId: string,
+  update: CopyAvailabilityUpdate,
+): Promise<OwnedEntityResult<Copy>> {
+  const caller = await resolveCaller(client);
+
+  if (caller.outcome !== "ok") {
+    return caller;
+  }
+
+  const changes = {
+    ...(update.visibility === undefined ? {} : { visibility: update.visibility }),
+    ...(update.tradeAvailability === undefined
+      ? {}
+      : { trade_availability: update.tradeAvailability }),
+  };
+
+  if (Object.keys(changes).length === 0) {
+    throw new RangeError("updateCopyAvailability needs at least one field to change");
+  }
+
+  const { data, error } = await client
+    .from("copies")
+    .update(changes)
+    .eq("id", copyId)
+    .eq("owner_id", caller.userId)
+    .select(RETURNING)
+    .maybeSingle();
+
+  if (error !== null) {
+    return databaseFailure(error);
+  }
+
+  if (data === null) {
+    return { outcome: "not_found" };
+  }
+
+  return mapRows(() => toCopy(data));
+}

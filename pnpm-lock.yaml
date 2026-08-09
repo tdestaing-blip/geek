@@ -172,6 +172,25 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  packages/data:
+    dependencies:
+      "@geek/domain":
+        specifier: workspace:*
+        version: link:../domain
+      "@geek/supabase":
+        specifier: workspace:*
+        version: link:../supabase
+    devDependencies:
+      "@geek/config":
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5(supports-color@8.1.1)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   packages/design-tokens:
     devDependencies:
       "@geek/config":

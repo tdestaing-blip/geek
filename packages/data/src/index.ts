@@ -1,0 +1,44 @@
+/**
+ * Geek's application data layer.
+ *
+ * Everything a screen needs to read or write, expressed in domain terms. Above
+ * this line there are Games, Editions and Copies; below it there are tables,
+ * embedded selects, RPC names and snake_case columns, and none of that is
+ * exported.
+ *
+ * The dependency direction is deliberate. `@geek/domain` knows nothing about
+ * Supabase; this package knows about both and does the translating; the apps
+ * know only this package. Every function takes a typed Supabase client as its
+ * first argument rather than importing one, so the same code runs against the
+ * mobile client, the browser client and the Next server client without knowing
+ * which it has.
+ */
+export type {
+  DataFailure,
+  EntityResult,
+  Failed,
+  InvalidData,
+  NotFound,
+  Ok,
+  OwnedEntityResult,
+  OwnedResult,
+  ReadResult,
+  Unauthenticated,
+} from "./result";
+export { InvalidRowError } from "./result";
+
+export type { Page, PageRequest } from "./pagination";
+
+export { getEdition, getEditionsForGame, getGame } from "./catalog/catalog";
+export { searchCatalog } from "./catalog/search";
+
+export type { CollectionEntry } from "./collection/collection";
+export { getMyCollection } from "./collection/collection";
+
+export type { MyCopyDetail } from "./collection/copy-detail";
+export { getMyCopyDetail } from "./collection/copy-detail";
+
+export type { AddCopyInput, CopyAvailabilityUpdate } from "./collection/mutations";
+export { addCopy, updateCopyAvailability } from "./collection/mutations";
+
+export { getMyProfile } from "./profile/profile";

@@ -10,7 +10,8 @@ apps/
   web/             Next.js customer-facing application
   admin/           Next.js administrative application
 packages/
-  domain/          Shared domain package (currently empty)
+  domain/          Geek's domain model, independent of any database
+  data/            Application data access, mapping the database onto the domain
   design-tokens/   Shared design-token package (currently empty)
   supabase/        Generated database types and shared Supabase conventions
   config/          Shared TypeScript, ESLint, and Prettier configuration
@@ -141,6 +142,18 @@ pnpm db:smoke:auth
 Reset the database first (`pnpm db:reset`) for a clean run. The password-reset checks read the emailed link from the local mail server on <http://127.0.0.1:54324>, and are reported as skipped when the local Auth server's hourly email limit has been reached.
 
 Browser and native callback delivery still needs a real runtime: the redirect, classification and route-matching rules are covered here, but a click on an emailed link in a browser, and a `geek://auth/callback` deep link on a device, are not.
+
+### Data-layer smoke test
+
+With the local stack running, exercise the catalog, collection and Profile reads in `packages/data` against real data:
+
+```sh
+pnpm db:smoke:data
+```
+
+It seeds a Game, its Editions and their components with the local service role, since the catalog is read-only to clients, creates two users through ordinary sign-up, and removes everything again at the end. The checks call the real `@geek/data` functions rather than reimplementing their queries, and cover result mapping, `search_catalog`'s actual nullability, collection isolation between collectors, owner-private Copy details, query counts that would reveal an N+1, and the mappers' refusal of impossible values.
+
+Reset the database first (`pnpm db:reset`) for a clean run.
 
 ### Auth redirect URLs
 
