@@ -12,7 +12,7 @@ Matching or Discovery
 -> Conversation
 -> TradeOffer
 -> Conversation coordination
--> future TradeCompletion
+-> TradeCompletion
 
 Messaging is deliberately not a general social-chat platform. It is the
 minimum canonical communication surface required for a trade to happen between
@@ -81,13 +81,15 @@ A conversation TradeOffer item is a live reference to the canonical TradeOffer.
 
 Given `trade_offer_id = X`, a client resolves `X` through the TradeOffer domain
 and renders its current canonical status: `pending`, `accepted`, `declined`,
-`cancelled`, or `expired`. When an offer is sent, the reference appears in the
-conversation; when that offer is later accepted, the same reference renders the
-canonical accepted state.
+`cancelled`, `expired`, or `completed`. When an offer is sent, the reference
+appears in the conversation; when that offer is later accepted and then
+completed, the same reference renders the canonical accepted and completed
+states.
 
-Messaging neither records nor owns that lifecycle. There is deliberately no
-`trade_offer_status`, `trade_offer_cash`, or `trade_offer_copy_snapshot` in
-Messaging. Historical TradeOffer terms are already protected by the TradeOffer
+Messaging neither records nor owns that lifecycle, including completion. There
+is deliberately no `trade_offer_status`, `trade_offer_cash`,
+`trade_offer_copy_snapshot`, or completion record in Messaging, and completion
+neither requires nor mutates any Conversation. Historical TradeOffer terms are already protected by the TradeOffer
 domain's own immutability guarantees, so duplicating them here would add
 synchronisation risk without adding truth.
 
@@ -220,6 +222,6 @@ abuse-complete.
 Messaging does not implement groups, attachments, media, reactions, presence,
 read receipts, push or email notifications, message search, edits, user
 deletion, disappearing messages, threads, calls, contact sharing,
-phone-number disclosure, exact-location sharing, TradeCompletion, ownership
+phone-number disclosure, exact-location sharing, completion state, ownership
 transfer, payment, moderation tooling, reporting workflow, blocking, or rate
 limiting.

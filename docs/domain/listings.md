@@ -149,7 +149,10 @@ clients cannot delete Listings.
 ## Commercial commitment concurrency
 
 The Copy row is the serialization boundary for Listing activation or
-reservation, Auction scheduling, TradeOffer acceptance, and ownership transfer.
+reservation, Auction scheduling, TradeOffer acceptance, TradeOffer completion,
+and ownership transfer. An operation that releases its own commitment in order
+to transfer ownership does both inside one transaction while holding the Copy
+locks, so no other mechanism can claim the Copy in between.
 Commitment changes are atomic with Listing mutations, and normal clients have
 no direct access to the internal commitment table.
 

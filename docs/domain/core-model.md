@@ -53,6 +53,7 @@ Describes direct exchanges between users.
 Core concepts:
 
 - TradeOffer
+- TradeCompletionConfirmation
 - TradeCompletion
 
 ### Communication
@@ -728,11 +729,17 @@ Initial TradeOffer statuses are:
 - declined: the recipient rejected the proposal
 - cancelled: the proposer withdrew the proposal before acceptance
 - expired: the pending proposal's optional expiration time passed
+- completed: both participants confirmed the physical exchange, ownership
+  transferred, and the TradeOffer holds no commitment
 
 The proposer may transition a pending TradeOffer to cancelled. The recipient
 may transition a pending TradeOffer to declined or accepted. Trusted Geek
-infrastructure may transition a pending TradeOffer to expired. No other
-transition is initially valid.
+infrastructure may transition a pending TradeOffer to expired. An accepted
+TradeOffer transitions to completed only through the second participant's
+completion confirmation. No other transition is valid.
+
+Partial completion confirmation is not a status. A TradeOffer with one
+confirmation is still accepted.
 
 TradeOffer terms are immutable after creation. Changing the participants,
 Copies, monetary adjustment, or expiration requires cancelling the pending
@@ -769,10 +776,9 @@ An accepted TradeOffer reserves the participating Copies.
 
 Ownership transfers only when the trade is successfully completed.
 
-Future TradeCompletion must atomically validate an accepted TradeOffer and its
-commitments, release or transition its reservations, transfer the Copies in
-both directions, preserve TradeOffer history, and create TradeCompletion
-history. TradeCompletion is not implemented by the TradeOffer foundation.
+TradeCompletion atomically validates an accepted TradeOffer and its commitments,
+releases its reservations, transfers the Copies in both directions, preserves
+TradeOffer history, and creates TradeCompletion history.
 
 ---
 
@@ -790,21 +796,36 @@ never exposes home coordinates for coordination purposes.
 
 ## TradeCompletion
 
-TradeCompletion represents mutual confirmation that the physical
-exchange occurred.
+TradeCompletion is the immutable historical fact that the physical exchange
+described by an accepted TradeOffer actually occurred.
 
-Successful completion results in ownership changes for the participating
-Copies.
+Geek cannot observe a physical handover, so completion relies on both
+participants confirming it. Each participant may record one irreversible
+TradeCompletionConfirmation. The first confirmation changes nothing: the
+TradeOffer stays accepted, every Copy stays reserved, and no ownership moves.
+The second confirmation completes the Trade atomically in the same transaction:
+it releases every commitment, transitions the TradeOffer to `completed`,
+transfers the Copies in both directions, and creates exactly one
+TradeCompletion.
 
-Completion may later include:
+There is no separate client-visible finalize operation and no way to withdraw a
+confirmation.
 
-- mutual confirmation
-- verification code
-- QR confirmation
-- ratings
-- dispute window
+TradeCompletion stores only the TradeOffer reference and the completion
+timestamp. It duplicates no TradeOffer terms and no Copy membership.
 
-Those mechanics are not defined here.
+A trade transfers the physical object, not the previous owner's private context
+or consent. Transferred Copies keep their identity, Edition, and component
+condition, and arrive private and closed to trade. Private Copy details are
+owner-specific rather than object state, so they stay with the owner who
+recorded them and never reach the new owner.
+
+Geek does not process the optional monetary adjustment. Confirming means the
+participants agree that the physical exchange, including any agreed cash, took
+place between them.
+
+Verification codes, QR confirmation, ratings, and dispute windows are not
+defined here.
 
 ---
 
@@ -814,7 +835,7 @@ Messaging exists so two collectors can coordinate a trade inside Geek without
 disclosing a phone number, an email address, or an exact personal location.
 
 The product flow is Matching or Discovery, then Conversation, then TradeOffer,
-then Conversation coordination, then future TradeCompletion.
+then Conversation coordination, then TradeCompletion.
 
 ## Conversation
 
@@ -1160,8 +1181,11 @@ references one Copy
 TradeOffer
 proposes exchange of multiple Copies between two users
 
+TradeCompletionConfirmation
+records one participant's confirmation of one TradeOffer exchange
+
 TradeCompletion
-confirms successful exchange and ownership transfer
+confirms successful exchange and ownership transfer for one TradeOffer
 
 Conversation
 connects exactly two users as one canonical private channel
@@ -1199,6 +1223,8 @@ Visibility != Availability
 Reservation != Ownership
 
 Trade acceptance != Trade completion
+
+Completion confirmation != Trade completion
 
 Conversation != TradeOffer
 

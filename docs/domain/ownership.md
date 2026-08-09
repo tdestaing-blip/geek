@@ -64,6 +64,77 @@ unless it is explicitly `open_to_trade`.
 A match is derived discovery only. It does not create a TradeOffer, reservation,
 commercial commitment, or ownership change.
 
+## Ownership transfer
+
+Ownership is server-authoritative and clients never write it directly. A Copy's
+owner changes only through a controlled Geek operation.
+
+Today the only implemented transfer is TradeCompletion: when both participants
+of an accepted TradeOffer confirm that the physical exchange happened, the same
+transaction releases the TradeOffer's commercial commitments and moves every
+included Copy to its new owner.
+
+A Copy cannot change owner while it holds a commercial commitment, so an active
+or reserved Listing, a scheduled or won Auction, or an accepted TradeOffer all
+block transfer. The transferring operation must release its own commitment and
+transfer ownership inside one transaction while holding the Copy row locks, so
+no other mechanism can claim the Copy in between.
+
+### Object state versus current-owner state
+
+Some Copy state describes the physical object and must follow it across owners.
+The rest describes the current owner's private context or consent and must not.
+
+Object state, preserved on transfer:
+
+- Copy identity and its Edition
+- component presence, condition grade, and condition notes, which describe the
+  physical object rather than its owner
+
+Current-owner state, not inherited by the new owner:
+
+- `copy_private_details`: acquisition date, purchase amount and currency,
+  provenance notes, private notes, and storage location
+- `visibility`, reset to `private`
+- `trade_availability`, reset to `not_open`
+
+### Private details belong to an owner, not to a Copy
+
+Private details are owner-specific data that happens to be about a Copy. A
+purchase price, an acquisition date, and a storage location describe one
+person's relationship with the object, not the object itself.
+
+`copy_private_details` is therefore keyed by `(copy_id, owner_id)` and its
+row-level security scopes each row to `owner_id = auth.uid()`. Access follows
+the author of the record rather than whoever currently holds the Copy. A Copy
+may accumulate one private record per person who has owned it, and no owner can
+read another's.
+
+Ownership transfer consequently does nothing to these rows. The previous owner
+keeps their own record and can still read, edit, or erase it. The new owner
+starts with none and may create their own. Because the record never moves, "the
+previous owner's private data was not handed over" is a property of the schema
+rather than something each transfer path has to remember to do.
+
+Creating a record still requires currently owning the Copy, so a former owner
+cannot attach new data to a Copy that has moved on. Neither `copy_id` nor
+`owner_id` can be rewritten afterwards.
+
+Visibility and trade availability are consent, not object properties. One
+owner's decision to expose ownership of a Copy publicly, or to open it to trade,
+says nothing about what the next owner wants. A transferred Copy therefore
+arrives private and closed to trade, and the new owner opts in again explicitly
+through the normal Ownership flows. Until they do, the Copy appears in neither
+collector discovery nor trade discovery nor reciprocal Matching.
+
+The consent resets happen inside the same transaction as the ownership change,
+while the Copy row locks are held, so there is no committed moment in which the
+new owner holds a Copy that still carries the previous owner's consent.
+
+Geek does not yet keep a general ownership-history ledger. The immutable
+TradeOffer, its Copy membership, and the TradeCompletion explain a trade-driven
+transition; a broader provenance domain may come later.
+
 ## Edition components
 
 EditionComponents define the expected physical contents of an Edition. They
