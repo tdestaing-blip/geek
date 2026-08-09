@@ -192,6 +192,23 @@ For a TradeOffer that is `accepted`:
 
 For every other status, no confirmations and no TradeCompletion may exist.
 
+These checks alone are not enough under concurrency. Two concurrent trusted
+direct inserts of the two participant confirmations would each see a single
+confirmation in their own deferred check and both commit, leaving an accepted
+TradeOffer with two confirmations and no TradeCompletion. Every confirmation
+insert therefore takes `SELECT ... FOR UPDATE` on the parent TradeOffer before
+the confirmation row is written, so concurrent confirmation creators serialize
+on that row and the later deferred check observes the earlier confirmation.
+
+That parent-row lock is a confirmation-insert integrity mechanism. It does not
+change the authenticated completion protocol, which still locks Copy rows first
+in deterministic UUID order and only then locks the TradeOffer. The RPC path
+re-acquires a TradeOffer lock it already holds. A direct confirmation insert
+must never become an alternative finalization path: recording a second
+confirmation without completing the Trade is rejected, and only
+`confirm_trade_completion` performs commitment release and ownership transfer
+under the Copy-first protocol.
+
 These checks validate the transaction that records the completion. They are
 deliberately not re-evaluated by unrelated later activity, because a completed
 Trade must not prevent the new owner from trading the same Copy again
@@ -203,9 +220,10 @@ Trusted SQL may bypass product authorization, but it must not be able to commit
 a false history. It cannot set a TradeOffer to `completed` without the full
 completion state, invent a confirmation from a third user, record only one
 confirmation, create a TradeCompletion without the ownership transfer, transfer
-only some of the Copies, leave commitments behind, or release the commitments of
-an accepted TradeOffer without completing it. Confirmations and TradeCompletions
-also cannot be rewritten after creation.
+only some of the Copies, leave commitments behind, release the commitments of
+an accepted TradeOffer without completing it, or commit two confirmations
+against an accepted TradeOffer without also completing it. Confirmations and
+TradeCompletions also cannot be rewritten after creation.
 
 Superuser DDL and `TRUNCATE` remain outside this threat model, following the
 existing project-wide convention.
