@@ -130,6 +130,26 @@ pnpm db:smoke
 
 It reads configuration from the environment, falling back to `supabase status`.
 
+### Auth smoke test
+
+With the local stack running, exercise signup and the Profile-creating trigger, sign-in, verified identity, own-Profile access, wrong-password rejection, sign-out, persisted-session restoration, Profile row-level security, the password-reset round trip, and the callback/redirect validation rules:
+
+```sh
+pnpm db:smoke:auth
+```
+
+Reset the database first (`pnpm db:reset`) for a clean run. The password-reset checks read the emailed link from the local mail server on <http://127.0.0.1:54324>, and are reported as skipped when the local Auth server's hourly email limit has been reached.
+
+Browser and native callback delivery still needs a real runtime: the redirect, classification and route-matching rules are covered here, but a click on an emailed link in a browser, and a `geek://auth/callback` deep link on a device, are not.
+
+### Auth redirect URLs
+
+`supabase/config.toml` allows exactly the local callback routes for web (`127.0.0.1:3000`), admin (`127.0.0.1:3001`) and the native `geek://` scheme. Supabase silently substitutes `site_url` for any redirect target that is not on that list, so a new client URL has to be added there before its links will work.
+
+Expo Go and development builds generate their own `exp://` callback URL. Print it with `Linking.createURL("auth/callback")` and add it to `additional_redirect_urls` locally; it is machine-specific and is not committed.
+
+The absolute URL that web and admin put into Auth emails comes from `APP_ORIGIN`, a server-only variable documented in each app's `.env.example`. It is deliberately not derived from the request's `Host` header, which the person making the request controls. Locally it can be left unset, where it defaults to that app's own origin; a hosted environment has to set it, and add the matching callback route to the project's redirect allow-list.
+
 ## Linting
 
 ```sh

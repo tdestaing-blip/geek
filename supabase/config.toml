@@ -160,7 +160,21 @@ site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# Local Geek clients. Listed as exact callback routes rather than wildcards so a
+# link can only ever land on the route that knows how to redeem it.
+#
+# The mobile entry uses the `geek` scheme from apps/mobile/app.json. Expo Go and
+# development builds produce their own `exp://` URLs, which a developer needs to
+# add here locally; they are deliberately not committed, since they contain a
+# machine-specific address and must not become the production scheme.
+#
+# Staging and production callback URLs do not exist yet and must be added to the
+# hosted project's allow-list when those environments are created.
+additional_redirect_urls = [
+  "http://127.0.0.1:3000/auth/callback",
+  "http://127.0.0.1:3001/auth/callback",
+  "geek://auth/callback",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
