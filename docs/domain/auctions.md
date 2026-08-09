@@ -93,8 +93,9 @@ Commitment-holding states are:
 - Auction: `scheduled`, `won`
 - TradeOffer: `accepted`
 
-Draft, paused, pending, declined, withdrawn, expired, ended, cancelled, and sold
-mechanisms do not hold a commitment. Draft Listings, draft Auctions, and
+Draft, paused, pending, declined, withdrawn, expired, ended, cancelled, sold,
+and completed mechanisms do not hold a commitment. A completed TradeOffer has
+already released its commitments as part of transferring ownership. Draft Listings, draft Auctions, and
 pending TradeOffers may coexist. Historical mechanisms may coexist.
 
 The commitment is created, retained, or released atomically with its source

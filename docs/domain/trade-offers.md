@@ -84,20 +84,25 @@ Persisted statuses are:
 - `declined`: the recipient rejected the proposal
 - `cancelled`: the proposer withdrew the proposal before acceptance
 - `expired`: the pending proposal's optional expiration time passed
+- `completed`: both participants confirmed the physical exchange, Copy ownership
+  transferred, a TradeCompletion exists, and the TradeOffer holds no commitment
 
 Allowed user transitions are:
 
 - proposer: `pending` to `cancelled`
 - recipient: `pending` to `declined`
 - recipient: `pending` to `accepted`
+- either participant: `accepted` to `completed`, only as the atomic effect of
+  the second completion confirmation
 
 Trusted Geek infrastructure may transition `pending` to `expired` after the
 optional server-authoritative expiration time. No scheduler is introduced by
 this foundation. Acceptance independently checks wall-clock expiration and
 cannot accept an expired-by-time offer that is still persisted as `pending`.
 
-Normal clients cannot mutate an accepted TradeOffer. `completed`, `traded`,
-meeting, and dispute states do not belong to this lifecycle.
+Apart from completion, normal clients cannot mutate an accepted TradeOffer.
+`traded`, meeting, and dispute states do not belong to this lifecycle, and
+partial completion confirmation is not a status.
 
 ## Creation
 
@@ -150,8 +155,8 @@ All Copies are reserved or none are. A deferred database integrity rule enforces
 that relationship independently of the operation used: an accepted TradeOffer
 must hold exactly one commitment for every included Copy, and a TradeOffer in
 any other status must hold none. Trusted authority cannot commit a partially
-reserved accepted TradeOffer, and a future release path must transition the
-status and release the commitments inside one transaction.
+reserved accepted TradeOffer, and the completion path transitions the status and
+releases the commitments inside one transaction.
 
 The shared one-commitment-per-Copy invariant makes accepted TradeOffers mutually
 exclusive with:
@@ -204,23 +209,25 @@ the proposal. It does not expose:
 Wishlist, Matching, and Search functions are not consulted when creating or
 transitioning a TradeOffer.
 
-## Future TradeCompletion contract
+## Completion
 
-Future TradeCompletion must operate atomically for an accepted TradeOffer:
+Acceptance is a promise; completion is the physical fact. An accepted TradeOffer
+is resolved when both participants confirm the exchange happened, at which point
+the second confirmation atomically releases every commitment, transitions the
+TradeOffer to `completed`, and transfers the Copies in both directions. That
+protocol, its confirmations, and its committed-state invariants belong to the
+TradeCompletion domain.
 
-1. lock all involved Copies in deterministic UUID order
-2. validate the accepted TradeOffer and all its commitments
-3. transition or release the TradeOffer reservation safely
-4. transfer proposer Copies to the recipient
-5. transfer recipient Copies to the proposer
-6. preserve TradeOffer history
-7. create TradeCompletion history
+Completion never rewrites TradeOffer terms or Copy membership. The offer remains
+the immutable record of what was agreed, and the TradeCompletion records that it
+happened.
 
-The current ownership-transfer guard blocks transfer while commitments exist.
-Future completion must therefore release or transition the relevant
-`trade_offer` commitments and transfer ownership inside one transaction.
+Because there is no confirmation retraction and no accepted-trade cancellation
+yet, an accepted TradeOffer whose exchange never happens keeps its Copies
+reserved indefinitely. Resolving that is required before public launch and is
+documented in the TradeCompletion domain.
 
-TradeCompletion, ownership transfer, negotiation, counter offers, payment,
-escrow, shipping, and notifications remain deferred. A TradeOffer may be
-referenced from the Conversation between its two participants; that reference
-belongs to the Messaging domain and never duplicates offer terms or status.
+Negotiation, counter offers, payment, escrow, shipping, and notifications remain
+deferred. A TradeOffer may be referenced from the Conversation between its two
+participants; that reference belongs to the Messaging domain and never
+duplicates offer terms or status.
