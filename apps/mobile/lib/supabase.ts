@@ -20,9 +20,14 @@ export const supabase = createClient<GeekDatabase>(
       persistSession: true,
       autoRefreshToken: true,
       // Native apps never receive a session in a URL fragment the way a browser
-      // does. OAuth and magic-link flows will hand tokens to the client
-      // explicitly when Auth is implemented.
+      // does. Deep-link callbacks are handed to the client explicitly by
+      // `lib/auth/callback.ts`.
       detectSessionInUrl: false,
+      // PKCE keeps the code verifier in this client's storage and puts only a
+      // single-use code in the callback URL. Under the default implicit flow the
+      // deep link would instead carry the access and refresh tokens themselves,
+      // which are visible to anything that can observe the URL.
+      flowType: "pkce",
     },
   },
 );

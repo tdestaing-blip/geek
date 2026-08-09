@@ -1,3 +1,7 @@
+// Turns an accidental import from a client component into a build error rather
+// than a confusing runtime failure, since this module reads request cookies.
+import "server-only";
+
 import type { GeekDatabase } from "@geek/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
