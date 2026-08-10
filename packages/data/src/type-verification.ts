@@ -6,7 +6,7 @@
  * fail when the error they expect *disappears*. Each one is a rule that would
  * otherwise only be enforced by everyone remembering it.
  */
-import type { Copy, Edition, Game, GameSearchResult } from "@geek/domain";
+import type { CatalogMedia, Copy, Edition, Game, GameSearchResult } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import type { CollectionEntry } from "./collection/collection";
@@ -30,6 +30,12 @@ export const invalidVisibility: Copy["visibility"] = "sealed";
 
 // @ts-expect-error trade availability is a closed set, not free text
 export const invalidTradeAvailability: Copy["tradeAvailability"] = "maybe";
+
+// @ts-expect-error catalog media kinds are finite, not provider-defined strings
+export const invalidCatalogMediaKind: CatalogMedia["kind"] = "screenshot";
+
+// @ts-expect-error rights status must be explicitly known at the domain boundary
+export const invalidCatalogMediaRights: CatalogMedia["rightsStatus"] = "development_only";
 
 // @ts-expect-error the 1-5 grade cannot be an arbitrary number
 export const invalidGrade: NonNullable<
