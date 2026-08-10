@@ -20,6 +20,7 @@ Core concepts:
 
 - Game
 - Edition
+- CatalogMedia
 - EditionIdentifier
 - EditionComponent
 - Platform
@@ -169,6 +170,23 @@ materially affect:
 - identification
 
 Cosmetic catalog corrections must not create a new Edition.
+
+---
+
+## CatalogMedia
+
+CatalogMedia is provider-independent reference media representing exactly one
+Game or Edition. Game-level media may be generic artwork, a logo, or a fallback
+cover. Edition-level media may represent the front or back cover of a specific
+regional or commercial release.
+
+CatalogMedia is not a photograph of an individual user's Copy and says nothing
+about that Copy's condition or appearance. Future Copy and marketplace photos
+belong to separate user-generated-media semantics.
+
+Geek's Game, Edition, and CatalogMedia IDs remain canonical. Provider asset
+identifiers and media URLs are external references and may be replaced without
+changing those identities.
 
 ---
 

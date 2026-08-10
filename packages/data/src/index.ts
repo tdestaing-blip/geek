@@ -30,6 +30,12 @@ export { InvalidRowError } from "./result";
 export type { Page, PageRequest } from "./pagination";
 
 export { getEdition, getEditionsForGame, getGame } from "./catalog/catalog";
+export {
+  getPrimaryEditionCover,
+  getPrimaryEditionCovers,
+  getPrimaryGameCover,
+  getPrimaryGameCovers,
+} from "./catalog/media";
 export { searchCatalog } from "./catalog/search";
 
 export type { CollectionEntry } from "./collection/collection";

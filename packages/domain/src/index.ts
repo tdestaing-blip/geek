@@ -14,6 +14,9 @@ export { createMoney, parseCalendarDate, parseCurrencyCode } from "./values";
 
 export type { Edition, Game, Platform } from "./catalog/catalog";
 
+export type { CatalogMedia, CatalogMediaKind, CatalogMediaRightsStatus } from "./catalog/media";
+export { parseCatalogMediaKind, parseCatalogMediaRightsStatus } from "./catalog/media";
+
 export type {
   CatalogSearchResult,
   CatalogSearchResultKind,

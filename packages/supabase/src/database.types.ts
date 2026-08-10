@@ -160,6 +160,81 @@ export type Database = {
           },
         ];
       };
+      catalog_media: {
+        Row: {
+          asset_url: string;
+          attribution: string | null;
+          created_at: string;
+          edition_id: string | null;
+          game_id: string | null;
+          height: number | null;
+          id: string;
+          is_primary: boolean;
+          kind: string;
+          license_name: string | null;
+          license_url: string | null;
+          rights_status: string;
+          source_asset_id: string | null;
+          source_page_url: string | null;
+          source_provider: string;
+          updated_at: string;
+          width: number | null;
+        };
+        Insert: {
+          asset_url: string;
+          attribution?: string | null;
+          created_at?: string;
+          edition_id?: string | null;
+          game_id?: string | null;
+          height?: number | null;
+          id?: string;
+          is_primary?: boolean;
+          kind: string;
+          license_name?: string | null;
+          license_url?: string | null;
+          rights_status: string;
+          source_asset_id?: string | null;
+          source_page_url?: string | null;
+          source_provider: string;
+          updated_at?: string;
+          width?: number | null;
+        };
+        Update: {
+          asset_url?: string;
+          attribution?: string | null;
+          created_at?: string;
+          edition_id?: string | null;
+          game_id?: string | null;
+          height?: number | null;
+          id?: string;
+          is_primary?: boolean;
+          kind?: string;
+          license_name?: string | null;
+          license_url?: string | null;
+          rights_status?: string;
+          source_asset_id?: string | null;
+          source_page_url?: string | null;
+          source_provider?: string;
+          updated_at?: string;
+          width?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "catalog_media_edition_id_fkey";
+            columns: ["edition_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "catalog_media_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       conversation_messages: {
         Row: {
           body: string;

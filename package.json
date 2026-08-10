@@ -20,6 +20,7 @@
     "db:smoke": "node scripts/supabase-smoke.mjs",
     "db:smoke:auth": "node --experimental-strip-types scripts/supabase-auth-smoke.mjs",
     "db:smoke:data": "node --experimental-strip-types scripts/supabase-data-smoke.mjs",
+    "db:smoke:catalog-media": "node --experimental-strip-types scripts/supabase-catalog-media-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint eslint.config.mjs scripts && pnpm --recursive --if-present run lint",

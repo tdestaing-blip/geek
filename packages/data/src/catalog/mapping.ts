@@ -1,5 +1,9 @@
-import type { CalendarDate, Edition, Game, Platform } from "@geek/domain";
-import { parseCalendarDate } from "@geek/domain";
+import type { CalendarDate, CatalogMedia, Edition, Game, Platform } from "@geek/domain";
+import {
+  parseCalendarDate,
+  parseCatalogMediaKind,
+  parseCatalogMediaRightsStatus,
+} from "@geek/domain";
 import type { Tables } from "@geek/supabase";
 
 import { InvalidRowError } from "../result";
@@ -46,6 +50,27 @@ type EditionFields = Pick<
   | "packaging_type"
 >;
 
+export type CatalogMediaFields = Pick<
+  Tables<"catalog_media">,
+  | "id"
+  | "game_id"
+  | "edition_id"
+  | "kind"
+  | "asset_url"
+  | "source_provider"
+  | "source_asset_id"
+  | "source_page_url"
+  | "rights_status"
+  | "license_name"
+  | "license_url"
+  | "attribution"
+  | "width"
+  | "height"
+  | "is_primary"
+  | "created_at"
+  | "updated_at"
+>;
+
 export function toGame(row: GameFields): Game {
   return {
     id: row.id,
@@ -74,6 +99,80 @@ export function toEdition(row: EditionFields): Edition {
     publisherName: row.publisher_name,
     packagingType: row.packaging_type,
   };
+}
+
+/** Maps one publishable catalog-media row and rechecks its domain invariants. */
+export function toCatalogMedia(row: CatalogMediaFields): CatalogMedia {
+  const kind = parseCatalogMediaKind(row.kind);
+
+  if (kind === null) {
+    throw new InvalidRowError("catalog_media.kind", `unknown media kind "${row.kind}"`);
+  }
+
+  const rightsStatus = parseCatalogMediaRightsStatus(row.rights_status);
+
+  if (rightsStatus === null) {
+    throw new InvalidRowError(
+      "catalog_media.rights_status",
+      `unknown rights status "${row.rights_status}"`,
+    );
+  }
+
+  const target = toCatalogMediaTarget(row);
+
+  return {
+    id: row.id,
+    ...target,
+    kind,
+    assetUrl: toAbsoluteHttpUrl(row.asset_url, "catalog_media.asset_url"),
+    sourceProvider: row.source_provider,
+    sourceAssetId: row.source_asset_id,
+    sourcePageUrl: row.source_page_url,
+    rightsStatus,
+    licenseName: row.license_name,
+    licenseUrl: row.license_url,
+    attribution: row.attribution,
+    width: row.width,
+    height: row.height,
+    isPrimary: row.is_primary,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toCatalogMediaTarget(
+  row: Pick<CatalogMediaFields, "game_id" | "edition_id">,
+):
+  | { readonly gameId: string; readonly editionId: null }
+  | { readonly gameId: null; readonly editionId: string } {
+  if (row.game_id !== null && row.edition_id === null) {
+    return { gameId: row.game_id, editionId: null };
+  }
+
+  if (row.game_id === null && row.edition_id !== null) {
+    return { gameId: null, editionId: row.edition_id };
+  }
+
+  throw new InvalidRowError(
+    "catalog_media.game_id/edition_id",
+    "expected exactly one canonical target",
+  );
+}
+
+function toAbsoluteHttpUrl(value: string, field: string): string {
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new InvalidRowError(field, `expected an absolute http/https URL, got "${value}"`);
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new InvalidRowError(field, `expected an absolute http/https URL, got "${value}"`);
+  }
+
+  return value;
 }
 
 /**
