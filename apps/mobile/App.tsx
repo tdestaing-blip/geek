@@ -1,12 +1,10 @@
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { AuthProvider } from "./lib/auth/auth-provider";
 import { useAuthDeepLinks } from "./lib/auth/use-auth-deep-links";
+import { NavigationRoot } from "./navigation/navigation-root";
 
-/**
- * Auth plumbing only.
- *
- * The app is intentionally still visually empty; the shell and screens arrive
- * with navigation and the real Auth UI.
- */
+/** Completes Auth callback links without making navigation own those URLs. */
 function AuthCallbackListener() {
   useAuthDeepLinks();
 
@@ -15,8 +13,11 @@ function AuthCallbackListener() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthCallbackListener />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AuthCallbackListener />
+        <NavigationRoot />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
