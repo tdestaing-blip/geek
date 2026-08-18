@@ -4,6 +4,7 @@ import type { GeekSupabaseClient } from "@geek/supabase";
 import { resolveCaller } from "../caller";
 import type { OwnedEntityResult } from "../result";
 import { databaseFailure, mapRows } from "../result";
+import { toProfile } from "./mapping";
 
 /**
  * Reading the caller's own Profile as a domain model.
@@ -51,11 +52,5 @@ export async function getMyProfile(
     return { outcome: "not_found" };
   }
 
-  return mapRows(() => ({
-    id: data.id,
-    username: data.username,
-    displayName: data.display_name,
-    avatarPath: data.avatar_path,
-    bio: data.bio,
-  }));
+  return mapRows(() => toProfile(data));
 }

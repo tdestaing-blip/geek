@@ -791,6 +791,39 @@ export type Database = {
           },
         ];
       };
+      follows: {
+        Row: {
+          created_at: string;
+          followed_id: string;
+          follower_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          followed_id: string;
+          follower_id: string;
+        };
+        Update: {
+          created_at?: string;
+          followed_id?: string;
+          follower_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "follows_followed_foreign_key";
+            columns: ["followed_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "follows_follower_foreign_key";
+            columns: ["follower_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       game_provider_mappings: {
         Row: {
           created_at: string;

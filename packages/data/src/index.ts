@@ -58,6 +58,16 @@ export {
 
 export { getMyProfile } from "./profile/profile";
 
+export type { FollowCollector } from "./social/follows";
+export {
+  followCollector,
+  getFollowCounts,
+  getFollowers,
+  getFollowing,
+  isFollowingCollector,
+  unfollowCollector,
+} from "./social/follows";
+
 export type {
   AddWishlistIntentInput,
   MyWishlistIntent,
