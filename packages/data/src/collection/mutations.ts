@@ -19,12 +19,14 @@ import { toCopy } from "./mapping";
 const RETURNING = "id, game_id, edition_id, owner_id, visibility, availability, created_at";
 
 /** What the owner may decide when adding a Copy. */
+export type CopyCreationAvailability = Extract<CopyAvailability, "private" | "open_to_trade">;
+
 export type AddCopyInput = {
   readonly editionId: string;
   /** Defaults to private, matching the column default. */
   readonly visibility?: CopyVisibility;
   /** Defaults to not open to trade, matching the column default. */
-  readonly availability?: CopyAvailability;
+  readonly availability?: CopyCreationAvailability;
 };
 
 /**

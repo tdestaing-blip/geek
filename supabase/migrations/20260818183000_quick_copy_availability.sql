@@ -45,6 +45,20 @@ security definer
 set search_path = ''
 as $$
 begin
+  if tg_op = 'INSERT' then
+    if new.availability in ('for_sale', 'in_auction') then
+      raise exception 'A new Copy cannot have commercial availability without a commitment.'
+        using errcode = '23514';
+    end if;
+
+    new.trade_availability := case
+      when new.availability = 'open_to_trade' then 'open_to_trade'
+      else 'not_open'
+    end;
+
+    return new;
+  end if;
+
   if new.game_id is distinct from old.game_id then
     raise exception 'A Copy cannot change its Game.' using errcode = '23514';
   end if;
@@ -123,6 +137,12 @@ from public, anon, authenticated;
 
 create trigger copies_validate_availability_commitment
 before update of availability, trade_availability on public.copies
+for each row execute function public.validate_copy_availability_commitment();
+
+-- Availability is canonical on creation. The legacy compatibility value is
+-- always derived here, even for trusted callers that supply both columns.
+create trigger copies_validate_insert_availability
+before insert on public.copies
 for each row execute function public.validate_copy_availability_commitment();
 
 create function public.sync_copy_availability_from_commitment()

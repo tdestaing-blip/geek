@@ -61,6 +61,12 @@ discoverability intent and does not create a TradeOffer or commitment.
 flows and their commercial commitments; clients cannot assert them without the
 corresponding relationship.
 
+On Copy creation, only `private` and `open_to_trade` are valid. `availability`
+is canonical: the database derives the legacy compatibility value as
+`not_open` or `open_to_trade` respectively, ignoring any contradictory legacy
+input. A new Copy cannot start `for_sale` or `in_auction` because its required
+Listing or Auction commitment cannot exist before the Copy does.
+
 `open_to_trade` availability is explicit discoverability intent independent from general
 Collection visibility. A private Copy marked `open_to_trade` may appear through
 the minimum safe Trade discovery projection, while the owner's other private

@@ -11,6 +11,7 @@ import type { GeekSupabaseClient } from "@geek/supabase";
 
 import type { CollectionEntry } from "./collection/collection";
 import type { MyCopyDetail } from "./collection/copy-detail";
+import type { AddCopyInput } from "./collection/mutations";
 
 declare const client: GeekSupabaseClient;
 
@@ -30,6 +31,14 @@ export const invalidVisibility: Copy["visibility"] = "sealed";
 
 // @ts-expect-error trade availability is a closed set, not free text
 export const invalidTradeAvailability: Copy["availability"] = "maybe";
+
+export const validCreationAvailability: AddCopyInput["availability"] = "open_to_trade";
+
+// @ts-expect-error for-sale availability must be established by a Listing commitment
+export const invalidForSaleCreation: AddCopyInput["availability"] = "for_sale";
+
+// @ts-expect-error in-auction availability must be established by an Auction commitment
+export const invalidAuctionCreation: AddCopyInput["availability"] = "in_auction";
 
 // @ts-expect-error catalog media kinds are finite, not provider-defined strings
 export const invalidCatalogMediaKind: CatalogMedia["kind"] = "screenshot";

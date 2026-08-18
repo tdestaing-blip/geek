@@ -677,6 +677,92 @@ try {
     stillPrivate.data.visibility === "private",
   );
 
+  const privateInsertState = await admin
+    .from("copies")
+    .select("availability, trade_availability")
+    .eq("id", otherCopyId)
+    .single();
+  record(
+    "a private addCopy insert derives closed legacy availability",
+    privateInsertState.data.availability === "private" &&
+      privateInsertState.data.trade_availability === "not_open",
+  );
+
+  const openAtCreation = await addCopy(owner, {
+    editionId: standardEdition.id,
+    availability: "open_to_trade",
+  });
+  const openInsertState = await admin
+    .from("copies")
+    .select("availability, trade_availability")
+    .eq("id", openAtCreation.data.id)
+    .single();
+  record(
+    "addCopy can create open-to-trade state without legacy drift",
+    openAtCreation.outcome === "ok" &&
+      openInsertState.data.availability === "open_to_trade" &&
+      openInsertState.data.trade_availability === "open_to_trade",
+    describeOutcome(openAtCreation),
+  );
+
+  const contradictoryOpenInsert = await admin
+    .from("copies")
+    .insert({
+      owner_id: ownerId,
+      game_id: game.id,
+      availability: "open_to_trade",
+      trade_availability: "not_open",
+    })
+    .select("availability, trade_availability")
+    .single();
+  record(
+    "canonical open-to-trade wins over contradictory legacy insert input",
+    contradictoryOpenInsert.error === null &&
+      contradictoryOpenInsert.data.availability === "open_to_trade" &&
+      contradictoryOpenInsert.data.trade_availability === "open_to_trade",
+    contradictoryOpenInsert.error?.message,
+  );
+
+  const contradictoryPrivateInsert = await admin
+    .from("copies")
+    .insert({
+      owner_id: ownerId,
+      game_id: game.id,
+      availability: "private",
+      trade_availability: "open_to_trade",
+    })
+    .select("availability, trade_availability")
+    .single();
+  record(
+    "canonical private wins over contradictory legacy insert input",
+    contradictoryPrivateInsert.error === null &&
+      contradictoryPrivateInsert.data.availability === "private" &&
+      contradictoryPrivateInsert.data.trade_availability === "not_open",
+    contradictoryPrivateInsert.error?.message,
+  );
+
+  const invalidSaleInsert = await admin.from("copies").insert({
+    owner_id: ownerId,
+    game_id: game.id,
+    availability: "for_sale",
+  });
+  record(
+    "a new Copy cannot manufacture for-sale availability",
+    invalidSaleInsert.error?.code === "23514",
+    invalidSaleInsert.error?.code,
+  );
+
+  const invalidAuctionInsert = await admin.from("copies").insert({
+    owner_id: ownerId,
+    game_id: game.id,
+    availability: "in_auction",
+  });
+  record(
+    "a new Copy cannot manufacture in-auction availability",
+    invalidAuctionInsert.error?.code === "23514",
+    invalidAuctionInsert.error?.code,
+  );
+
   const quickCopy = await addQuickCopy(owner, game.id);
 
   record(
