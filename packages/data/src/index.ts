@@ -45,6 +45,11 @@ export type { MyCopyDetail } from "./collection/copy-detail";
 export { getMyCopyDetail } from "./collection/copy-detail";
 
 export type { AddCopyInput, CopyAvailabilityUpdate } from "./collection/mutations";
-export { addCopy, updateCopyAvailability } from "./collection/mutations";
+export {
+  addCopy,
+  addQuickCopy,
+  setCopyEdition,
+  updateCopyAvailability,
+} from "./collection/mutations";
 
 export { getMyProfile } from "./profile/profile";

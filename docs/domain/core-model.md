@@ -441,13 +441,16 @@ public, and explicitly marked for trade interest.
 
 Ownership and commercial availability are separate concerns.
 
-A Copy may be:
+A Copy has exactly one transaction-availability mode:
 
-- private
-- visible in the owner's public collection
-- open to trade offers
-- available through a Listing
-- entered in an Auction
+- `private`
+- `open_to_trade`
+- `for_sale`
+- `in_auction`
+
+Collection visibility remains a separate `private` / `public` concern. A Copy
+may therefore be hidden from the owner's public profile while intentionally
+exposed through a safe trade, Listing, or Auction discovery surface.
 
 Visibility must not imply availability.
 
@@ -765,7 +768,7 @@ offer and creating another one. Counter offers are not implemented.
 
 A pending TradeOffer holds no reservation or commercial commitment. Multiple
 pending TradeOffers may reference the same Copy, and a pending offer may become
-stale as ownership, trade availability, or commercial commitments change.
+stale as ownership, availability, or commercial commitments change.
 
 Accepting a TradeOffer revalidates every Copy and atomically reserves all
 involved Copies through Geek's shared Copy commitment infrastructure. Partial
@@ -1067,7 +1070,7 @@ does not create a TradeOffer, reservation, commercial commitment, or ownership
 change, and may disappear as Wishes, Copies, availability, visibility, or
 locations change.
 
-Copy visibility is independent from explicit trade availability. A private
+Copy visibility is independent from explicit `open_to_trade` availability. A private
 Copy may participate only when it is `open_to_trade`, and Matching exposes only
 its safe Copy, Game, and Edition identities. Counterpart-private WishlistItems
 and Wishlist private details never contribute to the first matching version.

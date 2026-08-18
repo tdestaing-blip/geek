@@ -26,9 +26,9 @@ import { toCopy, toCopyComponentState, toCopyPrivateDetails, toEditionComponent 
  */
 export type MyCopyDetail = {
   readonly copy: Copy;
-  readonly edition: Edition;
+  readonly edition: Edition | null;
   readonly game: Game;
-  readonly platform: Platform;
+  readonly platform: Platform | null;
   /**
    * Every component the Edition shipped with, in catalog order, each with
    * whatever the owner recorded about it.
@@ -49,11 +49,11 @@ export type MyCopyDetail = {
 };
 
 const COPY_SELECT = `
-  id, edition_id, owner_id, visibility, trade_availability, created_at,
-  editions!inner (
+  id, game_id, edition_id, owner_id, visibility, availability, created_at,
+  games!copies_game_id_fkey!inner (id, canonical_title, description, original_release_date),
+  editions!copies_edition_id_fkey (
     id, game_id, platform_id, edition_name, region_code, supported_languages,
     release_date, publisher_name, packaging_type,
-    games!inner (id, canonical_title, description, original_release_date),
     platforms!inner (id, slug, name)
   )
 `;
@@ -111,17 +111,19 @@ export async function getMyCopyDetail(
   }
 
   const [componentsResponse, privateResponse] = await Promise.all([
-    client
-      .from("edition_components")
-      .select(COMPONENT_SELECT)
-      .eq("edition_id", copyRow.edition_id)
-      // Restricts the embedded states to this Copy. Without it the embed would
-      // also carry states belonging to other people's public Copies of the same
-      // Edition, which row-level security permits reading but which have
-      // nothing to do with this one.
-      .eq("copy_component_states.copy_id", copyId)
-      .order("sort_order", { ascending: true })
-      .order("id", { ascending: true }),
+    copyRow.edition_id === null
+      ? Promise.resolve({ data: [], error: null })
+      : client
+          .from("edition_components")
+          .select(COMPONENT_SELECT)
+          .eq("edition_id", copyRow.edition_id)
+          // Restricts the embedded states to this Copy. Without it the embed would
+          // also carry states belonging to other people's public Copies of the same
+          // Edition, which row-level security permits reading but which have
+          // nothing to do with this one.
+          .eq("copy_component_states.copy_id", copyId)
+          .order("sort_order", { ascending: true })
+          .order("id", { ascending: true }),
     client
       .from("copy_private_details")
       .select(PRIVATE_DETAILS_SELECT)
@@ -147,9 +149,9 @@ export async function getMyCopyDetail(
 
   return mapRows((): MyCopyDetail => ({
     copy: toCopy(copyRow),
-    edition: toEdition(copyRow.editions),
-    game: toGame(copyRow.editions.games),
-    platform: toPlatform(copyRow.editions.platforms),
+    edition: copyRow.editions === null ? null : toEdition(copyRow.editions),
+    game: toGame(copyRow.games),
+    platform: copyRow.editions === null ? null : toPlatform(copyRow.editions.platforms),
     components: componentRows.map((row) => ({
       component: toEditionComponent(row),
       state: toAssessedState(row.copy_component_states, row.id),

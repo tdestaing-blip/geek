@@ -25,8 +25,8 @@ export type {
 } from "./catalog/search";
 export { parseCatalogSearchResultKind } from "./catalog/search";
 
-export type { Copy, CopyTradeAvailability, CopyVisibility } from "./ownership/copy";
-export { parseCopyTradeAvailability, parseCopyVisibility } from "./ownership/copy";
+export type { Copy, CopyAvailability, CopyVisibility } from "./ownership/copy";
+export { parseCopyAvailability, parseCopyVisibility } from "./ownership/copy";
 
 export type {
   ConditionGrade,

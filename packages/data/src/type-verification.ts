@@ -29,7 +29,7 @@ export const validVisibility: Copy["visibility"] = "public";
 export const invalidVisibility: Copy["visibility"] = "sealed";
 
 // @ts-expect-error trade availability is a closed set, not free text
-export const invalidTradeAvailability: Copy["tradeAvailability"] = "maybe";
+export const invalidTradeAvailability: Copy["availability"] = "maybe";
 
 // @ts-expect-error catalog media kinds are finite, not provider-defined strings
 export const invalidCatalogMediaKind: CatalogMedia["kind"] = "screenshot";
@@ -90,7 +90,7 @@ export type PrivateDetailsAreSeparate = Assert<
 export async function collectionRowsAreTyped(): Promise<string> {
   const { data, error } = await client
     .from("copies")
-    .select("id, visibility, editions!inner (id, games!inner (id, canonical_title))")
+    .select("id, visibility, games!copies_game_id_fkey!inner (id, canonical_title)")
     .limit(1);
 
   if (error !== null) {
@@ -107,7 +107,7 @@ export async function collectionRowsAreTyped(): Promise<string> {
   const proof: NotAny = true;
   void proof;
 
-  return first.editions.games.canonical_title;
+  return first.games.canonical_title;
 }
 
 /** The entry shape a collection list hands to a screen. */

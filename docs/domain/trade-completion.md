@@ -109,7 +109,7 @@ confirmation that triggered it. There is no committed state in which only some
 Copies moved, or in which commitments were released without the ownership change
 landing.
 
-Completion deliberately does not revalidate `trade_availability`. Being
+Completion deliberately does not revalidate `availability`. Being
 `open_to_trade` was an acceptance-time requirement. Once accepted, the
 reservation is the authoritative commercial state, so a participant who closed a
 Copy to trade after acceptance can still complete the agreed exchange.
@@ -121,8 +121,7 @@ context or consent.
 
 Each transferred Copy keeps its identity, its Edition, and its component
 presence and condition, because those describe the object itself. It arrives
-with `visibility` reset to `private` and `trade_availability` reset to
-`not_open`.
+with both `visibility` and `availability` reset to `private`.
 
 Without those resets, ownership transfer would republish the new owner's
 collection and re-offer their Copy for trade on the strength of the previous

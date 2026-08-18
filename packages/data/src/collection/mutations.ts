@@ -1,4 +1,4 @@
-import type { Copy, CopyTradeAvailability, CopyVisibility } from "@geek/domain";
+import type { Copy, CopyAvailability, CopyVisibility } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import { resolveCaller } from "../caller";
@@ -16,7 +16,7 @@ import { toCopy } from "./mapping";
  * ownership transfer is a server-side operation that no client may perform.
  */
 
-const RETURNING = "id, edition_id, owner_id, visibility, trade_availability, created_at";
+const RETURNING = "id, game_id, edition_id, owner_id, visibility, availability, created_at";
 
 /** What the owner may decide when adding a Copy. */
 export type AddCopyInput = {
@@ -24,7 +24,7 @@ export type AddCopyInput = {
   /** Defaults to private, matching the column default. */
   readonly visibility?: CopyVisibility;
   /** Defaults to not open to trade, matching the column default. */
-  readonly tradeAvailability?: CopyTradeAvailability;
+  readonly availability?: CopyAvailability;
 };
 
 /**
@@ -41,22 +41,35 @@ export type AddCopyInput = {
 export async function addCopy(
   client: GeekSupabaseClient,
   input: AddCopyInput,
-): Promise<OwnedResult<Copy>> {
+): Promise<OwnedEntityResult<Copy>> {
   const caller = await resolveCaller(client);
 
   if (caller.outcome !== "ok") {
     return caller;
   }
 
+  const edition = await client
+    .from("editions")
+    .select("game_id")
+    .eq("id", input.editionId)
+    .maybeSingle();
+
+  if (edition.error !== null) {
+    return databaseFailure(edition.error);
+  }
+
+  if (edition.data === null) {
+    return { outcome: "not_found" };
+  }
+
   const { data, error } = await client
     .from("copies")
     .insert({
       owner_id: caller.userId,
+      game_id: edition.data.game_id,
       edition_id: input.editionId,
       ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
-      ...(input.tradeAvailability === undefined
-        ? {}
-        : { trade_availability: input.tradeAvailability }),
+      ...(input.availability === undefined ? {} : { availability: input.availability }),
     })
     .select(RETURNING)
     .single();
@@ -71,7 +84,7 @@ export async function addCopy(
 /** The owner-controlled flags on a Copy. */
 export type CopyAvailabilityUpdate = {
   readonly visibility?: CopyVisibility;
-  readonly tradeAvailability?: CopyTradeAvailability;
+  readonly availability?: CopyAvailability;
 };
 
 /**
@@ -101,9 +114,7 @@ export async function updateCopyAvailability(
 
   const changes = {
     ...(update.visibility === undefined ? {} : { visibility: update.visibility }),
-    ...(update.tradeAvailability === undefined
-      ? {}
-      : { trade_availability: update.tradeAvailability }),
+    ...(update.availability === undefined ? {} : { availability: update.availability }),
   };
 
   if (Object.keys(changes).length === 0) {
@@ -113,6 +124,68 @@ export async function updateCopyAvailability(
   const { data, error } = await client
     .from("copies")
     .update(changes)
+    .eq("id", copyId)
+    .eq("owner_id", caller.userId)
+    .select(RETURNING)
+    .maybeSingle();
+
+  if (error !== null) {
+    return databaseFailure(error);
+  }
+
+  if (data === null) {
+    return { outcome: "not_found" };
+  }
+
+  return mapRows(() => toCopy(data));
+}
+
+/** Adds a real Copy when only its Game is known. */
+export async function addQuickCopy(
+  client: GeekSupabaseClient,
+  gameId: string,
+): Promise<OwnedResult<Copy>> {
+  const caller = await resolveCaller(client);
+
+  if (caller.outcome !== "ok") {
+    return caller;
+  }
+
+  const { data, error } = await client
+    .from("copies")
+    .insert({ owner_id: caller.userId, game_id: gameId })
+    .select(RETURNING)
+    .single();
+
+  if (error !== null) {
+    return databaseFailure(error);
+  }
+
+  return mapRows(() => toCopy(data));
+}
+
+/**
+ * Attaches or safely corrects a Copy's Edition without replacing its identity.
+ *
+ * The database rejects cross-Game Editions and corrections while the Copy has
+ * Edition-specific component state or a commercial commitment. Those failures
+ * retain their database message so the caller can explain what must be cleared
+ * before retrying.
+ */
+export async function setCopyEdition(
+  client: GeekSupabaseClient,
+  copyId: string,
+  editionId: string,
+): Promise<OwnedEntityResult<Copy>> {
+  const caller = await resolveCaller(client);
+
+  if (caller.outcome !== "ok") {
+    return caller;
+  }
+
+  const { data, error } = await client
+    .from("copies")
+    .update({ edition_id: editionId })
     .eq("id", copyId)
     .eq("owner_id", caller.userId)
     .select(RETURNING)
