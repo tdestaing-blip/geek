@@ -58,6 +58,12 @@ export {
 
 export { getMyProfile } from "./profile/profile";
 
+export {
+  getListingMatchesForWishlist,
+  getMyReciprocalTradeMatches,
+  getWishlistMatches,
+} from "./matching/matches";
+
 export type { FollowCollector } from "./social/follows";
 export {
   followCollector,
