@@ -29,6 +29,8 @@ export { InvalidRowError } from "./result";
 
 export type { Page, PageRequest } from "./pagination";
 
+export { getAlbumDetail, getAlbums } from "./albums/albums";
+
 export { getEdition, getEditionsForGame, getGame } from "./catalog/catalog";
 export {
   getPrimaryEditionCover,

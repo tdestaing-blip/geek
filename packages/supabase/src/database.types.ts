@@ -3,6 +3,91 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      album_entries: {
+        Row: {
+          album_id: string;
+          created_at: string;
+          edition_id: string | null;
+          game_id: string;
+          id: string;
+          position: number;
+        };
+        Insert: {
+          album_id: string;
+          created_at?: string;
+          edition_id?: string | null;
+          game_id: string;
+          id?: string;
+          position: number;
+        };
+        Update: {
+          album_id?: string;
+          created_at?: string;
+          edition_id?: string | null;
+          game_id?: string;
+          id?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "album_entries_album_id_fkey";
+            columns: ["album_id"];
+            isOneToOne: false;
+            referencedRelation: "albums";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "album_entries_edition_game_foreign_key";
+            columns: ["edition_id", "game_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id", "game_id"];
+          },
+          {
+            foreignKeyName: "album_entries_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      albums: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          editorial_position: number;
+          id: string;
+          publication_state: string;
+          slug: string;
+          target_kind: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          editorial_position?: number;
+          id?: string;
+          publication_state?: string;
+          slug: string;
+          target_kind: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          editorial_position?: number;
+          id?: string;
+          publication_state?: string;
+          slug?: string;
+          target_kind?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       auction_bids: {
         Row: {
           amount_minor: number;
@@ -1396,6 +1481,53 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      get_album_detail: {
+        Args: {
+          album_id_or_slug: string;
+          result_limit?: number;
+          result_offset?: number;
+        };
+        Returns: {
+          active_listing_count: number;
+          album_description: string;
+          album_id: string;
+          album_slug: string;
+          album_target_kind: string;
+          album_title: string;
+          collector_count: number;
+          edition_id: string;
+          edition_name: string;
+          edition_platform_id: string;
+          edition_platform_name: string;
+          edition_region_code: string;
+          entry_id: string;
+          entry_position: number;
+          game_id: string;
+          game_title: string;
+          missing: boolean;
+          missing_slots: number;
+          owned: boolean;
+          owned_slots: number;
+          total_slots: number;
+          trade_collector_count: number;
+          wanted: boolean;
+          wanted_slots: number;
+        }[];
+      };
+      get_albums: {
+        Args: { result_limit?: number; result_offset?: number };
+        Returns: {
+          album_id: string;
+          description: string;
+          missing_slots: number;
+          owned_slots: number;
+          slug: string;
+          target_kind: string;
+          title: string;
+          total_slots: number;
+          wanted_slots: number;
+        }[];
       };
       get_auction_discovery: {
         Args: {

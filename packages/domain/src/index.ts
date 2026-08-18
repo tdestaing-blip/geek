@@ -70,3 +70,18 @@ export type {
   WishlistMatch,
 } from "./matching/contracts";
 export { parseMatchDistanceBucket, parseMatchTargetKind } from "./matching/contracts";
+
+export type {
+  Album,
+  AlbumDetail,
+  AlbumEditionTarget,
+  AlbumEntry,
+  AlbumEntryState,
+  AlbumEntryTarget,
+  AlbumGameTarget,
+  AlbumNetworkSignal,
+  AlbumProgress,
+  AlbumSummary,
+  AlbumTargetKind,
+} from "./albums/album";
+export { parseAlbumTargetKind } from "./albums/album";
