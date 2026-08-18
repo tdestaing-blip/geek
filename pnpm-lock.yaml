@@ -165,6 +165,28 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  packages/catalog-import:
+    dependencies:
+      "@geek/supabase":
+        specifier: workspace:*
+        version: link:../supabase
+      "@supabase/supabase-js":
+        specifier: 2.112.2
+        version: 2.112.2
+    devDependencies:
+      "@geek/config":
+        specifier: workspace:*
+        version: link:../config
+      "@types/node":
+        specifier: 26.1.2
+        version: 26.1.2
+      eslint:
+        specifier: 9.39.5
+        version: 9.39.5(supports-color@8.1.1)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   packages/config:
     dependencies:
       "@eslint/js":

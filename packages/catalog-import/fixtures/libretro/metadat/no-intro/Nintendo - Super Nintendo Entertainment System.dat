@@ -1,0 +1,80 @@
+clrmamepro (
+  name "Nintendo - Super Nintendo Entertainment System"
+  description "Geek representative Libretro import fixture"
+  version "fixture-1"
+)
+
+game (
+  name "Street Fighter II (Europe)"
+  region "Europe"
+  rom ( name "Street Fighter II (Europe).sfc" size 1 crc 00000001 md5 00000000000000000000000000000001 sha1 0000000000000000000000000000000000000001 )
+)
+game (
+  name "Street Fighter II (Japan)"
+  region "Japan"
+  rom ( name "Street Fighter II (Japan).sfc" size 1 crc 00000002 md5 00000000000000000000000000000002 sha1 0000000000000000000000000000000000000002 )
+)
+game (
+  name "Street Fighter II (USA)"
+  region "USA"
+  rom ( name "Street Fighter II (USA).sfc" size 1 crc 00000003 md5 00000000000000000000000000000003 sha1 0000000000000000000000000000000000000003 )
+)
+game (
+  name "Donkey Kong Country (USA)"
+  region "USA"
+  serial "SNS-DK-USA"
+  rom ( name "Donkey Kong Country (USA).sfc" size 1 crc 00000004 md5 00000000000000000000000000000004 sha1 0000000000000000000000000000000000000004 serial "SNS-DK-USA" )
+)
+game (
+  name "Donkey Kong Country (USA) (Rev 1)"
+  region "USA"
+  serial "SNS-DK-USA"
+  rom ( name "Donkey Kong Country (USA) (Rev 1).sfc" size 1 crc 00000005 md5 00000000000000000000000000000005 sha1 0000000000000000000000000000000000000005 serial "SNS-DK-USA" )
+)
+game (
+  name "Pokémon – L'Édition (Europe)"
+  region "Europe"
+  serial "SNS-PK-EUR"
+  rom ( name "Pokémon – L'Édition (Europe).sfc" size 1 crc 00000006 md5 00000000000000000000000000000006 sha1 0000000000000000000000000000000000000006 serial "SNS-PK-EUR" )
+)
+game (
+  name "Pokémon – L'Édition Alias (Europe)"
+  region "Europe"
+  serial "SNS-PK-EUR"
+  rom ( name "Pokémon – L'Édition Alias (Europe).sfc" size 1 crc 00000006 md5 00000000000000000000000000000006 sha1 0000000000000000000000000000000000000006 serial "SNS-PK-EUR" )
+)
+game (
+  name "Championship Racer (Collector's Cut) (USA)"
+  region "USA"
+  rom ( name "Championship Racer (Collector's Cut) (USA).sfc" size 1 crc 0000000D md5 0000000000000000000000000000000D sha1 000000000000000000000000000000000000000D )
+)
+game (
+  name "90 Minutes - European Prime Goal (Europe) (Beta)"
+  region "Europe"
+  rom ( name "90 Minutes - European Prime Goal (Europe) (Beta).sfc" size 1 crc 00000007 sha1 0000000000000000000000000000000000000007 )
+)
+game (
+  name "Arcus Spirits (USA) (Proto)"
+  region "USA"
+  rom ( name "Arcus Spirits (USA) (Proto).sfc" size 1 crc 00000008 sha1 0000000000000000000000000000000000000008 )
+)
+game (
+  name "Example Preview (USA) (Demo)"
+  region "USA"
+  rom ( name "Example Preview (USA) (Demo).sfc" size 1 crc 00000009 sha1 0000000000000000000000000000000000000009 )
+)
+game (
+  name "Example Translation (Japan) (Hack)"
+  region "Japan"
+  rom ( name "Example Translation (Japan) (Hack).sfc" size 1 crc 0000000A sha1 000000000000000000000000000000000000000A )
+)
+game (
+  name "Example Homebrew (World) (Aftermarket) (Unl)"
+  region "World"
+  rom ( name "Example Homebrew (World) (Aftermarket) (Unl).sfc" size 1 crc 0000000B sha1 000000000000000000000000000000000000000B )
+)
+game (
+  name "Example Digital Release (USA) (Virtual Console)"
+  region "USA"
+  rom ( name "Example Digital Release (USA) (Virtual Console).sfc" size 1 crc 0000000C sha1 000000000000000000000000000000000000000C )
+)

@@ -21,6 +21,8 @@
     "db:smoke:auth": "node --experimental-strip-types scripts/supabase-auth-smoke.mjs",
     "db:smoke:data": "node --experimental-strip-types scripts/supabase-data-smoke.mjs",
     "db:smoke:catalog-media": "node --experimental-strip-types scripts/supabase-catalog-media-smoke.mjs",
+    "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
+    "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint eslint.config.mjs scripts && pnpm --recursive --if-present run lint",

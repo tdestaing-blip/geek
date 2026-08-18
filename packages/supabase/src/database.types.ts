@@ -160,6 +160,50 @@ export type Database = {
           },
         ];
       };
+      catalog_import_runs: {
+        Row: {
+          completed_at: string;
+          dry_run: boolean;
+          id: string;
+          platform_id: string;
+          provider: string;
+          provider_revision: string;
+          started_at: string;
+          status: string;
+          summary: Json;
+        };
+        Insert: {
+          completed_at: string;
+          dry_run?: boolean;
+          id?: string;
+          platform_id: string;
+          provider: string;
+          provider_revision: string;
+          started_at: string;
+          status: string;
+          summary: Json;
+        };
+        Update: {
+          completed_at?: string;
+          dry_run?: boolean;
+          id?: string;
+          platform_id?: string;
+          provider?: string;
+          provider_revision?: string;
+          started_at?: string;
+          status?: string;
+          summary?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_runs_platform_id_fkey";
+            columns: ["platform_id"];
+            isOneToOne: false;
+            referencedRelation: "platforms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       catalog_media: {
         Row: {
           asset_url: string;
@@ -641,18 +685,24 @@ export type Database = {
           edition_id: string;
           external_id: string;
           provider: string;
+          source_title: string | null;
+          updated_at: string;
         };
         Insert: {
           created_at?: string;
           edition_id: string;
           external_id: string;
           provider: string;
+          source_title?: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
           edition_id?: string;
           external_id?: string;
           provider?: string;
+          source_title?: string | null;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -727,18 +777,24 @@ export type Database = {
           external_id: string;
           game_id: string;
           provider: string;
+          source_title: string | null;
+          updated_at: string;
         };
         Insert: {
           created_at?: string;
           external_id: string;
           game_id: string;
           provider: string;
+          source_title?: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
           external_id?: string;
           game_id?: string;
           provider?: string;
+          source_title?: string | null;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -1376,6 +1432,18 @@ export type Database = {
           game_id: string;
           owner_id: string;
         }[];
+      };
+      import_catalog_batch: {
+        Args: {
+          import_summary: Json;
+          normalized_games: Json;
+          platform_manufacturer: string;
+          platform_name: string;
+          platform_slug: string;
+          provider_name: string;
+          provider_revision: string;
+        };
+        Returns: Json;
       };
       link_trade_offer_to_conversation: {
         Args: { target_conversation_id: string; target_trade_offer_id: string };
