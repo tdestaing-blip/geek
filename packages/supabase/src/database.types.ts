@@ -1229,13 +1229,6 @@ export type Database = {
             referencedRelation: "wishlist_intents";
             referencedColumns: ["id"];
           },
-          {
-            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
-            columns: ["wishlist_intent_id"];
-            isOneToOne: true;
-            referencedRelation: "wishlist_items";
-            referencedColumns: ["id"];
-          },
         ];
       };
       wishlist_intents: {
@@ -1317,108 +1310,7 @@ export type Database = {
       };
     };
     Views: {
-      wishlist_items: {
-        Row: {
-          created_at: string | null;
-          edition_id: string | null;
-          game_id: string | null;
-          id: string | null;
-          owner_id: string | null;
-          purchase_interest: boolean | null;
-          status: string | null;
-          trade_interest: boolean | null;
-          updated_at: string | null;
-          visibility: string | null;
-        };
-        Insert: {
-          created_at?: string | null;
-          edition_id?: string | null;
-          game_id?: never;
-          id?: string | null;
-          owner_id?: string | null;
-          purchase_interest?: boolean | null;
-          status?: string | null;
-          trade_interest?: boolean | null;
-          updated_at?: string | null;
-          visibility?: string | null;
-        };
-        Update: {
-          created_at?: string | null;
-          edition_id?: string | null;
-          game_id?: never;
-          id?: string | null;
-          owner_id?: string | null;
-          purchase_interest?: boolean | null;
-          status?: string | null;
-          trade_interest?: boolean | null;
-          updated_at?: string | null;
-          visibility?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "wishlist_items_edition_id_fkey";
-            columns: ["edition_id"];
-            isOneToOne: false;
-            referencedRelation: "editions";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "wishlist_items_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      wishlist_private_details: {
-        Row: {
-          created_at: string | null;
-          max_purchase_amount_minor: number | null;
-          max_purchase_currency: string | null;
-          max_trade_distance_km: number | null;
-          priority: number | null;
-          private_notes: string | null;
-          updated_at: string | null;
-          wishlist_item_id: string | null;
-        };
-        Insert: {
-          created_at?: string | null;
-          max_purchase_amount_minor?: number | null;
-          max_purchase_currency?: string | null;
-          max_trade_distance_km?: number | null;
-          priority?: number | null;
-          private_notes?: string | null;
-          updated_at?: string | null;
-          wishlist_item_id?: string | null;
-        };
-        Update: {
-          created_at?: string | null;
-          max_purchase_amount_minor?: number | null;
-          max_purchase_currency?: string | null;
-          max_trade_distance_km?: number | null;
-          priority?: number | null;
-          private_notes?: string | null;
-          updated_at?: string | null;
-          wishlist_item_id?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
-            columns: ["wishlist_item_id"];
-            isOneToOne: true;
-            referencedRelation: "wishlist_intents";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
-            columns: ["wishlist_item_id"];
-            isOneToOne: true;
-            referencedRelation: "wishlist_items";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
+      [_ in never]: never;
     };
     Functions: {
       accept_trade_offer: {
@@ -1463,6 +1355,15 @@ export type Database = {
       distance_from_me_to_user: {
         Args: { target_user_id: string };
         Returns: number;
+      };
+      evaluate_wishlist_copy_match: {
+        Args: { candidate_copy_id: string; subject_intent_id: string };
+        Returns: {
+          completeness_preferred_satisfied: boolean;
+          completeness_required_satisfied: boolean;
+          condition_requirement_satisfied: boolean;
+          target_kind: string;
+        }[];
       };
       expire_trade_offer: {
         Args: { target_trade_offer_id: string };
@@ -1569,6 +1470,30 @@ export type Database = {
           trade_count: number;
         }[];
       };
+      get_listing_matches: {
+        Args: {
+          result_limit?: number;
+          result_offset?: number;
+          wishlist_intent_id: string;
+        };
+        Returns: {
+          asking_amount_minor: number;
+          asking_currency: string;
+          completeness_preferred_satisfied: boolean;
+          completeness_required_satisfied: boolean;
+          condition_requirement_satisfied: boolean;
+          copy_id: string;
+          edition_id: string;
+          game_id: string;
+          intent_id: string;
+          listing_id: string;
+          seller_avatar_path: string;
+          seller_display_name: string;
+          seller_id: string;
+          seller_username: string;
+          target_kind: string;
+        }[];
+      };
       get_my_discovery_location: {
         Args: never;
         Returns: {
@@ -1580,20 +1505,34 @@ export type Database = {
           updated_at: string;
         }[];
       };
-      get_reciprocal_trade_matches: {
+      get_my_reciprocal_trade_match_pairs: {
         Args: {
           max_distance_km?: number;
           result_limit?: number;
           result_offset?: number;
         };
         Returns: {
-          counterpart_user_id: string;
+          collector_avatar_path: string;
+          collector_display_name: string;
+          collector_id: string;
+          collector_username: string;
           distance_bucket: string;
-          my_active_trade_want_count: number;
-          my_matching_copies: Json;
-          my_want_match_count: number;
-          their_matching_copies: Json;
-          their_want_match_count: number;
+          my_completeness_preferred_satisfied: boolean;
+          my_completeness_required_satisfied: boolean;
+          my_condition_requirement_satisfied: boolean;
+          my_copy_edition_id: string;
+          my_copy_game_id: string;
+          my_copy_id: string;
+          my_intent_id: string;
+          my_target_kind: string;
+          their_completeness_preferred_satisfied: boolean;
+          their_completeness_required_satisfied: boolean;
+          their_condition_requirement_satisfied: boolean;
+          their_copy_edition_id: string;
+          their_copy_game_id: string;
+          their_copy_id: string;
+          their_intent_id: string;
+          their_target_kind: string;
         }[];
       };
       get_trade_discovery: {
@@ -1608,6 +1547,28 @@ export type Database = {
           edition_id: string;
           game_id: string;
           owner_id: string;
+        }[];
+      };
+      get_wishlist_matches: {
+        Args: {
+          result_limit?: number;
+          result_offset?: number;
+          wishlist_intent_id: string;
+        };
+        Returns: {
+          collector_avatar_path: string;
+          collector_display_name: string;
+          collector_id: string;
+          collector_username: string;
+          completeness_preferred_satisfied: boolean;
+          completeness_required_satisfied: boolean;
+          condition_requirement_satisfied: boolean;
+          copy_id: string;
+          distance_bucket: string;
+          edition_id: string;
+          game_id: string;
+          intent_id: string;
+          target_kind: string;
         }[];
       };
       import_catalog_batch: {

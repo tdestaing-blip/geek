@@ -58,3 +58,15 @@ export {
 export type { Profile } from "./profile/profile";
 
 export type { Follow, FollowCounts } from "./social/follow";
+
+export type {
+  ListingMatch,
+  MatchCopy,
+  MatchDistanceBucket,
+  MatchReason,
+  MatchTargetKind,
+  NearbyMatchSignal,
+  ReciprocalTradeMatch,
+  WishlistMatch,
+} from "./matching/contracts";
+export { parseMatchDistanceBucket, parseMatchTargetKind } from "./matching/contracts";

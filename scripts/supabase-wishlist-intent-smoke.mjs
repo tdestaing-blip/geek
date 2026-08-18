@@ -9,6 +9,7 @@ register("./typescript-resolver.mjs", import.meta.url);
 
 const {
   addWishlistIntent,
+  getMyReciprocalTradeMatches,
   getMyWishlistIntents,
   removeWishlistIntent,
   updateWishlistIntent,
@@ -224,20 +225,14 @@ try {
       ),
   );
 
-  const legacyExact = await admin
-    .from("wishlist_items")
-    .select("game_id, edition_id")
-    .eq("id", exact.data.id)
-    .single();
-  record(
-    "legacy matching view preserves exact-target semantics",
-    legacyExact.data.game_id === null && legacyExact.data.edition_id === editionA.id,
-  );
-
   const otherExact = await addWishlistIntent(other, {
     gameId: game.id,
     editionId: editionB.id,
     visibility: "public",
+  });
+  await updateWishlistIntent(owner, exact.data.id, {
+    completeness: "any",
+    minimumComponentConditionGrade: null,
   });
   await owner.from("user_discovery_locations").insert({
     user_id: ownerId,
@@ -263,18 +258,16 @@ try {
       availability: "open_to_trade",
     },
   ]);
-  const reciprocalMatches = await owner.rpc("get_reciprocal_trade_matches", {
-    max_distance_km: 25,
-    result_limit: 20,
-    result_offset: 0,
+  const reciprocalMatches = await getMyReciprocalTradeMatches(owner, {
+    maxDistanceKm: 25,
+    limit: 20,
   });
   record(
-    "existing reciprocal matching reads canonical intents through compatibility views",
+    "reciprocal matching reads canonical WishlistIntent storage",
     otherExact.outcome === "ok" &&
       matchingCopies.error === null &&
-      reciprocalMatches.error === null &&
-      reciprocalMatches.data.some((match) => match.counterpart_user_id === otherId),
-    reciprocalMatches.error?.code,
+      reciprocalMatches.outcome === "ok" &&
+      reciprocalMatches.data.items.some((match) => match.collector.id === otherId),
   );
 
   const removed = await removeWishlistIntent(owner, secondExact.data.id);

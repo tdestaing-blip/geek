@@ -1,5 +1,10 @@
 # Reciprocal Trade Matching
 
+This document records the original reciprocal geographic behavior. The
+canonical product contracts and shared WishlistIntent eligibility rules now live
+in [Match contracts](./match-contracts.md). The unused legacy aggregate RPC is
+retired; the canonical reciprocal pair projection replaces it.
+
 ## Purpose
 
 Matching answers: "Who around me owns something I want and wants something I
@@ -25,9 +30,10 @@ A reciprocal local trade match exists only when all of the following are true:
 Both directions are mandatory. One-way compatibility is not a match. Purchase
 interest alone does not establish trade intent.
 
-A Game-level want matches any Copy whose Edition belongs to that Game. An
-Edition-level want matches only a Copy of that exact Edition. These rules apply
-symmetrically.
+A Game-level want matches a Copy carrying that Game identity, including an
+unconstrained Quick Copy. An Edition-level want matches only a Copy of that exact
+Edition. Region, completeness, and component condition constraints use the
+canonical shared eligibility rules. These rules apply symmetrically.
 
 ## Visibility and privacy
 
@@ -127,10 +133,11 @@ making movement within a cell observationally stable prevent the original
 meter-level chosen-origin triangulation oracle. Future abuse controls such as
 rate limits and location-write policies remain complementary defenses.
 
-## Result and ranking
+## Retired legacy result and ranking
 
+The retired
 `get_reciprocal_trade_matches(max_distance_km, result_limit, result_offset)`
-returns one row per counterpart with:
+returned one row per counterpart with:
 
 - counterpart user ID
 - coarse distance bucket
@@ -140,14 +147,14 @@ returns one row per counterpart with:
 - relevant counterpart Copy identities
 - relevant caller Copy identities
 
-Counts cover all distinct qualifying wants. Each Copy detail array is
+Counts covered all distinct qualifying wants. Each Copy detail array was
 deduplicated, deterministically ordered, and capped at 20 entries, so a count
-may exceed the displayed detail rows.
+could exceed the displayed detail rows.
 
-Results order by caller wants satisfied descending, counterpart wants satisfied
-descending, coarse bucket nearest first, and counterpart UUID ascending. No
-generic recommendation score, money, popularity, activity, exact distance,
-Listing, or Auction state affects ranking.
+Results were ordered by caller wants satisfied descending, counterpart wants
+satisfied descending, coarse bucket nearest first, and counterpart UUID
+ascending. No generic recommendation score, money, popularity, activity, exact
+distance, Listing, or Auction state affected ranking.
 
 ## Lifecycle
 

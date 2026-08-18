@@ -109,3 +109,12 @@ The implementation is intentionally not a recommendation engine. It does not
 score value, trust, activity, popularity, Listings, Auctions, or unrelated
 interests. Future TradeOffer workflows and bilateral preferences remain
 separate decisions.
+
+## Step 17D contract evolution
+
+The canonical reciprocal pair projection replaces the unused original
+aggregate RPC. All Wishlist, Listing, and reciprocal projections share one
+WishlistIntent-to-Copy eligibility function and read `wishlist_intents`
+directly. The temporary Step 17B legacy wishlist views are removed. This
+preserves calculated matching while preventing two independently authoritative
+algorithms.
