@@ -30,9 +30,9 @@ const COLLECTION_PAGE = { defaultLimit: 50, maxLimit: 100 } as const;
  */
 export type CollectionEntry = {
   readonly copy: Copy;
-  readonly edition: Edition;
+  readonly edition: Edition | null;
   readonly game: Game;
-  readonly platform: Platform;
+  readonly platform: Platform | null;
 };
 
 /**
@@ -43,16 +43,15 @@ export type CollectionEntry = {
  * then each Game — is the N+1 that makes a list of fifty items a hundred and
  * fifty round trips.
  *
- * The joins are inner joins: every Copy has an Edition, every Edition has a
- * Game and a Platform, all enforced by non-null foreign keys. A missing one
- * would be a broken database rather than a Copy to render without its title.
+ * Game is an inner join because every Copy identifies its Game. Edition and
+ * Platform are optional so a Quick Copy remains a normal collection entry.
  */
 const COLLECTION_SELECT = `
-  id, edition_id, owner_id, visibility, trade_availability, created_at,
-  editions!inner (
+  id, game_id, edition_id, owner_id, visibility, availability, created_at,
+  games!copies_game_id_fkey!inner (id, canonical_title, description, original_release_date),
+  editions!copies_edition_id_fkey (
     id, game_id, platform_id, edition_name, region_code, supported_languages,
     release_date, publisher_name, packaging_type,
-    games!inner (id, canonical_title, description, original_release_date),
     platforms!inner (id, slug, name)
   )
 `;
@@ -96,9 +95,9 @@ export async function getMyCollection(
   return mapRows(() => ({
     items: data.map((row) => ({
       copy: toCopy(row),
-      edition: toEdition(row.editions),
-      game: toGame(row.editions.games),
-      platform: toPlatform(row.editions.platforms),
+      edition: row.editions === null ? null : toEdition(row.editions),
+      game: toGame(row.games),
+      platform: row.editions === null ? null : toPlatform(row.editions.platforms),
     })),
     limit,
     offset,

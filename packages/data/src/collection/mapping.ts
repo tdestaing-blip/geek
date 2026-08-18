@@ -10,7 +10,7 @@ import {
   createMoney,
   parseConditionGrade,
   parseCopyComponentPresence,
-  parseCopyTradeAvailability,
+  parseCopyAvailability,
   parseCopyVisibility,
   parseCurrencyCode,
 } from "@geek/domain";
@@ -35,7 +35,7 @@ import { InvalidRowError } from "../result";
 
 type CopyFields = Pick<
   Tables<"copies">,
-  "id" | "edition_id" | "owner_id" | "visibility" | "trade_availability" | "created_at"
+  "id" | "game_id" | "edition_id" | "owner_id" | "visibility" | "availability" | "created_at"
 >;
 
 type EditionComponentFields = Pick<
@@ -67,21 +67,19 @@ export function toCopy(row: CopyFields): Copy {
     throw new InvalidRowError("copies.visibility", `unknown visibility "${row.visibility}"`);
   }
 
-  const tradeAvailability = parseCopyTradeAvailability(row.trade_availability);
+  const availability = parseCopyAvailability(row.availability);
 
-  if (tradeAvailability === null) {
-    throw new InvalidRowError(
-      "copies.trade_availability",
-      `unknown trade availability "${row.trade_availability}"`,
-    );
+  if (availability === null) {
+    throw new InvalidRowError("copies.availability", `unknown availability "${row.availability}"`);
   }
 
   return {
     id: row.id,
+    gameId: row.game_id,
     editionId: row.edition_id,
     ownerId: row.owner_id,
     visibility,
-    tradeAvailability,
+    availability,
     createdAt: row.created_at,
   };
 }

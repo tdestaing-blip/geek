@@ -399,8 +399,10 @@ export type Database = {
       };
       copies: {
         Row: {
+          availability: string;
           created_at: string;
-          edition_id: string;
+          edition_id: string | null;
+          game_id: string;
           id: string;
           owner_id: string;
           trade_availability: string;
@@ -408,8 +410,10 @@ export type Database = {
           visibility: string;
         };
         Insert: {
+          availability?: string;
           created_at?: string;
-          edition_id: string;
+          edition_id?: string | null;
+          game_id: string;
           id?: string;
           owner_id: string;
           trade_availability?: string;
@@ -417,8 +421,10 @@ export type Database = {
           visibility?: string;
         };
         Update: {
+          availability?: string;
           created_at?: string;
-          edition_id?: string;
+          edition_id?: string | null;
+          game_id?: string;
           id?: string;
           owner_id?: string;
           trade_availability?: string;
@@ -427,10 +433,24 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "copies_edition_game_foreign_key";
+            columns: ["edition_id", "game_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id", "game_id"];
+          },
+          {
             foreignKeyName: "copies_edition_id_fkey";
             columns: ["edition_id"];
             isOneToOne: false;
             referencedRelation: "editions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "copies_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
             referencedColumns: ["id"];
           },
           {

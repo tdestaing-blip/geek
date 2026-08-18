@@ -30,6 +30,7 @@ register("./typescript-resolver.mjs", import.meta.url);
 
 const {
   addCopy,
+  addQuickCopy,
   getEdition,
   getEditionsForGame,
   getGame,
@@ -37,6 +38,7 @@ const {
   getMyCopyDetail,
   getMyProfile,
   searchCatalog,
+  setCopyEdition,
   updateCopyAvailability,
 } = await import("../packages/data/src/index.ts");
 
@@ -224,6 +226,28 @@ try {
   const [standardEdition, playersChoiceEdition] = editionsInsert.data;
   fixtures.editionIds.push(standardEdition.id, playersChoiceEdition.id);
 
+  const otherGameInsert = await admin
+    .from("games")
+    .insert({ canonical_title: `Smoke Metroid ${runId}` })
+    .select("id")
+    .single();
+  record("a second Game fixture exists", otherGameInsert.error === null);
+  fixtures.gameIds.push(otherGameInsert.data.id);
+
+  const otherGameEditionInsert = await admin
+    .from("editions")
+    .insert({
+      game_id: otherGameInsert.data.id,
+      platform_id: platform.id,
+      edition_name: "Standard",
+      region_code: "PAL",
+    })
+    .select("id")
+    .single();
+  record("the second Game has an Edition fixture", otherGameEditionInsert.error === null);
+  const otherGameEdition = otherGameEditionInsert.data;
+  fixtures.editionIds.push(otherGameEdition.id);
+
   const componentsInsert = await admin
     .from("edition_components")
     .insert([
@@ -262,6 +286,24 @@ try {
 
   const componentIds = Object.fromEntries(
     componentsInsert.data.map((row) => [row.component_key, row.id]),
+  );
+
+  const playersChoiceComponentInsert = await admin
+    .from("edition_components")
+    .insert({
+      edition_id: playersChoiceEdition.id,
+      component_key: "disc",
+      name: "Player's Choice disc",
+      kind: "disc",
+      required_for_complete: true,
+      sort_order: 0,
+    })
+    .select("id")
+    .single();
+  record(
+    "the alternate Edition has its own component model",
+    playersChoiceComponentInsert.error === null,
+    playersChoiceComponentInsert.error?.message,
   );
 
   // -------------------------------------------------------------------------
@@ -502,7 +544,8 @@ try {
     "a new Copy is private and closed to trade until its owner says otherwise",
     added.outcome === "ok" &&
       added.data.visibility === "private" &&
-      added.data.tradeAvailability === "not_open",
+      added.data.gameId === game.id &&
+      added.data.availability === "private",
   );
 
   const ownerCopyId = added.data.id;
@@ -557,8 +600,8 @@ try {
       collection.data.items.every(
         (entry) =>
           entry.game.canonicalTitle === gameTitle &&
-          entry.platform.name === platform.name &&
-          entry.edition.id === entry.copy.editionId,
+          entry.platform?.name === platform.name &&
+          entry.edition?.id === entry.copy.editionId,
       ),
   );
 
@@ -597,14 +640,14 @@ try {
 
   const madePublic = await updateCopyAvailability(owner, ownerCopyId, {
     visibility: "public",
-    tradeAvailability: "open_to_trade",
+    availability: "open_to_trade",
   });
 
   record(
-    "an owner can change their own Copy's visibility and trade availability",
+    "an owner can change their own Copy's visibility and availability",
     madePublic.outcome === "ok" &&
       madePublic.data.visibility === "public" &&
-      madePublic.data.tradeAvailability === "open_to_trade",
+      madePublic.data.availability === "open_to_trade",
     describeOutcome(madePublic),
   );
 
@@ -632,6 +675,369 @@ try {
   record(
     "and that Copy is genuinely untouched in the database",
     stillPrivate.data.visibility === "private",
+  );
+
+  const privateInsertState = await admin
+    .from("copies")
+    .select("availability, trade_availability")
+    .eq("id", otherCopyId)
+    .single();
+  record(
+    "a private addCopy insert derives closed legacy availability",
+    privateInsertState.data.availability === "private" &&
+      privateInsertState.data.trade_availability === "not_open",
+  );
+
+  const openAtCreation = await addCopy(owner, {
+    editionId: standardEdition.id,
+    availability: "open_to_trade",
+  });
+  const openInsertState = await admin
+    .from("copies")
+    .select("availability, trade_availability")
+    .eq("id", openAtCreation.data.id)
+    .single();
+  record(
+    "addCopy can create open-to-trade state without legacy drift",
+    openAtCreation.outcome === "ok" &&
+      openInsertState.data.availability === "open_to_trade" &&
+      openInsertState.data.trade_availability === "open_to_trade",
+    describeOutcome(openAtCreation),
+  );
+
+  const contradictoryOpenInsert = await admin
+    .from("copies")
+    .insert({
+      owner_id: ownerId,
+      game_id: game.id,
+      availability: "open_to_trade",
+      trade_availability: "not_open",
+    })
+    .select("availability, trade_availability")
+    .single();
+  record(
+    "canonical open-to-trade wins over contradictory legacy insert input",
+    contradictoryOpenInsert.error === null &&
+      contradictoryOpenInsert.data.availability === "open_to_trade" &&
+      contradictoryOpenInsert.data.trade_availability === "open_to_trade",
+    contradictoryOpenInsert.error?.message,
+  );
+
+  const contradictoryPrivateInsert = await admin
+    .from("copies")
+    .insert({
+      owner_id: ownerId,
+      game_id: game.id,
+      availability: "private",
+      trade_availability: "open_to_trade",
+    })
+    .select("availability, trade_availability")
+    .single();
+  record(
+    "canonical private wins over contradictory legacy insert input",
+    contradictoryPrivateInsert.error === null &&
+      contradictoryPrivateInsert.data.availability === "private" &&
+      contradictoryPrivateInsert.data.trade_availability === "not_open",
+    contradictoryPrivateInsert.error?.message,
+  );
+
+  const invalidSaleInsert = await admin.from("copies").insert({
+    owner_id: ownerId,
+    game_id: game.id,
+    availability: "for_sale",
+  });
+  record(
+    "a new Copy cannot manufacture for-sale availability",
+    invalidSaleInsert.error?.code === "23514",
+    invalidSaleInsert.error?.code,
+  );
+
+  const invalidAuctionInsert = await admin.from("copies").insert({
+    owner_id: ownerId,
+    game_id: game.id,
+    availability: "in_auction",
+  });
+  record(
+    "a new Copy cannot manufacture in-auction availability",
+    invalidAuctionInsert.error?.code === "23514",
+    invalidAuctionInsert.error?.code,
+  );
+
+  const quickCopy = await addQuickCopy(owner, game.id);
+
+  record(
+    "addQuickCopy creates a private Copy with Game identity and no Edition",
+    quickCopy.outcome === "ok" &&
+      quickCopy.data.ownerId === ownerId &&
+      quickCopy.data.gameId === game.id &&
+      quickCopy.data.editionId === null &&
+      quickCopy.data.availability === "private",
+    describeOutcome(quickCopy),
+  );
+
+  const anonymousQuickCopy = await addQuickCopy(anonymous, game.id);
+  record(
+    "an unauthenticated caller cannot create a Quick Copy",
+    anonymousQuickCopy.outcome === "unauthenticated",
+    describeOutcome(anonymousQuickCopy),
+  );
+
+  const spoofedQuickCopy = await owner.from("copies").insert({
+    owner_id: otherId,
+    game_id: game.id,
+  });
+  record(
+    "a caller cannot spoof the owner of a Quick Copy",
+    spoofedQuickCopy.error !== null,
+    spoofedQuickCopy.error?.code,
+  );
+
+  const invalidAvailability = await owner
+    .from("copies")
+    .update({ availability: "available_sometimes" })
+    .eq("id", ownerCopyId);
+  record(
+    "the database rejects an unknown availability",
+    invalidAvailability.error?.code === "23514",
+    invalidAvailability.error?.code,
+  );
+
+  const unbackedSale = await updateCopyAvailability(owner, ownerCopyId, {
+    availability: "for_sale",
+  });
+  record(
+    "for-sale availability cannot be asserted without a Listing commitment",
+    unbackedSale.outcome === "failed" && unbackedSale.failure.code === "23514",
+    describeOutcome(unbackedSale),
+  );
+
+  const quickCollection = await getMyCollection(owner);
+  record(
+    "a Quick Copy appears normally in My Collection",
+    quickCollection.outcome === "ok" &&
+      quickCollection.data.items.some(
+        (entry) =>
+          entry.copy.id === quickCopy.data.id && entry.edition === null && entry.platform === null,
+      ),
+    describeOutcome(quickCollection),
+  );
+
+  const quickDetail = await getMyCopyDetail(owner, quickCopy.data.id);
+  record(
+    "a Quick Copy detail reads with no Edition components",
+    quickDetail.outcome === "ok" &&
+      quickDetail.data.edition === null &&
+      quickDetail.data.platform === null &&
+      quickDetail.data.components.length === 0,
+    describeOutcome(quickDetail),
+  );
+
+  const foreignEditionUpdate = await setCopyEdition(other, quickCopy.data.id, standardEdition.id);
+  record(
+    "another owner cannot enrich a Quick Copy",
+    foreignEditionUpdate.outcome === "not_found",
+    describeOutcome(foreignEditionUpdate),
+  );
+
+  const mismatchedQuickCopy = await addQuickCopy(owner, game.id);
+  const mismatchedEditionUpdate = await setCopyEdition(
+    owner,
+    mismatchedQuickCopy.data.id,
+    otherGameEdition.id,
+  );
+  record(
+    "an Edition from a different Game cannot enrich a Quick Copy",
+    mismatchedEditionUpdate.outcome === "failed" &&
+      mismatchedEditionUpdate.failure.code === "23503",
+    describeOutcome(mismatchedEditionUpdate),
+  );
+
+  const enrichedQuickCopy = await setCopyEdition(owner, quickCopy.data.id, standardEdition.id);
+  record(
+    "attaching a matching Edition preserves the Quick Copy identity",
+    enrichedQuickCopy.outcome === "ok" &&
+      enrichedQuickCopy.data.id === quickCopy.data.id &&
+      enrichedQuickCopy.data.editionId === standardEdition.id,
+    describeOutcome(enrichedQuickCopy),
+  );
+
+  const correctedQuickCopy = await setCopyEdition(
+    owner,
+    quickCopy.data.id,
+    playersChoiceEdition.id,
+  );
+  record(
+    "an Edition can be corrected within the same Game when safe",
+    correctedQuickCopy.outcome === "ok" &&
+      correctedQuickCopy.data.id === quickCopy.data.id &&
+      correctedQuickCopy.data.gameId === game.id &&
+      correctedQuickCopy.data.editionId === playersChoiceEdition.id,
+    describeOutcome(correctedQuickCopy),
+  );
+
+  const enrichedCrossGameCorrection = await setCopyEdition(
+    owner,
+    quickCopy.data.id,
+    otherGameEdition.id,
+  );
+  record(
+    "an enriched Copy cannot be corrected across Games",
+    enrichedCrossGameCorrection.outcome === "failed" &&
+      enrichedCrossGameCorrection.failure.code === "23503",
+    describeOutcome(enrichedCrossGameCorrection),
+  );
+
+  const editionSpecificState = await owner.from("copy_component_states").insert({
+    copy_id: quickCopy.data.id,
+    edition_id: playersChoiceEdition.id,
+    edition_component_id: playersChoiceComponentInsert.data.id,
+    presence: "present",
+  });
+  record(
+    "the corrected Edition can gain its own component model",
+    editionSpecificState.error === null,
+    editionSpecificState.error?.message,
+  );
+
+  const correctionWithComponentState = await setCopyEdition(
+    owner,
+    quickCopy.data.id,
+    standardEdition.id,
+  );
+  record(
+    "Edition correction is rejected while Edition-specific component state exists",
+    correctionWithComponentState.outcome === "failed" &&
+      correctionWithComponentState.failure.code === "23514",
+    describeOutcome(correctionWithComponentState),
+  );
+
+  await owner
+    .from("copy_component_states")
+    .delete()
+    .eq("copy_id", quickCopy.data.id)
+    .eq("edition_component_id", playersChoiceComponentInsert.data.id);
+
+  const committedListing = await admin
+    .from("listings")
+    .insert({
+      copy_id: quickCopy.data.id,
+      seller_id: ownerId,
+      asking_amount_minor: 2500,
+      asking_currency: "EUR",
+      status: "active",
+    })
+    .select("id")
+    .single();
+  record(
+    "an active Listing drives the Copy to for-sale availability",
+    committedListing.error === null &&
+      (await admin.from("copies").select("availability").eq("id", quickCopy.data.id).single()).data
+        .availability === "for_sale",
+    committedListing.error?.message,
+  );
+
+  const correctionWhileCommitted = await setCopyEdition(
+    owner,
+    quickCopy.data.id,
+    standardEdition.id,
+  );
+  record(
+    "Edition correction is rejected while the Copy is commercially committed",
+    correctionWhileCommitted.outcome === "failed" &&
+      correctionWhileCommitted.failure.code === "23514",
+    describeOutcome(correctionWhileCommitted),
+  );
+
+  const legacyWriteDuringListing = await owner
+    .from("copies")
+    .update({ trade_availability: "open_to_trade" })
+    .eq("id", quickCopy.data.id);
+  const availabilityDuringListing = await admin
+    .from("copies")
+    .select("availability")
+    .eq("id", quickCopy.data.id)
+    .single();
+  record(
+    "a legacy availability write cannot override a Listing commitment",
+    legacyWriteDuringListing.error?.code === "23514" &&
+      availabilityDuringListing.data.availability === "for_sale",
+    legacyWriteDuringListing.error?.code,
+  );
+
+  await admin.from("listings").update({ status: "withdrawn" }).eq("id", committedListing.data.id);
+  const availabilityAfterWithdrawal = await admin
+    .from("copies")
+    .select("availability")
+    .eq("id", quickCopy.data.id)
+    .single();
+  record(
+    "terminating the Listing restores private availability deterministically",
+    availabilityAfterWithdrawal.data.availability === "private",
+  );
+  await admin.from("listings").delete().eq("id", committedListing.data.id);
+
+  const decisionTime = Date.now();
+  const committedAuction = await admin
+    .from("auctions")
+    .insert({
+      copy_id: quickCopy.data.id,
+      seller_id: ownerId,
+      starting_amount_minor: 1000,
+      currency: "EUR",
+      min_increment_minor: 100,
+      status: "scheduled",
+      starts_at: new Date(decisionTime + 60_000).toISOString(),
+      ends_at: new Date(decisionTime + 3_600_000).toISOString(),
+    })
+    .select("id")
+    .single();
+  const availabilityDuringAuction = await admin
+    .from("copies")
+    .select("availability")
+    .eq("id", quickCopy.data.id)
+    .single();
+  record(
+    "a scheduled Auction drives the Copy to in-auction availability",
+    committedAuction.error === null && availabilityDuringAuction.data.availability === "in_auction",
+    committedAuction.error?.message,
+  );
+
+  const legacyWriteDuringAuction = await owner
+    .from("copies")
+    .update({ trade_availability: "open_to_trade" })
+    .eq("id", quickCopy.data.id);
+  record(
+    "a legacy availability write cannot override an Auction commitment",
+    legacyWriteDuringAuction.error?.code === "23514",
+    legacyWriteDuringAuction.error?.code,
+  );
+
+  await admin.from("auctions").update({ status: "cancelled" }).eq("id", committedAuction.data.id);
+  const availabilityAfterAuction = await admin
+    .from("copies")
+    .select("availability")
+    .eq("id", quickCopy.data.id)
+    .single();
+  record(
+    "terminating the Auction restores private availability deterministically",
+    availabilityAfterAuction.data.availability === "private",
+  );
+  await admin.from("auctions").delete().eq("id", committedAuction.data.id);
+
+  const correctionAfterRelease = await setCopyEdition(owner, quickCopy.data.id, standardEdition.id);
+  record(
+    "Edition correction succeeds after component and commitment guards are cleared",
+    correctionAfterRelease.outcome === "ok" &&
+      correctionAfterRelease.data.id === quickCopy.data.id &&
+      correctionAfterRelease.data.editionId === standardEdition.id,
+    describeOutcome(correctionAfterRelease),
+  );
+
+  const duplicateQuickCopy = await addQuickCopy(owner, game.id);
+  record(
+    "multiple Copies of one Game remain legal",
+    duplicateQuickCopy.outcome === "ok" && duplicateQuickCopy.data.id !== quickCopy.data.id,
+    describeOutcome(duplicateQuickCopy),
   );
 
   // -------------------------------------------------------------------------
@@ -836,10 +1242,11 @@ try {
   // boundary refuses rather than passing them on as a valid model.
   const copyRow = {
     id: randomUUID(),
+    game_id: game.id,
     edition_id: standardEdition.id,
     owner_id: ownerId,
     visibility: "private",
-    trade_availability: "not_open",
+    availability: "private",
     created_at: new Date().toISOString(),
   };
 
@@ -847,8 +1254,8 @@ try {
     toCopy({ ...copyRow, visibility: "sealed" }),
   );
 
-  recordRejects("an unknown trade availability is rejected", "copies.trade_availability", () =>
-    toCopy({ ...copyRow, trade_availability: "maybe" }),
+  recordRejects("an unknown Copy availability is rejected", "copies.availability", () =>
+    toCopy({ ...copyRow, availability: "maybe" }),
   );
 
   record("a valid Copy row still maps", toCopy(copyRow).visibility === "private");
@@ -946,11 +1353,11 @@ try {
   // -------------------------------------------------------------------------
 
   record(
-    "visibility, trade availability and presence only accept known values",
+    "visibility, availability and presence only accept known values",
     domain.parseCopyVisibility("public") === "public" &&
       domain.parseCopyVisibility("sealed") === null &&
-      domain.parseCopyTradeAvailability("open_to_trade") === "open_to_trade" &&
-      domain.parseCopyTradeAvailability("maybe") === null &&
+      domain.parseCopyAvailability("open_to_trade") === "open_to_trade" &&
+      domain.parseCopyAvailability("maybe") === null &&
       domain.parseCopyComponentPresence("unknown") === "unknown" &&
       domain.parseCopyComponentPresence("perhaps") === null,
   );

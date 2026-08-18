@@ -2,9 +2,16 @@
 
 ## Copy
 
-A Copy is one specific physical instance of one Edition owned by one user. A
-Copy belongs to exactly one Edition and has exactly one current owner while
-active.
+A Copy is one specific physical game object owned by one user. It always
+identifies its Game and has exactly one current owner while active. Its exact
+Edition may be unknown.
+
+A Quick Copy is a real Copy with a known Game and an unknown Edition. It is not
+a placeholder or a separate object type. Quick Copy enrichment is progressive:
+the owner may attach the matching Edition later without replacing the Copy or
+changing its identity. The Edition may be corrected within the same Game when
+the Copy has no Edition-specific component assessments and no commercial
+commitment. Cross-Game correction is always rejected by database integrity.
 
 Creating a Copy does not create a Listing, TradeOffer, or Auction.
 
@@ -39,17 +46,28 @@ visibility states are:
 A private Copy is visible only to its owner and trusted Geek server operations.
 A public Copy may be visible in the owner's collection.
 
-## Trade availability
+## Availability
 
-Trade availability is independent from visibility. Initial values are:
+Availability is one finite, product-facing intent independent from visibility:
 
-- `not_open`
+- `private`
 - `open_to_trade`
+- `for_sale`
+- `in_auction`
 
-Trade availability does not create a TradeOffer. A Copy may be public but not
-open to trade.
+`private` means no transaction intent. `open_to_trade` is explicit trade
+discoverability intent and does not create a TradeOffer or commitment.
+`for_sale` and `in_auction` are driven by trusted Listing and Auction lifecycle
+flows and their commercial commitments; clients cannot assert them without the
+corresponding relationship.
 
-Trade availability is explicit discoverability intent independent from general
+On Copy creation, only `private` and `open_to_trade` are valid. `availability`
+is canonical: the database derives the legacy compatibility value as
+`not_open` or `open_to_trade` respectively, ignoring any contradictory legacy
+input. A new Copy cannot start `for_sale` or `in_auction` because its required
+Listing or Auction commitment cannot exist before the Copy does.
+
+`open_to_trade` availability is explicit discoverability intent independent from general
 Collection visibility. A private Copy marked `open_to_trade` may appear through
 the minimum safe Trade discovery projection, while the owner's other private
 Copies and all private Copy metadata remain inaccessible.
@@ -87,7 +105,7 @@ The rest describes the current owner's private context or consent and must not.
 
 Object state, preserved on transfer:
 
-- Copy identity and its Edition
+- Copy identity, its Game, and its Edition when known
 - component presence, condition grade, and condition notes, which describe the
   physical object rather than its owner
 
@@ -96,7 +114,7 @@ Current-owner state, not inherited by the new owner:
 - `copy_private_details`: acquisition date, purchase amount and currency,
   provenance notes, private notes, and storage location
 - `visibility`, reset to `private`
-- `trade_availability`, reset to `not_open`
+- `availability`, reset to `private`
 
 ### Private details belong to an owner, not to a Copy
 
@@ -120,7 +138,7 @@ Creating a record still requires currently owning the Copy, so a former owner
 cannot attach new data to a Copy that has moved on. Neither `copy_id` nor
 `owner_id` can be rewritten afterwards.
 
-Visibility and trade availability are consent, not object properties. One
+Visibility and availability are consent, not object properties. One
 owner's decision to expose ownership of a Copy publicly, or to open it to trade,
 says nothing about what the next owner wants. A transferred Copy therefore
 arrives private and closed to trade, and the new owner opts in again explicitly

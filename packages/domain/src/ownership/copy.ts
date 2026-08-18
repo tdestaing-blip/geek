@@ -8,10 +8,11 @@
  */
 export type Copy = {
   readonly id: string;
-  readonly editionId: string;
+  readonly gameId: string;
+  readonly editionId: string | null;
   readonly ownerId: string;
   readonly visibility: CopyVisibility;
-  readonly tradeAvailability: CopyTradeAvailability;
+  readonly availability: CopyAvailability;
   readonly createdAt: string;
 };
 
@@ -24,15 +25,20 @@ export type Copy = {
 export type CopyVisibility = "private" | "public";
 
 /**
- * Whether the owner has opened this Copy to trade offers.
+ * The owner's one transaction-intent mode for this Copy.
  *
- * Independent of visibility, and independent of any actual TradeOffer: this is
- * discoverability intent, not a commitment.
+ * Independent of visibility and separate from the system's commercial
+ * commitment. Listing and Auction modes are relationship-driven.
  */
-export type CopyTradeAvailability = "not_open" | "open_to_trade";
+export type CopyAvailability = "private" | "open_to_trade" | "for_sale" | "in_auction";
 
 const COPY_VISIBILITIES: readonly string[] = ["private", "public"];
-const COPY_TRADE_AVAILABILITIES: readonly string[] = ["not_open", "open_to_trade"];
+const COPY_AVAILABILITIES: readonly string[] = [
+  "private",
+  "open_to_trade",
+  "for_sale",
+  "in_auction",
+];
 
 /**
  * Narrows a stored visibility value, returning `null` for anything unknown.
@@ -46,7 +52,7 @@ export function parseCopyVisibility(value: string): CopyVisibility | null {
   return COPY_VISIBILITIES.includes(value) ? (value as CopyVisibility) : null;
 }
 
-/** Narrows a stored trade-availability value, returning `null` for anything unknown. */
-export function parseCopyTradeAvailability(value: string): CopyTradeAvailability | null {
-  return COPY_TRADE_AVAILABILITIES.includes(value) ? (value as CopyTradeAvailability) : null;
+/** Narrows a stored availability value, returning `null` for anything unknown. */
+export function parseCopyAvailability(value: string): CopyAvailability | null {
+  return COPY_AVAILABILITIES.includes(value) ? (value as CopyAvailability) : null;
 }
