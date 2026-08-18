@@ -18,7 +18,7 @@ canonical state and add synchronization and privacy risk.
 ## Decision
 
 PostgreSQL derives reciprocal local trade matches at request time from canonical
-WishlistItems, Copies, Editions, and private discovery locations. No match table
+WishlistIntents, Copies, Editions, and private discovery locations. No match table
 or external search system is introduced.
 
 The authenticated caller is derived from `auth.uid()`. Caller active trade

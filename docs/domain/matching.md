@@ -13,9 +13,9 @@ Copy, Edition, and geographic state. It does not call Search or persist a match.
 
 A reciprocal local trade match exists only when all of the following are true:
 
-1. The caller has an active WishlistItem with `trade_interest = true`.
+1. The caller has an active WishlistIntent with `trade_interest = true`.
 2. A different user owns an `open_to_trade` Copy satisfying that want.
-3. The other user has an active, public WishlistItem with
+3. The other user has an active, public WishlistIntent with
    `trade_interest = true`.
 4. The caller owns an `open_to_trade` Copy satisfying that public want.
 5. Both users have private discovery locations.
@@ -34,7 +34,7 @@ symmetrically.
 The caller's active trade wants participate whether their visibility is private
 or public, because they are used only to compute that caller's result. A
 counterpart's want participates only when it is public. Counterpart-private
-WishlistItems and all counterpart Wishlist private details are ignored.
+WishlistIntents and all counterpart Wishlist private details are ignored.
 
 Copy visibility is independent from trade availability. An `open_to_trade`
 private Copy may participate on either side, while unrelated private Copies do

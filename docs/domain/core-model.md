@@ -34,7 +34,7 @@ Core concepts:
 - Copy
 - CopyComponentState
 - Collection
-- WishlistItem
+- WishlistIntent
 
 ### Marketplace
 
@@ -340,18 +340,19 @@ These views do not change Copy ownership.
 
 ---
 
-## WishlistItem
+## WishlistIntent
 
-A WishlistItem represents one user's acquisition intent.
+A WishlistIntent represents one user's acquisition intent.
 
 It is independent from ownership. Owning a Copy does not automatically remove
-or forbid a WishlistItem. A collector may legitimately want another Copy, a
+or forbid a WishlistIntent. A collector may legitimately want another Copy, a
 better-condition Copy, another regional Edition, a duplicate for trade, or a
 sealed or special Edition in the future.
 
 Wishlist state must not be inferred only from current ownership.
 
-A WishlistItem targets exactly one of:
+A WishlistIntent always identifies one Game and may optionally identify one
+exact Edition of that Game:
 
 1. a Game generally
 2. a specific Edition
@@ -366,15 +367,14 @@ and:
 
 are different intents.
 
-A Game-level WishlistItem means the user wants the Game physically without
-requiring one exact Edition. An Edition-level WishlistItem means the user wants
-that specific physical Edition.
+A broad WishlistIntent has no Edition. An exact WishlistIntent retains the Game
+and adds its specific physical Edition. Broad intent may be refined to an
+Edition, and exact intent may become broad again, without replacing the intent.
 
-A Game-level WishlistItem may later gain Edition preferences or exclusions.
-Those preferences are deliberately deferred.
+Database integrity prevents a cross-Game Edition assignment.
 
 Wishlist visibility is separate from acquisition intent. Initial visibility is
-either private or public. Private WishlistItems are visible only to their owner
+either private or public. Private WishlistIntents are visible only to their owner
 and trusted Geek operations. Public visibility may later support public
 profiles, matching, and social discovery, but does not mean that the user
 accepts unsolicited offers.
@@ -386,14 +386,17 @@ Acquisition preferences may include:
 - optional maximum purchase price
 - optional maximum local trade distance
 - priority
+- preferred region
+- completeness preference
+- minimum component condition grade
 
 Purchase interest and trade interest are independent and may both be false so
 that a collector can track a collection goal without active acquisition intent.
-They are public-safe intent fields when the WishlistItem is public.
+They are public-safe intent fields when the WishlistIntent is public.
 
 Maximum purchase price is an optional Money value. Maximum purchase price,
 maximum trade distance, priority, and private notes are owner-private
-acquisition preferences. A public WishlistItem must never expose them.
+acquisition preferences. A public WishlistIntent must never expose them.
 
 Maximum trade distance is expressed in kilometers. It is a preference, not a
 location, and does not reveal where the user lives.
@@ -401,29 +404,29 @@ location, and does not reveal where the user lives.
 Priority expresses how urgently the owner wants the target. It is private
 because exposing it could create negotiation leverage.
 
-Future preferences may include:
-
-- preferred Editions
-- excluded Editions
-- minimum condition
-- completeness requirements
+Condition remains component-oriented. The WishlistIntent grade constrains
+future matching of present, assessed components; it is not a canonical overall
+Copy condition.
 
 Wishlist preferences express intent and do not guarantee marketplace
 availability.
 
-Initial WishlistItem lifecycle states are:
+Initial WishlistIntent lifecycle states are:
 
 - active: the user currently wants or tracks the target
 - fulfilled: the user considers the acquisition goal satisfied
 - archived: the user no longer actively tracks the target
 
-Ownership changes must not automatically mark a WishlistItem fulfilled until
+Ownership changes must not automatically mark a WishlistIntent fulfilled until
 explicit product rules define that behavior.
 
-A user may have at most one active WishlistItem for the same exact target:
+A user may have at most one active WishlistIntent for the same exact target:
 
-- one active Game-target WishlistItem for the same Game
-- one active Edition-target WishlistItem for the same Edition
+- one active broad WishlistIntent for the same Game
+- one active exact WishlistIntent for the same Edition
+
+Different exact Editions of one Game may coexist, and a broad intent may
+coexist with exact intents.
 
 Historical fulfilled or archived items may coexist with a new active item for
 the same target.
@@ -1072,7 +1075,7 @@ locations change.
 
 Copy visibility is independent from explicit `open_to_trade` availability. A private
 Copy may participate only when it is `open_to_trade`, and Matching exposes only
-its safe Copy, Game, and Edition identities. Counterpart-private WishlistItems
+its safe Copy, Game, and Edition identities. Counterpart-private WishlistIntents
 and Wishlist private details never contribute to the first matching version.
 
 Matching uses private discovery locations internally, but returns only fixed
@@ -1179,9 +1182,9 @@ references one EditionComponent from the same Edition
 
 User
 owns many Copies
-has many WishlistItems
+has many WishlistIntents
 
-WishlistItem
+WishlistIntent
 targets Game or Edition
 
 Listing
