@@ -57,3 +57,17 @@ export {
 } from "./collection/mutations";
 
 export { getMyProfile } from "./profile/profile";
+
+export type {
+  AddWishlistIntentInput,
+  MyWishlistIntent,
+  UpdateWishlistIntentPatch,
+  UpdateWishlistIntentPrivatePreferences,
+} from "./wishlist/intents";
+export {
+  addWishlistIntent,
+  getMyWishlistIntents,
+  removeWishlistIntent,
+  updateWishlistIntent,
+  updateWishlistIntentPrivatePreferences,
+} from "./wishlist/intents";

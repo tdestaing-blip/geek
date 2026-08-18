@@ -1157,13 +1157,64 @@ export type Database = {
           },
         ];
       };
-      wishlist_items: {
+      wishlist_intent_private_details: {
         Row: {
           created_at: string;
+          max_purchase_amount_minor: number | null;
+          max_purchase_currency: string | null;
+          max_trade_distance_km: number | null;
+          priority: number;
+          private_notes: string | null;
+          updated_at: string;
+          wishlist_intent_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          max_purchase_amount_minor?: number | null;
+          max_purchase_currency?: string | null;
+          max_trade_distance_km?: number | null;
+          priority?: number;
+          private_notes?: string | null;
+          updated_at?: string;
+          wishlist_intent_id: string;
+        };
+        Update: {
+          created_at?: string;
+          max_purchase_amount_minor?: number | null;
+          max_purchase_currency?: string | null;
+          max_trade_distance_km?: number | null;
+          priority?: number;
+          private_notes?: string | null;
+          updated_at?: string;
+          wishlist_intent_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
+            columns: ["wishlist_intent_id"];
+            isOneToOne: true;
+            referencedRelation: "wishlist_intents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
+            columns: ["wishlist_intent_id"];
+            isOneToOne: true;
+            referencedRelation: "wishlist_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wishlist_intents: {
+        Row: {
+          completeness_preference: string;
+          created_at: string;
           edition_id: string | null;
-          game_id: string | null;
+          game_id: string;
           id: string;
+          minimum_component_condition_grade: number | null;
           owner_id: string;
+          preferred_region_code: string | null;
           purchase_interest: boolean;
           status: string;
           trade_interest: boolean;
@@ -1171,11 +1222,14 @@ export type Database = {
           visibility: string;
         };
         Insert: {
+          completeness_preference?: string;
           created_at?: string;
           edition_id?: string | null;
-          game_id?: string | null;
+          game_id: string;
           id?: string;
+          minimum_component_condition_grade?: number | null;
           owner_id: string;
+          preferred_region_code?: string | null;
           purchase_interest?: boolean;
           status?: string;
           trade_interest?: boolean;
@@ -1183,11 +1237,14 @@ export type Database = {
           visibility?: string;
         };
         Update: {
+          completeness_preference?: string;
           created_at?: string;
           edition_id?: string | null;
-          game_id?: string | null;
+          game_id?: string;
           id?: string;
+          minimum_component_condition_grade?: number | null;
           owner_id?: string;
+          preferred_region_code?: string | null;
           purchase_interest?: boolean;
           status?: string;
           trade_interest?: boolean;
@@ -1195,6 +1252,13 @@ export type Database = {
           visibility?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "wishlist_intents_edition_game_foreign_key";
+            columns: ["edition_id", "game_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id", "game_id"];
+          },
           {
             foreignKeyName: "wishlist_items_edition_id_fkey";
             columns: ["edition_id"];
@@ -1218,38 +1282,101 @@ export type Database = {
           },
         ];
       };
+    };
+    Views: {
+      wishlist_items: {
+        Row: {
+          created_at: string | null;
+          edition_id: string | null;
+          game_id: string | null;
+          id: string | null;
+          owner_id: string | null;
+          purchase_interest: boolean | null;
+          status: string | null;
+          trade_interest: boolean | null;
+          updated_at: string | null;
+          visibility: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          edition_id?: string | null;
+          game_id?: never;
+          id?: string | null;
+          owner_id?: string | null;
+          purchase_interest?: boolean | null;
+          status?: string | null;
+          trade_interest?: boolean | null;
+          updated_at?: string | null;
+          visibility?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          edition_id?: string | null;
+          game_id?: never;
+          id?: string | null;
+          owner_id?: string | null;
+          purchase_interest?: boolean | null;
+          status?: string | null;
+          trade_interest?: boolean | null;
+          updated_at?: string | null;
+          visibility?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_items_edition_id_fkey";
+            columns: ["edition_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wishlist_items_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       wishlist_private_details: {
         Row: {
-          created_at: string;
+          created_at: string | null;
           max_purchase_amount_minor: number | null;
           max_purchase_currency: string | null;
           max_trade_distance_km: number | null;
-          priority: number;
+          priority: number | null;
           private_notes: string | null;
-          updated_at: string;
-          wishlist_item_id: string;
+          updated_at: string | null;
+          wishlist_item_id: string | null;
         };
         Insert: {
-          created_at?: string;
+          created_at?: string | null;
           max_purchase_amount_minor?: number | null;
           max_purchase_currency?: string | null;
           max_trade_distance_km?: number | null;
-          priority?: number;
+          priority?: number | null;
           private_notes?: string | null;
-          updated_at?: string;
-          wishlist_item_id: string;
+          updated_at?: string | null;
+          wishlist_item_id?: string | null;
         };
         Update: {
-          created_at?: string;
+          created_at?: string | null;
           max_purchase_amount_minor?: number | null;
           max_purchase_currency?: string | null;
           max_trade_distance_km?: number | null;
-          priority?: number;
+          priority?: number | null;
           private_notes?: string | null;
-          updated_at?: string;
-          wishlist_item_id?: string;
+          updated_at?: string | null;
+          wishlist_item_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
+            columns: ["wishlist_item_id"];
+            isOneToOne: true;
+            referencedRelation: "wishlist_intents";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "wishlist_private_details_wishlist_item_id_fkey";
             columns: ["wishlist_item_id"];
@@ -1259,9 +1386,6 @@ export type Database = {
           },
         ];
       };
-    };
-    Views: {
-      [_ in never]: never;
     };
     Functions: {
       accept_trade_offer: {

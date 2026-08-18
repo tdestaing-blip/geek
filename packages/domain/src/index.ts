@@ -39,4 +39,20 @@ export { parseConditionGrade, parseCopyComponentPresence } from "./ownership/com
 
 export type { CopyPrivateDetails } from "./ownership/private-details";
 
+export type {
+  WishlistCompletenessPreference,
+  WishlistIntent,
+  WishlistIntentConstraints,
+  WishlistIntentPriority,
+  WishlistIntentPrivatePreferences,
+  WishlistIntentStatus,
+  WishlistIntentVisibility,
+} from "./wishlist/intent";
+export {
+  parseWishlistCompletenessPreference,
+  parseWishlistIntentPriority,
+  parseWishlistIntentStatus,
+  parseWishlistIntentVisibility,
+} from "./wishlist/intent";
+
 export type { Profile } from "./profile/profile";
