@@ -56,3 +56,5 @@ export {
 } from "./wishlist/intent";
 
 export type { Profile } from "./profile/profile";
+
+export type { Follow, FollowCounts } from "./social/follow";
