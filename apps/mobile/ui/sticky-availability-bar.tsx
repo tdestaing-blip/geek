@@ -16,7 +16,10 @@ export function StickyAvailabilityBar({ hasCopyPhoto }: { readonly hasCopyPhoto:
           </Text>
         </View>
       ) : null}
-      <AdaptiveGlassSurface style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <AdaptiveGlassSurface
+        colorScheme="light"
+        style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 16) }]}
+      >
         <View>
           <Text style={styles.statusLabel}>Status</Text>
           <Text style={styles.status}>Privé</Text>

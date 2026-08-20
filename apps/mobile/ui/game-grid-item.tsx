@@ -6,6 +6,7 @@ import { GeekIcon } from "./geek-icon";
 
 export type GridItem = {
   readonly gameId: string;
+  readonly editionId?: string;
   readonly copyId?: string;
   readonly image: ImageSourcePropType;
   readonly title: string;

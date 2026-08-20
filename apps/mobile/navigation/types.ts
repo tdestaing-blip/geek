@@ -34,8 +34,10 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Collection: CollectionRouteParams;
   Game: { readonly gameId: string };
+  Market: { readonly gameId: string; readonly editionId: string };
   Edition: { readonly editionId: string };
   Copy: { readonly copyId: string };
+  PublicCopy: { readonly copyId: string };
   Listing: { readonly listingId: string };
   Auction: { readonly auctionId: string };
   Collector: { readonly collectorId: string };

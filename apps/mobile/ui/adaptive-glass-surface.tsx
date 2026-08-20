@@ -18,8 +18,12 @@ function loadGlassEffectModule(): typeof GlassEffectModule {
 
 export function AdaptiveGlassSurface({
   children,
+  colorScheme = "auto",
   style,
-}: PropsWithChildren<{ readonly style?: StyleProp<ViewStyle> }>) {
+}: PropsWithChildren<{
+  readonly colorScheme?: GlassEffectModule.GlassColorScheme;
+  readonly style?: StyleProp<ViewStyle>;
+}>) {
   const supportsNativeGlass =
     nativeGlassModule?.isLiquidGlassAvailable() === true &&
     nativeGlassModule.isGlassEffectAPIAvailable();
@@ -27,7 +31,11 @@ export function AdaptiveGlassSurface({
   if (supportsNativeGlass && nativeGlassModule) {
     const { GlassView } = nativeGlassModule;
     return (
-      <GlassView glassEffectStyle="regular" style={[styles.surface, style]}>
+      <GlassView
+        colorScheme={colorScheme}
+        glassEffectStyle="regular"
+        style={[styles.surface, style]}
+      >
         {children}
       </GlassView>
     );
