@@ -6,6 +6,7 @@ import { GeekIcon } from "./geek-icon";
 
 export type GridItem = {
   readonly gameId: string;
+  readonly copyId?: string;
   readonly image: ImageSourcePropType;
   readonly title: string;
   readonly platform: "N64" | "SNES";

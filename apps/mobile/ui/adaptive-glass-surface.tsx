@@ -2,7 +2,7 @@ import { colors, radii } from "@geek/design-tokens";
 import { requireOptionalNativeModule } from "expo";
 import type * as GlassEffectModule from "expo-glass-effect";
 import type { PropsWithChildren } from "react";
-import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
+import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 const nativeGlassModule =
   Platform.OS === "ios" && requireOptionalNativeModule("ExpoGlassEffect")
@@ -19,7 +19,7 @@ function loadGlassEffectModule(): typeof GlassEffectModule {
 export function AdaptiveGlassSurface({
   children,
   style,
-}: PropsWithChildren<{ readonly style?: ViewStyle }>) {
+}: PropsWithChildren<{ readonly style?: StyleProp<ViewStyle> }>) {
   const supportsNativeGlass =
     nativeGlassModule?.isLiquidGlassAvailable() === true &&
     nativeGlassModule.isGlassEffectAPIAvailable();

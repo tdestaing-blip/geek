@@ -9,7 +9,6 @@ const FIXTURE_COPY_ID = "00000000-0000-0000-0000-000000000003";
 
 type GameScreenProps = NativeStackScreenProps<RootStackParamList, "Game">;
 type EditionScreenProps = NativeStackScreenProps<RootStackParamList, "Edition">;
-type CopyScreenProps = NativeStackScreenProps<RootStackParamList, "Copy">;
 type ListingScreenProps = NativeStackScreenProps<RootStackParamList, "Listing">;
 type AuctionScreenProps = NativeStackScreenProps<RootStackParamList, "Auction">;
 type CollectorScreenProps = NativeStackScreenProps<RootStackParamList, "Collector">;
@@ -106,15 +105,6 @@ export function EditionScreen({ navigation, route }: EditionScreenProps) {
         title="Open Copy fixture"
         onPress={() => navigation.navigate("Copy", { copyId: FIXTURE_COPY_ID })}
       />
-    </View>
-  );
-}
-
-export function CopyScreen({ route }: CopyScreenProps) {
-  return (
-    <View>
-      <Text>Copy</Text>
-      <Text>{route.params.copyId}</Text>
     </View>
   );
 }
