@@ -17,14 +17,10 @@ import MY_MARIO_WORLD from "../assets/collection/v2/my-mario-world.png";
 import MY_MARIO_WORLD_COVER from "../assets/collection/v2/my-mario-world-cover.png";
 import MY_PERFECT_DARK from "../assets/collection/v2/my-perfect-dark.png";
 import MY_SUPER_METROID from "../assets/collection/v2/my-super-metroid.png";
-import WISH_DONKEY_KONG from "../assets/collection/v2/wish-donkey-kong.png";
-import WISH_DONKEY_KONG_2 from "../assets/collection/v2/wish-donkey-kong-2.png";
-import WISH_LINK_TO_PAST from "../assets/collection/v2/wish-link-to-past.png";
-import WISH_MAJORAS_MASK from "../assets/collection/v2/wish-majoras-mask.png";
-import WISH_YOSHI_ISLAND from "../assets/collection/v2/wish-yoshi-island.png";
 import { CollectionHeader } from "../ui/collection-header";
 import { GameGridItem, type GridItem } from "../ui/game-grid-item";
 import { CollectionSegmentedControl, type CollectionSegment } from "../ui/segmented-control";
+import { WISHLIST_MARKET_TARGETS } from "./marketplace-fixtures";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
 type CollectionRouteProps = NativeStackScreenProps<RootStackParamList, "Collection">;
@@ -34,80 +30,87 @@ type MyCollectionProps = CompositeScreenProps<
 >;
 
 const MY_GAMES: readonly GridItem[] = [
-  fixture("101", "Asterix", MY_ASTERIX, "SNES", {
+  {
+    copyId: "10000000-0000-0000-0000-000000000101",
+    gameId: "00000000-0000-0000-0000-000000000101",
+    title: "Asterix",
+    image: MY_ASTERIX,
+    platform: "SNES",
     components: ["gamepad", "box"],
     overlay: "sale",
-  }),
-  fixture("102", "Super Mario World", MY_MARIO_WORLD_COVER, "SNES", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000102",
+    gameId: "00000000-0000-0000-0000-000000000102",
+    title: "Super Mario World",
+    image: MY_MARIO_WORLD_COVER,
+    platform: "SNES",
     components: ["gamepad"],
     overlay: "photo",
-  }),
-  fixture("103", "Chrono Trigger", MY_CHRONO_TRIGGER, "SNES", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000103",
+    gameId: "00000000-0000-0000-0000-000000000103",
+    title: "Chrono Trigger",
+    image: MY_CHRONO_TRIGGER,
+    platform: "SNES",
     components: ["gamepad"],
-  }),
-  fixture("104", "Super Metroid", MY_SUPER_METROID, "SNES", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000104",
+    gameId: "00000000-0000-0000-0000-000000000104",
+    title: "Super Metroid",
+    image: MY_SUPER_METROID,
+    platform: "SNES",
     components: ["gamepad"],
-  }),
-  fixture("105", "Super Mario World", MY_MARIO_WORLD, "SNES", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000105",
+    gameId: "00000000-0000-0000-0000-000000000105",
+    title: "Super Mario World",
+    image: MY_MARIO_WORLD,
+    platform: "SNES",
     components: ["gamepad"],
-  }),
-  fixture("106", "Super Mario Kart", MY_MARIO_KART, "SNES", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000106",
+    gameId: "00000000-0000-0000-0000-000000000106",
+    title: "Super Mario Kart",
+    image: MY_MARIO_KART,
+    platform: "SNES",
     components: ["gamepad"],
-  }),
-  fixture("107", "Goldeneye", MY_GOLDENEYE, "N64", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000107",
+    gameId: "00000000-0000-0000-0000-000000000107",
+    title: "Goldeneye",
+    image: MY_GOLDENEYE,
+    platform: "N64",
     components: ["gamepad"],
-  }),
-  fixture("108", "Perfect Dark", MY_PERFECT_DARK, "N64", {
+  },
+  {
+    copyId: "10000000-0000-0000-0000-000000000108",
+    gameId: "00000000-0000-0000-0000-000000000108",
+    title: "Perfect Dark",
+    image: MY_PERFECT_DARK,
+    platform: "N64",
     components: ["gamepad"],
-  }),
+  },
 ];
 
-const WISHLIST: readonly GridItem[] = [
-  fixture("201", "Zelda: Majora’s Mask", WISH_MAJORAS_MASK, "N64", {
-    opportunities: 2,
-    overlay: "bell",
-  }),
-  fixture("202", "Zelda: A Link to the Past", WISH_LINK_TO_PAST, "SNES", {
-    opportunities: 2,
-    overlay: "bell",
-  }),
-  fixture("203", "Donkey King Country", WISH_DONKEY_KONG, "SNES", {
-    opportunities: 0,
-    overlay: "bell",
-  }),
-  fixture("204", "Super Mario World: Yoshi Island", WISH_YOSHI_ISLAND, "SNES", {
-    opportunities: 0,
-    overlay: "bell",
-  }),
-  fixture("205", "Donkey King Country", WISH_DONKEY_KONG_2, "SNES", {
-    opportunities: 0,
-    overlay: "bell",
-  }),
-];
-
-function fixture(
-  suffix: string,
-  title: string,
-  image: GridItem["image"],
-  platform: GridItem["platform"],
-  details: Pick<GridItem, "components" | "opportunities" | "overlay">,
-): GridItem {
-  return {
-    copyId: details.components ? `10000000-0000-0000-0000-000000000${suffix}` : undefined,
-    gameId: `00000000-0000-0000-0000-000000000${suffix}`,
-    image,
-    platform,
-    title,
-    ...details,
-  };
-}
+const WISHLIST = WISHLIST_MARKET_TARGETS;
 
 export function MyCollectionScreen({ navigation }: MyCollectionProps) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <CollectionView
       onOpenCopy={(copyId) => rootNavigation?.navigate("Copy", { copyId })}
-      onOpenGame={(gameId) => rootNavigation?.navigate("Game", { gameId })}
+      onOpenGame={(gameId, editionId) =>
+        rootNavigation?.navigate("Market", {
+          gameId,
+          editionId,
+        })
+      }
     />
   );
 }
@@ -120,7 +123,12 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
   return (
     <CollectionView
       onOpenCopy={(copyId) => navigation.navigate("Copy", { copyId })}
-      onOpenGame={(gameId) => navigation.navigate("Game", { gameId })}
+      onOpenGame={(gameId, editionId) =>
+        navigation.navigate("Market", {
+          gameId,
+          editionId,
+        })
+      }
     />
   );
 }
@@ -130,7 +138,7 @@ function CollectionView({
   onOpenGame,
 }: {
   readonly onOpenCopy: (copyId: string) => void;
-  readonly onOpenGame: (gameId: string) => void;
+  readonly onOpenGame: (gameId: string, editionId: string) => void;
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const [segment, setSegment] = useState<CollectionSegment>("games");
@@ -158,7 +166,11 @@ function CollectionView({
             isWishlist={segment === "wishlist"}
             item={item}
             onPress={() =>
-              segment === "games" && item.copyId ? onOpenCopy(item.copyId) : onOpenGame(item.gameId)
+              segment === "games" && item.copyId
+                ? onOpenCopy(item.copyId)
+                : item.editionId
+                  ? onOpenGame(item.gameId, item.editionId)
+                  : undefined
             }
             width={tileWidth}
           />

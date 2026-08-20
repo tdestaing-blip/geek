@@ -6,6 +6,8 @@ import { useAuth } from "../lib/auth/auth-provider";
 import { resolveNavigationBranch } from "./auth-branch";
 import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
+import { MarketplaceScreen } from "./marketplace-screen";
+import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
@@ -69,16 +71,21 @@ export function NavigationRoot() {
             />
             <RootStack.Screen name="Collection" component={CollectionScreen} />
             <RootStack.Screen name="Game" component={GameScreen} />
+            <RootStack.Screen
+              name="Market"
+              component={MarketplaceScreen}
+              options={detailModalOptions}
+            />
             <RootStack.Screen name="Edition" component={EditionScreen} />
             <RootStack.Screen
               name="Copy"
               component={OwnedCopyDetailScreen}
-              options={{
-                animation: "slide_from_bottom",
-                gestureEnabled: true,
-                headerShown: false,
-                presentation: "fullScreenModal",
-              }}
+              options={detailModalOptions}
+            />
+            <RootStack.Screen
+              name="PublicCopy"
+              component={PublicCopyDetailScreen}
+              options={detailModalOptions}
             />
             <RootStack.Screen name="Listing" component={ListingScreen} />
             <RootStack.Screen name="Auction" component={AuctionScreen} />
@@ -89,6 +96,13 @@ export function NavigationRoot() {
     </NavigationContainer>
   );
 }
+
+const detailModalOptions = {
+  animation: "slide_from_bottom" as const,
+  gestureEnabled: true,
+  headerShown: false,
+  presentation: "fullScreenModal" as const,
+};
 
 function MainTabNavigator() {
   return (

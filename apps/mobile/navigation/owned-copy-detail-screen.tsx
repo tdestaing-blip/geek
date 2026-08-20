@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import {
   Image,
   type ImageSourcePropType,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,8 +31,9 @@ import WISH_DONKEY_KONG from "../assets/collection/v2/wish-donkey-kong.png";
 import WISH_LINK_TO_PAST from "../assets/collection/v2/wish-link-to-past.png";
 import WISH_MAJORAS_MASK from "../assets/collection/v2/wish-majoras-mask.png";
 import WISH_YOSHI_ISLAND from "../assets/collection/v2/wish-yoshi-island.png";
-import { AdaptiveGlassSurface } from "../ui/adaptive-glass-surface";
 import { CopyComponentCard } from "../ui/copy-component-card";
+import { AboutGameCard } from "../ui/about-game-card";
+import { DetailToolbar } from "../ui/detail-toolbar";
 import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
 import { NetworkSignalRow } from "../ui/network-signal-row";
@@ -99,7 +99,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
-      <TopToolbar
+      <DetailToolbar
         title={fixture.game.title}
         onClose={() => navigation.goBack()}
         onMore={() => undefined}
@@ -118,7 +118,11 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
         <EditionSection fixture={fixture} />
         <AlbumCard fixture={fixture} />
         <NetworkSection fixture={fixture} />
-        <AboutGameCard fixture={fixture} />
+        <AboutGameCard
+          description={fixture.game.about}
+          image={ABOUT_GAME}
+          title="Super Mario World"
+        />
       </ScrollView>
       <StickyAvailabilityBar hasCopyPhoto={hasCopyPhoto} />
     </View>
@@ -159,38 +163,6 @@ function PageDots({ count }: { readonly count: number }) {
       {Array.from({ length: count }, (_, index) => (
         <View key={index} style={[styles.dot, index === 0 && styles.dotActive]} />
       ))}
-    </View>
-  );
-}
-
-function TopToolbar({
-  title,
-  onClose,
-  onMore,
-}: {
-  readonly title: string;
-  readonly onClose: () => void;
-  readonly onMore: () => void;
-}) {
-  return (
-    <View pointerEvents="box-none" style={styles.toolbar}>
-      <AdaptiveGlassSurface style={styles.toolbarButton}>
-        <Pressable accessibilityLabel="Fermer" onPress={onClose} style={styles.toolbarPressable}>
-          <GeekIcon name="chevron-down" />
-        </Pressable>
-      </AdaptiveGlassSurface>
-      <Text numberOfLines={1} style={styles.toolbarTitle}>
-        {title}
-      </Text>
-      <AdaptiveGlassSurface style={styles.toolbarButton}>
-        <Pressable
-          accessibilityLabel="Plus d’options"
-          onPress={onMore}
-          style={styles.toolbarPressable}
-        >
-          <GeekIcon name="more-horizontal" />
-        </Pressable>
-      </AdaptiveGlassSurface>
     </View>
   );
 }
@@ -293,21 +265,6 @@ function NetworkSection({ fixture }: { fixture: OwnedCopyDetailFixture }) {
       {fixture.network.map((signal) => (
         <NetworkSignalRow key={signal.label} {...signal} />
       ))}
-    </View>
-  );
-}
-
-function AboutGameCard({ fixture }: { fixture: OwnedCopyDetailFixture }) {
-  return (
-    <View style={styles.aboutCard}>
-      <View style={styles.aboutImage}>
-        <Image resizeMode="cover" source={ABOUT_GAME} style={styles.fill} />
-        <Text style={styles.aboutLabel}>A propos du jeu</Text>
-      </View>
-      <View style={styles.aboutCopy}>
-        <Text style={styles.aboutTitle}>Super Mario World</Text>
-        <Text style={styles.aboutBody}>{fixture.game.about}</Text>
-      </View>
     </View>
   );
 }
@@ -479,21 +436,4 @@ const styles = StyleSheet.create({
   },
   networkIntro: { color: colors.textSecondary, ...typography.body },
   networkStrong: { color: colors.text, fontWeight: "600" },
-  aboutCard: {
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radii.detailCard,
-    marginHorizontal: 12,
-    overflow: "hidden",
-  },
-  aboutImage: { height: 181 },
-  aboutLabel: {
-    color: colors.controlSelected,
-    left: 12,
-    position: "absolute",
-    top: 12,
-    ...typography.sectionTitle,
-  },
-  aboutCopy: { gap: spacing.compact, paddingHorizontal: 12, paddingVertical: spacing.page },
-  aboutTitle: { color: colors.text, ...typography.body, fontWeight: "600" },
-  aboutBody: { color: colors.textSecondary, ...typography.metadata },
 });
