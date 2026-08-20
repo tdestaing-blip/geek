@@ -15,6 +15,12 @@ export const colors = {
   navigationIcon: "#1A1A1A",
   opportunityAvailable: "#34C759",
   opportunityNeutral: "#D9D9D9",
+  surfaceSubtle: "rgba(0, 0, 0, 0.04)",
+  surfaceSelected: "rgba(0, 0, 0, 0.08)",
+  availabilityNotice: "#F4F1FA",
+  disabledAction: "#8E8E93",
+  albumStart: "#D1BFEB",
+  albumEnd: "#AD94CC",
 } as const;
 
 export const spacing = {
@@ -30,6 +36,7 @@ export const radii = {
   copyImage: 12,
   pill: 18,
   capsule: 999,
+  detailCard: 16,
 } as const;
 
 export const navigation = {
@@ -43,4 +50,6 @@ export const typography = {
   itemTitle: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
   metadata: { fontSize: 12, lineHeight: 16, fontWeight: "400" },
   tabLabel: { fontSize: 10, lineHeight: 12, fontWeight: "600" },
+  sectionTitle: { fontSize: 18, lineHeight: 22, fontWeight: "600" },
+  body: { fontSize: 15, lineHeight: 20, fontWeight: "400" },
 } as const;

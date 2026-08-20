@@ -5,13 +5,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../lib/auth/auth-provider";
 import { resolveNavigationBranch } from "./auth-branch";
 import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
+import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
   AuctionScreen,
   BootstrapScreen,
   CollectorScreen,
-  CopyScreen,
   EditionScreen,
   GameScreen,
   ActivityScreen,
@@ -70,7 +70,16 @@ export function NavigationRoot() {
             <RootStack.Screen name="Collection" component={CollectionScreen} />
             <RootStack.Screen name="Game" component={GameScreen} />
             <RootStack.Screen name="Edition" component={EditionScreen} />
-            <RootStack.Screen name="Copy" component={CopyScreen} />
+            <RootStack.Screen
+              name="Copy"
+              component={OwnedCopyDetailScreen}
+              options={{
+                animation: "slide_from_bottom",
+                gestureEnabled: true,
+                headerShown: false,
+                presentation: "fullScreenModal",
+              }}
+            />
             <RootStack.Screen name="Listing" component={ListingScreen} />
             <RootStack.Screen name="Auction" component={AuctionScreen} />
             <RootStack.Screen name="Collector" component={CollectorScreen} />

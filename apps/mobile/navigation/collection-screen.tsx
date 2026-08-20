@@ -93,6 +93,7 @@ function fixture(
   details: Pick<GridItem, "components" | "opportunities" | "overlay">,
 ): GridItem {
   return {
+    copyId: details.components ? `10000000-0000-0000-0000-000000000${suffix}` : undefined,
     gameId: `00000000-0000-0000-0000-000000000${suffix}`,
     image,
     platform,
@@ -103,7 +104,12 @@ function fixture(
 
 export function MyCollectionScreen({ navigation }: MyCollectionProps) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-  return <CollectionView onOpenGame={(gameId) => rootNavigation?.navigate("Game", { gameId })} />;
+  return (
+    <CollectionView
+      onOpenCopy={(copyId) => rootNavigation?.navigate("Copy", { copyId })}
+      onOpenGame={(gameId) => rootNavigation?.navigate("Game", { gameId })}
+    />
+  );
 }
 
 export function CollectionScreen({ navigation }: CollectionRouteProps) {
@@ -111,10 +117,21 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  return <CollectionView onOpenGame={(gameId) => navigation.navigate("Game", { gameId })} />;
+  return (
+    <CollectionView
+      onOpenCopy={(copyId) => navigation.navigate("Copy", { copyId })}
+      onOpenGame={(gameId) => navigation.navigate("Game", { gameId })}
+    />
+  );
 }
 
-function CollectionView({ onOpenGame }: { readonly onOpenGame: (gameId: string) => void }) {
+function CollectionView({
+  onOpenCopy,
+  onOpenGame,
+}: {
+  readonly onOpenCopy: (copyId: string) => void;
+  readonly onOpenGame: (gameId: string) => void;
+}) {
   const { width: screenWidth } = useWindowDimensions();
   const [segment, setSegment] = useState<CollectionSegment>("games");
   const [albumMode, setAlbumMode] = useState(false);
@@ -140,7 +157,9 @@ function CollectionView({ onOpenGame }: { readonly onOpenGame: (gameId: string) 
           <GameGridItem
             isWishlist={segment === "wishlist"}
             item={item}
-            onPress={() => onOpenGame(item.gameId)}
+            onPress={() =>
+              segment === "games" && item.copyId ? onOpenCopy(item.copyId) : onOpenGame(item.gameId)
+            }
             width={tileWidth}
           />
         )}

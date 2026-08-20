@@ -22,6 +22,10 @@ Collection currently establishes the first local reusable components:
 - `GeekTabBar` for the four approved product destinations and separate add action.
 - `AdaptiveGlassSurface` for platform-aware floating material.
 - `GeekIcon` for the small set of Pixelarticons currently used by the mobile product.
+- `CopyComponentCard` for component-specific presence and condition presentation.
+- `MetadataField` for repeated label/value metadata such as Edition facts.
+- `AvatarStack` and `NetworkSignalRow` for compact, calculated community signals.
+- `StickyAvailabilityBar` for safe-area-aware Copy availability presentation and photo gating.
 
 These remain mobile presentation components. Fixtures are local to the Collection screen and must be replaced by existing data APIs when the screen is connected; no product or marketplace rules belong in these components.
 
@@ -32,3 +36,7 @@ Pixelarticons is Geek's canonical product icon family. `GeekIcon` renders exact 
 ## Platform material
 
 Native controls and safe areas remain authoritative. On supported iOS 26+ devices, `AdaptiveGlassSurface` uses Expo's native `GlassView` after both Liquid Glass runtime checks pass. Older iOS versions and Android use the same responsive Geek geometry with a translucent, bordered React Native surface. The selected tab remains an inner capsule in both paths and is not baked into the navigation material.
+
+Owned Copy detail reuses that same adaptive material for its compact toolbar and sticky availability surface. Copy photos, component condition, Edition metadata, calculated Album progress, network signals, and Game editorial content remain separate presentation regions rather than one flattened game-detail model.
+
+Owned-object detail is presented as a fullscreen modal over the main application: it enters from the bottom, owns its dismiss toolbar and sticky object-action footer, and does not show the main tab bar. Dismissal reveals the preserved Collection context underneath.
