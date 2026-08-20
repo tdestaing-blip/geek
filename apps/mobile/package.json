@@ -11,18 +11,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@geek/design-tokens": "workspace:*",
     "@geek/supabase": "workspace:*",
-    "@react-native-async-storage/async-storage": "3.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "7.18.16",
     "@react-navigation/native": "7.3.16",
     "@react-navigation/native-stack": "7.18.8",
     "@supabase/supabase-js": "2.112.2",
-    "expo": "57.0.11",
-    "expo-linking": "57.0.5",
+    "expo": "57.0.14",
+    "expo-glass-effect": "~57.0.1",
+    "expo-linking": "57.0.6",
     "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.2"
+    "react-native-screens": "~4.26.2",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@geek/config": "workspace:*",

@@ -1,29 +1,12 @@
-import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Button, Text, View } from "react-native";
 
 import { useAuth } from "../lib/auth/auth-provider";
-import type { MainTabParamList, RootStackParamList } from "./types";
+import type { RootStackParamList } from "./types";
 
-const FIXTURE_GAME_ID = "00000000-0000-0000-0000-000000000001";
 const FIXTURE_EDITION_ID = "00000000-0000-0000-0000-000000000002";
 const FIXTURE_COPY_ID = "00000000-0000-0000-0000-000000000003";
-const FIXTURE_LISTING_ID = "00000000-0000-0000-0000-000000000004";
-const FIXTURE_AUCTION_ID = "00000000-0000-0000-0000-000000000005";
-const FIXTURE_COLLECTOR_ID = "00000000-0000-0000-0000-000000000006";
 
-type HomeScreenProps = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, "Home">,
-  NativeStackScreenProps<RootStackParamList>
->;
-
-type ProfileScreenProps = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, "Profile">,
-  NativeStackScreenProps<RootStackParamList>
->;
-
-type CollectionScreenProps = NativeStackScreenProps<RootStackParamList, "Collection">;
 type GameScreenProps = NativeStackScreenProps<RootStackParamList, "Game">;
 type EditionScreenProps = NativeStackScreenProps<RootStackParamList, "Edition">;
 type CopyScreenProps = NativeStackScreenProps<RootStackParamList, "Copy">;
@@ -77,66 +60,26 @@ export function PasswordUpdateScreen() {
   );
 }
 
-/** Development-only route harness. It performs no data request. */
-export function HomeScreen({ navigation }: HomeScreenProps) {
+export function CommunityScreen() {
   return (
     <View>
-      <Text>Home</Text>
-      <Button
-        title="Open Game fixture"
-        onPress={() => navigation.navigate("Game", { gameId: FIXTURE_GAME_ID })}
-      />
-      <Button
-        title="Open Listing fixture"
-        onPress={() => navigation.navigate("Listing", { listingId: FIXTURE_LISTING_ID })}
-      />
-      <Button
-        title="Open Auction fixture"
-        onPress={() => navigation.navigate("Auction", { auctionId: FIXTURE_AUCTION_ID })}
-      />
-      <Button
-        title="Open Collector fixture"
-        onPress={() => navigation.navigate("Collector", { collectorId: FIXTURE_COLLECTOR_ID })}
-      />
+      <Text>Community</Text>
     </View>
   );
 }
 
-export function SearchScreen() {
+export function ActivityScreen() {
   return (
     <View>
-      <Text>Search</Text>
+      <Text>Activity</Text>
     </View>
   );
 }
 
-export function InboxScreen() {
-  return (
-    <View>
-      <Text>Inbox</Text>
-    </View>
-  );
-}
-
-export function ProfileScreen({ navigation }: ProfileScreenProps) {
+export function ProfileScreen() {
   return (
     <View>
       <Text>Profile</Text>
-      <Button
-        title="Open My Collection"
-        onPress={() => navigation.navigate("Collection", { scope: "mine" })}
-      />
-    </View>
-  );
-}
-
-export function CollectionScreen({ route }: CollectionScreenProps) {
-  return (
-    <View>
-      <Text>Collection</Text>
-      <Text>
-        {route.params.scope === "mine" ? "My Collection" : `Collector ${route.params.collectorId}`}
-      </Text>
     </View>
   );
 }

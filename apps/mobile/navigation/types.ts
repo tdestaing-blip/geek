@@ -1,10 +1,10 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
-/** The four provisional top-level destinations in the authenticated app. */
+/** The four product-level destinations in the authenticated app. */
 export type MainTabParamList = {
-  Home: undefined;
-  Search: undefined;
-  Inbox: undefined;
+  Collection: undefined;
+  Community: undefined;
+  Activity: undefined;
   Profile: undefined;
 };
 

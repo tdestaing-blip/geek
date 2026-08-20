@@ -4,24 +4,24 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { useAuth } from "../lib/auth/auth-provider";
 import { resolveNavigationBranch } from "./auth-branch";
+import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
   AuctionScreen,
   BootstrapScreen,
-  CollectionScreen,
   CollectorScreen,
   CopyScreen,
   EditionScreen,
   GameScreen,
-  HomeScreen,
-  InboxScreen,
+  ActivityScreen,
+  CommunityScreen,
   ListingScreen,
   PasswordUpdateScreen,
   ProfileMissingScreen,
   ProfileScreen,
-  SearchScreen,
 } from "./screens";
+import { GeekTabBar } from "../ui/geek-tab-bar";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -83,10 +83,14 @@ export function NavigationRoot() {
 
 function MainTabNavigator() {
   return (
-    <MainTabs.Navigator initialRouteName="Home">
-      <MainTabs.Screen name="Home" component={HomeScreen} />
-      <MainTabs.Screen name="Search" component={SearchScreen} />
-      <MainTabs.Screen name="Inbox" component={InboxScreen} />
+    <MainTabs.Navigator
+      initialRouteName="Collection"
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <GeekTabBar {...props} />}
+    >
+      <MainTabs.Screen name="Collection" component={MyCollectionScreen} />
+      <MainTabs.Screen name="Community" component={CommunityScreen} />
+      <MainTabs.Screen name="Activity" component={ActivityScreen} />
       <MainTabs.Screen name="Profile" component={ProfileScreen} />
     </MainTabs.Navigator>
   );
