@@ -10,6 +10,9 @@ import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
 import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
 import { MyProfileScreen, PublicProfileScreen } from "./profile-screen";
+import { AddGameSearchScreen } from "./add-game-search-screen";
+import { PlatformCatalogScreen } from "./platform-catalog-screen";
+import { GameRegionsScreen } from "./game-regions-screen";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
@@ -92,6 +95,21 @@ export function NavigationRoot() {
               <RootStack.Screen name="Listing" component={ListingScreen} />
               <RootStack.Screen name="Auction" component={AuctionScreen} />
               <RootStack.Screen name="Collector" component={CollectorScreen} />
+              <RootStack.Screen
+                name="AddGameSearch"
+                component={AddGameSearchScreen}
+                options={addGameRootOptions}
+              />
+              <RootStack.Screen
+                name="PlatformCatalog"
+                component={PlatformCatalogScreen}
+                options={detailPushOptions}
+              />
+              <RootStack.Screen
+                name="GameRegions"
+                component={GameRegionsScreen}
+                options={detailPushOptions}
+              />
             </RootStack.Group>
             <RootStack.Group screenOptions={detailModalOptions}>
               <RootStack.Screen name="PublicCopy" component={PublicCopyDetailScreen} />
@@ -114,6 +132,12 @@ const detailModalOptions = {
 const detailPushOptions = {
   animation: "slide_from_right" as const,
   headerShown: false,
+};
+
+const addGameRootOptions = {
+  animation: "slide_from_bottom" as const,
+  headerShown: false,
+  presentation: "card" as const,
 };
 
 function MainTabNavigator() {
