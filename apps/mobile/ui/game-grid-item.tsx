@@ -4,10 +4,7 @@ import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } fr
 import FRANCE_ICON from "../assets/collection/v2/icon-france.png";
 import { GeekIcon } from "./geek-icon";
 
-export type GridItem = {
-  readonly gameId: string;
-  readonly editionId?: string;
-  readonly copyId?: string;
+export type GameGridItemContent = {
   readonly image: ImageSourcePropType;
   readonly title: string;
   readonly platform: "N64" | "SNES";
@@ -16,34 +13,61 @@ export type GridItem = {
   readonly opportunities?: number;
 };
 
+export type GridItem = GameGridItemContent & {
+  readonly gameId: string;
+  readonly editionId?: string;
+  readonly copyId?: string;
+};
+
 export function GameGridItem({
   item,
   isWishlist,
+  imageOpacity = 1,
   onPress,
+  platformLabel,
+  showOpportunity = false,
+  slotNumber,
+  wanted = false,
   width,
 }: {
-  readonly item: GridItem;
+  readonly item: GameGridItemContent;
   readonly isWishlist: boolean;
-  readonly onPress: () => void;
+  readonly imageOpacity?: number;
+  readonly onPress?: () => void;
+  readonly platformLabel?: string;
+  readonly showOpportunity?: boolean;
+  readonly slotNumber?: string;
+  readonly wanted?: boolean;
   readonly width: number;
 }) {
   return (
     <Pressable
-      accessibilityLabel={`Ouvrir ${item.title}`}
-      accessibilityRole="button"
+      accessibilityLabel={onPress ? `Ouvrir ${item.title}` : undefined}
+      accessibilityRole={onPress ? "button" : undefined}
+      disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [styles.tile, { width }, pressed && styles.pressed]}
     >
       <View style={[styles.imageFrame, isWishlist ? styles.wishlistImage : styles.copyImage]}>
-        <Image resizeMode="cover" source={item.image} style={styles.image} />
+        <Image
+          resizeMode="cover"
+          source={item.image}
+          style={[styles.image, { opacity: imageOpacity }]}
+        />
+        {slotNumber ? (
+          <View pointerEvents="none" style={styles.slotNumberWrap}>
+            <Text style={styles.slotNumber}>{slotNumber}</Text>
+          </View>
+        ) : null}
         {item.overlay ? <ImageOverlay kind={item.overlay} /> : null}
+        {wanted ? <ImageOverlay kind="bell" /> : null}
       </View>
       <View style={styles.metadata}>
         <View style={styles.titleRow}>
           <Text numberOfLines={1} style={styles.title}>
             {item.title}
           </Text>
-          {isWishlist ? (
+          {isWishlist || showOpportunity ? (
             <OpportunityPill count={item.opportunities ?? 0} />
           ) : (
             <View style={styles.components}>
@@ -59,7 +83,7 @@ export function GameGridItem({
         </View>
         <View style={styles.platformRow}>
           <Image source={FRANCE_ICON} style={styles.flag} />
-          <Text style={styles.platform}>{item.platform}</Text>
+          <Text style={styles.platform}>{platformLabel ?? item.platform}</Text>
         </View>
       </View>
     </Pressable>
@@ -110,6 +134,22 @@ const styles = StyleSheet.create({
   copyImage: { borderRadius: radii.copyImage },
   wishlistImage: { borderRadius: radii.wishlistImage },
   image: { height: "100%", width: "100%" },
+  slotNumberWrap: {
+    alignItems: "center",
+    bottom: 0,
+    justifyContent: "center",
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  slotNumber: {
+    color: colors.text,
+    fontFamily: "Courier",
+    fontSize: 24,
+    fontWeight: "700",
+    lineHeight: 28,
+  },
   metadata: { padding: spacing.micro },
   titleRow: {
     alignItems: "center",

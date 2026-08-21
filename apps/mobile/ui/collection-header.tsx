@@ -27,7 +27,7 @@ export function CollectionHeader({
           hitSlop={10}
           onPress={() => undefined}
         >
-          <GeekIcon name="settings" />
+          <GeekIcon name="settings-2" />
         </Pressable>
       </View>
     </View>

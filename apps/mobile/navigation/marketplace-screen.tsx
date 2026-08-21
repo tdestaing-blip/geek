@@ -9,7 +9,6 @@ import { DetailToolbar } from "../ui/detail-toolbar";
 import { GeekIcon } from "../ui/geek-icon";
 import {
   isMajoraMarketIdentity,
-  LEON_PUBLIC_COPY_FIXTURE,
   MAJORA_GAME_FIXTURE,
   MAJORA_MARKET_OPPORTUNITIES,
   type MarketOpportunityFixture,
@@ -83,11 +82,7 @@ function MarketplaceContent({ navigation, route }: Props) {
                 key={opportunity.id}
                 copy={resolvedCopy.copy}
                 opportunity={opportunity}
-                onPress={
-                  opportunity.copyId === LEON_PUBLIC_COPY_FIXTURE.id
-                    ? () => navigation.navigate("PublicCopy", { copyId: opportunity.copyId })
-                    : undefined
-                }
+                onPress={() => navigation.navigate("PublicCopy", { copyId: opportunity.copyId })}
               />
             );
           })}

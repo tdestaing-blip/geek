@@ -75,6 +75,18 @@ importers:
 
   apps/mobile:
     dependencies:
+      "@expo-google-fonts/audiowide":
+        specifier: ^0.4.1
+        version: 0.4.1
+      "@expo-google-fonts/cinzel":
+        specifier: ^0.4.2
+        version: 0.4.2
+      "@expo-google-fonts/press-start-2p":
+        specifier: ^0.4.1
+        version: 0.4.1
+      "@expo-google-fonts/titan-one":
+        specifier: ^0.4.1
+        version: 0.4.1
       "@geek/design-tokens":
         specifier: workspace:*
         version: link:../../packages/design-tokens
@@ -99,6 +111,9 @@ importers:
       expo:
         specifier: 57.0.14
         version: 57.0.14(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@57.0.1)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)
+      expo-font:
+        specifier: ~57.0.1
+        version: 57.0.1(expo@57.0.14)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo-glass-effect:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.14)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -931,6 +946,30 @@ packages:
         integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==,
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
+
+  "@expo-google-fonts/audiowide@0.4.1":
+    resolution:
+      {
+        integrity: sha512-/KQNDBg64y0xNEdWxLoFyvLTD7yoMM2sJOWJxU1FLcFdfGoRzpo0SdrBLif/janIpUmKvwbLD2KCj5Tc87BNTg==,
+      }
+
+  "@expo-google-fonts/cinzel@0.4.2":
+    resolution:
+      {
+        integrity: sha512-UAlyuHCGjmKpMt2MoCKYueHz8ZEzjHO1VEol2G7NcPW54UH+85SWIGzpor05YNqUvr/aoqS8Qrfnswxg1RsNMw==,
+      }
+
+  "@expo-google-fonts/press-start-2p@0.4.1":
+    resolution:
+      {
+        integrity: sha512-L6SjPh8qwQ9i34VRNa8XPHH0gYACE1AGcq2MDLGfmBpxDnJnbECuChv6pWO81F2XqPx+V7gUlvSL0rbgh/F6/w==,
+      }
+
+  "@expo-google-fonts/titan-one@0.4.1":
+    resolution:
+      {
+        integrity: sha512-KTpJP6ZQWQF4lIafV8DBfCRVM+TiG+SsEKcYvBJWS4u+OXRYPlacOMEZPjCkpz3ZqWTy3zJpku1jbcwx6R7pjw==,
+      }
 
   "@expo/cli@57.0.16":
     resolution:
@@ -7037,6 +7076,14 @@ snapshots:
     dependencies:
       "@eslint/core": 0.17.0
       levn: 0.4.1
+
+  "@expo-google-fonts/audiowide@0.4.1": {}
+
+  "@expo-google-fonts/cinzel@0.4.2": {}
+
+  "@expo-google-fonts/press-start-2p@0.4.1": {}
+
+  "@expo-google-fonts/titan-one@0.4.1": {}
 
   "@expo/cli@57.0.16(@expo/dom-webview@57.0.1)(expo-constants@57.0.12(expo@57.0.14)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(supports-color@8.1.1))(expo-font@57.0.1(expo@57.0.14)(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)":
     dependencies:

@@ -26,6 +26,14 @@ Collection currently establishes the first local reusable components:
 - `MetadataField` for repeated label/value metadata such as Edition facts.
 - `AvatarStack` and `NetworkSignalRow` for compact, calculated community signals.
 - `StickyAvailabilityBar` for safe-area-aware Copy availability presentation and photo gating.
+- `StickyCommercialBar` for Copy-resolved direct Listing and Auction actions.
+- `AlbumCard` for curated editorial Album summaries and calculated progress.
+
+Album cards use only their approved editorial display families: Titan One,
+Audiowide, Press Start 2P, and Cinzel. These are loaded through Expo Font and
+remain content-specific typography rather than replacements for Geek's normal
+product type hierarchy. Album Detail keeps ownership and wanted state as
+independent fixture axes; its missing presentation is derived from ownership.
 
 These remain mobile presentation components. Fixtures are local to the Collection screen and must be replaced by existing data APIs when the screen is connected; no product or marketplace rules belong in these components.
 
