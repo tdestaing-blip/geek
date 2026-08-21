@@ -11,6 +11,7 @@ export type GameGridItemContent = {
   readonly components?: readonly ("gamepad" | "box")[];
   readonly overlay?: "sale" | "photo" | "bell";
   readonly opportunities?: number;
+  readonly salePrice?: string;
 };
 
 export type GridItem = GameGridItemContent & {
@@ -59,7 +60,7 @@ export function GameGridItem({
             <Text style={styles.slotNumber}>{slotNumber}</Text>
           </View>
         ) : null}
-        {item.overlay ? <ImageOverlay kind={item.overlay} /> : null}
+        {item.overlay ? <ImageOverlay kind={item.overlay} price={item.salePrice} /> : null}
         {wanted ? <ImageOverlay kind="bell" /> : null}
       </View>
       <View style={styles.metadata}>
@@ -90,7 +91,13 @@ export function GameGridItem({
   );
 }
 
-function ImageOverlay({ kind }: { readonly kind: "sale" | "photo" | "bell" }) {
+function ImageOverlay({
+  kind,
+  price,
+}: {
+  readonly kind: "sale" | "photo" | "bell";
+  readonly price?: string;
+}) {
   if (kind === "bell") {
     return (
       <View style={[styles.overlay, styles.bellOverlay]}>
@@ -102,7 +109,7 @@ function ImageOverlay({ kind }: { readonly kind: "sale" | "photo" | "bell" }) {
   return (
     <View style={[styles.overlay, kind === "photo" ? styles.photoOverlay : styles.saleOverlay]}>
       <GeekIcon name={kind === "photo" ? "image-plus" : "shopping-cart"} size={14} />
-      <Text style={styles.overlayText}>{kind === "photo" ? "Photo needed" : "34€"}</Text>
+      <Text style={styles.overlayText}>{kind === "photo" ? "Photo needed" : (price ?? "34€")}</Text>
     </View>
   );
 }

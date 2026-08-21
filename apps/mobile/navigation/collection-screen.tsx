@@ -31,7 +31,7 @@ type MyCollectionProps = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-const MY_GAMES: readonly GridItem[] = [
+export const MY_GAMES: readonly GridItem[] = [
   {
     copyId: "10000000-0000-0000-0000-000000000101",
     gameId: "00000000-0000-0000-0000-000000000101",

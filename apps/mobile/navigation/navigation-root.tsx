@@ -9,6 +9,7 @@ import { AlbumDetailScreen } from "./album-detail-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
 import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
+import { MyProfileScreen, PublicProfileScreen } from "./profile-screen";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
@@ -22,7 +23,6 @@ import {
   ListingScreen,
   PasswordUpdateScreen,
   ProfileMissingScreen,
-  ProfileScreen,
 } from "./screens";
 import { GeekTabBar } from "../ui/geek-tab-bar";
 import type { MainTabParamList, RootStackParamList } from "./types";
@@ -64,39 +64,40 @@ export function NavigationRoot() {
         ) : null}
 
         {branch === "application" ? (
-          <RootStack.Group>
-            <RootStack.Screen
-              name="MainTabs"
-              component={MainTabNavigator}
-              options={{ headerShown: false }}
-            />
-            <RootStack.Screen name="Collection" component={CollectionScreen} />
-            <RootStack.Screen
-              name="AlbumDetail"
-              component={AlbumDetailScreen}
-              options={{ animation: "slide_from_right", headerShown: false }}
-            />
-            <RootStack.Screen name="Game" component={GameScreen} />
-            <RootStack.Screen
-              name="Market"
-              component={MarketplaceScreen}
-              options={detailModalOptions}
-            />
-            <RootStack.Screen name="Edition" component={EditionScreen} />
-            <RootStack.Screen
-              name="Copy"
-              component={OwnedCopyDetailScreen}
-              options={detailModalOptions}
-            />
-            <RootStack.Screen
-              name="PublicCopy"
-              component={PublicCopyDetailScreen}
-              options={detailModalOptions}
-            />
-            <RootStack.Screen name="Listing" component={ListingScreen} />
-            <RootStack.Screen name="Auction" component={AuctionScreen} />
-            <RootStack.Screen name="Collector" component={CollectorScreen} />
-          </RootStack.Group>
+          <>
+            <RootStack.Group>
+              <RootStack.Screen
+                name="MainTabs"
+                component={MainTabNavigator}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen name="Collection" component={CollectionScreen} />
+              <RootStack.Screen
+                name="AlbumDetail"
+                component={AlbumDetailScreen}
+                options={{ animation: "slide_from_right", headerShown: false }}
+              />
+              <RootStack.Screen name="Game" component={GameScreen} />
+              <RootStack.Screen
+                name="Market"
+                component={MarketplaceScreen}
+                options={detailPushOptions}
+              />
+              <RootStack.Screen name="Edition" component={EditionScreen} />
+              <RootStack.Screen
+                name="Copy"
+                component={OwnedCopyDetailScreen}
+                options={detailPushOptions}
+              />
+              <RootStack.Screen name="Listing" component={ListingScreen} />
+              <RootStack.Screen name="Auction" component={AuctionScreen} />
+              <RootStack.Screen name="Collector" component={CollectorScreen} />
+            </RootStack.Group>
+            <RootStack.Group screenOptions={detailModalOptions}>
+              <RootStack.Screen name="PublicCopy" component={PublicCopyDetailScreen} />
+              <RootStack.Screen name="PublicProfile" component={PublicProfileScreen} />
+            </RootStack.Group>
+          </>
         ) : null}
       </RootStack.Navigator>
     </NavigationContainer>
@@ -110,6 +111,11 @@ const detailModalOptions = {
   presentation: "fullScreenModal" as const,
 };
 
+const detailPushOptions = {
+  animation: "slide_from_right" as const,
+  headerShown: false,
+};
+
 function MainTabNavigator() {
   return (
     <MainTabs.Navigator
@@ -120,7 +126,7 @@ function MainTabNavigator() {
       <MainTabs.Screen name="Collection" component={MyCollectionScreen} />
       <MainTabs.Screen name="Community" component={CommunityScreen} />
       <MainTabs.Screen name="Activity" component={ActivityScreen} />
-      <MainTabs.Screen name="Profile" component={ProfileScreen} />
+      <MainTabs.Screen name="Profile" component={MyProfileScreen} />
     </MainTabs.Navigator>
   );
 }
