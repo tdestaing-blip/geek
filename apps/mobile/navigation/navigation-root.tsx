@@ -40,8 +40,10 @@ const MainTabs = createBottomTabNavigator<MainTabParamList>();
  * listener remains the sole owner of Auth callback URLs.
  */
 export function NavigationRoot() {
-  const { state, passwordRecoveryRequested } = useAuth();
-  const branch = resolveNavigationBranch(state, passwordRecoveryRequested);
+  const { state, passwordRecoveryRequested, callbackResolutionPending } = useAuth();
+  const branch = callbackResolutionPending
+    ? "bootstrap"
+    : resolveNavigationBranch(state, passwordRecoveryRequested);
 
   return (
     <NavigationContainer>

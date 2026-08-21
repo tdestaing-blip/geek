@@ -32,9 +32,11 @@ export function SegmentedControl<T extends string>({
 }
 
 export function CollectionSegmentedControl({
+  ownedCount,
   selected,
   onSelect,
 }: {
+  readonly ownedCount: number;
   readonly selected: CollectionSegment;
   readonly onSelect: (segment: CollectionSegment) => void;
 }) {
@@ -42,7 +44,7 @@ export function CollectionSegmentedControl({
     <SegmentedControl
       onSelect={onSelect}
       options={[
-        { id: "games", label: "Mes jeux 192" },
+        { id: "games", label: `Mes jeux ${ownedCount}` },
         { id: "wishlist", label: "Wishlist 18" },
       ]}
       selected={selected}

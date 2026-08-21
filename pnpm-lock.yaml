@@ -87,9 +87,15 @@ importers:
       "@expo-google-fonts/titan-one":
         specifier: ^0.4.1
         version: 0.4.1
+      "@geek/data":
+        specifier: workspace:*
+        version: link:../../packages/data
       "@geek/design-tokens":
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      "@geek/domain":
+        specifier: workspace:*
+        version: link:../../packages/domain
       "@geek/supabase":
         specifier: workspace:*
         version: link:../../packages/supabase
