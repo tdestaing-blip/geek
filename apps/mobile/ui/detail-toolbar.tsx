@@ -2,13 +2,15 @@ import { colors } from "@geek/design-tokens";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
-import { GeekIcon } from "./geek-icon";
+import { GeekIcon, type GeekIconName } from "./geek-icon";
 
 export function DetailToolbar({
+  leadingIcon = "chevron-down",
   title,
   onClose,
   onMore,
 }: {
+  readonly leadingIcon?: Extract<GeekIconName, "chevron-down" | "chevron-left">;
   readonly title: string;
   readonly onClose: () => void;
   readonly onMore: () => void;
@@ -16,8 +18,12 @@ export function DetailToolbar({
   return (
     <View pointerEvents="box-none" style={styles.toolbar}>
       <AdaptiveGlassSurface style={styles.button}>
-        <Pressable accessibilityLabel="Fermer" onPress={onClose} style={styles.pressable}>
-          <GeekIcon name="chevron-down" />
+        <Pressable
+          accessibilityLabel={leadingIcon === "chevron-left" ? "Retour" : "Fermer"}
+          onPress={onClose}
+          style={styles.pressable}
+        >
+          <GeekIcon name={leadingIcon} />
         </Pressable>
       </AdaptiveGlassSurface>
       <Text numberOfLines={1} style={styles.title}>

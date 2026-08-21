@@ -41,7 +41,12 @@ function MarketplaceContent({ navigation, route }: Props) {
   if (!isMajoraMarketIdentity(route.params.gameId, route.params.editionId)) {
     return (
       <View style={[styles.page, { paddingTop: insets.top }]}>
-        <DetailToolbar title={target.title} onClose={navigation.goBack} onMore={() => undefined} />
+        <DetailToolbar
+          leadingIcon="chevron-left"
+          title={target.title}
+          onClose={navigation.goBack}
+          onMore={() => undefined}
+        />
         <View style={styles.unsupported}>
           <Text style={styles.unsupportedText}>
             Ce marché détaillé n’est pas encore disponible.
@@ -54,6 +59,7 @@ function MarketplaceContent({ navigation, route }: Props) {
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
       <DetailToolbar
+        leadingIcon="chevron-left"
         title={MAJORA_GAME_FIXTURE.title}
         onClose={navigation.goBack}
         onMore={() => undefined}

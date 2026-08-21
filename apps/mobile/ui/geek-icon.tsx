@@ -28,7 +28,9 @@ export type GeekIconName =
   | "checkbox"
   | "square"
   | "radio"
-  | "shopping-cart";
+  | "shopping-cart"
+  | "share"
+  | "truck";
 
 // Exact Pixelarticons vector data sourced from Iconify's Pixelarticons collection.
 const GLYPHS: Readonly<Record<GeekIconName, string>> = {
@@ -81,6 +83,10 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
     '<svg viewBox="0 0 14 14"><path fill="currentColor" d="M6.42 5.25h1.16v1.17H6.42V5.25Zm0 2.33h1.16v1.17H6.42V7.58ZM5.25 6.42h1.17v1.16H5.25V6.42Zm2.33 0h1.17v1.16H7.58V6.42Zm3.5-1.17H9.92v3.5h1.16v-3.5Zm-8.16 0h1.16v3.5H2.92v-3.5Zm10.5-1.17h-1.17v5.84h1.17V4.08Zm-12.84 0h1.17v5.84H.58V4.08Zm9.34 0H8.75v1.17h1.17V4.08Zm-5.84 0h1.17v1.17H4.08V4.08Zm8.17-1.16h-1.17v1.16h1.17V2.92Zm-10.5 0h1.17v1.16H1.75V2.92Zm8.17 5.83H8.75v1.17h1.17V8.75Zm-5.84 0h1.17v1.17H4.08V8.75Zm8.17 1.17h-1.17v1.16h1.17V9.92Zm-10.5 0h1.17v1.16H1.75V9.92Z"/></svg>',
   "shopping-cart":
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 2h2v2H2zm2 6h2v4H4zm2 4h2v4H6zm2 4h10v2H8zm10-4h2v4h-2zm2-4h2v4h-2zM4 6h18v2H4zm0-4h2v4H4zm2 17h3v3H6zm11 0h3v3h-3z"/></svg>',
+  share:
+    '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 22H4v-2h16v2ZM4 20H2v-6h2v6Zm18 0h-2v-6h2v6ZM13 4h2v2h2v2h-4v10h-2V8H7V6h2V4h2V2h2v2ZM9 14H4v-2h5v2Zm11 0h-5v-2h5v2Z"/></svg>',
+  truck:
+    '<svg viewBox="0 0 24 16"><path fill="currentColor" d="M2 0h12v2H2V0ZM0 12h4v2H0v-2Zm10 0h4v2h-4v-2Zm12-4h2v6h-2V8ZM14 2h2v12h-2V2ZM0 2h2v10H0V2Zm20 4h2v2h-2V6Zm-6-2h6v2h-6V4ZM4 10h6v2H4v-2Zm10 0h6v2h-6v-2ZM4 12h2v2H4v-2Zm10 0h2v2h-2v-2ZM4 14h6v2H4v-2Zm10 0h6v2h-6v-2Zm4-2h4v2h-4v-2Z"/></svg>',
 };
 
 export function GeekIcon({

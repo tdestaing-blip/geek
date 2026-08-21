@@ -5,7 +5,7 @@ import LEON_COPY from "../assets/game-detail/market/leon-copy.png";
 import COMPONENT_BOX from "../assets/game-detail/owned/component-box.png";
 import COMPONENT_CARTRIDGE from "../assets/game-detail/owned/component-cartridge.png";
 import COMPONENT_MANUAL from "../assets/game-detail/owned/component-manual.png";
-import LEON_AVATAR from "../assets/game-detail/owned/owner-avatar.png";
+import LEON_AVATAR from "../assets/profiles/leon.png";
 import WISH_DONKEY_KONG from "../assets/collection/v2/wish-donkey-kong.png";
 import WISH_DONKEY_KONG_2 from "../assets/collection/v2/wish-donkey-kong-2.png";
 import WISH_LINK_TO_PAST from "../assets/collection/v2/wish-link-to-past.png";
@@ -48,6 +48,7 @@ export const LEON_PUBLIC_COPY_FIXTURE = {
     { condition: undefined, image: COMPONENT_MANUAL, label: "Notice", present: false },
   ],
   owner: {
+    id: "50000000-0000-0000-0000-000000000501",
     avatar: LEON_AVATAR,
     collectionCount: 192,
     distance: "4km",
@@ -70,6 +71,7 @@ const CAMILLE_COPY_FIXTURE = {
     { condition: undefined, image: COMPONENT_MANUAL, label: "Notice", present: false },
   ],
   owner: {
+    id: "50000000-0000-0000-0000-000000000502",
     avatar: LEON_AVATAR,
     collectionCount: 84,
     distance: "12km",
@@ -92,6 +94,7 @@ const BASILE_COPY_FIXTURE = {
     { condition: "Bon état", image: COMPONENT_MANUAL, label: "Notice", present: true },
   ],
   owner: {
+    id: "50000000-0000-0000-0000-000000000503",
     avatar: LEON_AVATAR,
     collectionCount: 136,
     distance: "40km",
@@ -115,6 +118,7 @@ type CopyFixture = {
     readonly present: boolean;
   }[];
   readonly owner: {
+    readonly id: string;
     readonly avatar?: ImageSourcePropType;
     readonly collectionCount?: number;
     readonly distance: string;

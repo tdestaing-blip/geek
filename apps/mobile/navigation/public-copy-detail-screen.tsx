@@ -76,7 +76,10 @@ function PublicCopyContent({ navigation, route }: Props) {
             <Text style={styles.platform}>{game.platform}</Text>
           </View>
         </View>
-        <OwnerCard copy={copy} />
+        <OwnerCard
+          copy={copy}
+          onPress={() => navigation.navigate("PublicProfile", { userId: copy.owner.id })}
+        />
         <TradeCard opportunity={opportunity} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Édition</Text>
@@ -97,11 +100,18 @@ function PublicCopyContent({ navigation, route }: Props) {
 
 function OwnerCard({
   copy,
+  onPress,
 }: {
   readonly copy: ReturnType<typeof resolvePublicCopyFixture>["copy"];
+  readonly onPress: () => void;
 }) {
   return (
-    <View style={styles.owner}>
+    <Pressable
+      accessibilityLabel={`Voir le profil de ${copy.owner.name}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.owner, pressed && styles.ownerPressed]}
+    >
       <View style={styles.ownerTop}>
         <View style={styles.identity}>
           <View>
@@ -133,7 +143,7 @@ function OwnerCard({
           ))}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -215,6 +225,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     overflow: "hidden",
   },
+  ownerPressed: { opacity: 0.72 },
   ownerTop: { gap: 16, padding: 12 },
   identity: { alignItems: "center", flexDirection: "row", gap: 12 },
   avatar: { borderRadius: 24, height: 48, width: 48 },

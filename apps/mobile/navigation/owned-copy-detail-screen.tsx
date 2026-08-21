@@ -100,6 +100,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <DetailToolbar
+        leadingIcon="chevron-left"
         title={fixture.game.title}
         onClose={() => navigation.goBack()}
         onMore={() => undefined}
