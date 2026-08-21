@@ -6,11 +6,13 @@ import {
   typography,
 } from "@geek/design-tokens";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
 import { GeekIcon, type GeekIconName } from "./geek-icon";
+import type { RootStackParamList } from "../navigation/types";
 
 const TAB_ICONS = {
   Activity: "activity",
@@ -21,6 +23,7 @@ const TAB_ICONS = {
 
 export function GeekTabBar({ navigation, state }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 25) }]}>
@@ -62,7 +65,7 @@ export function GeekTabBar({ navigation, state }: BottomTabBarProps) {
         <Pressable
           accessibilityLabel="Ajouter"
           accessibilityRole="button"
-          onPress={() => undefined}
+          onPress={() => rootNavigation?.navigate("AddGameSearch")}
           style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
         >
           <GeekIcon color={colors.accent} name="plus" size={navigationTokens.iconSize} />

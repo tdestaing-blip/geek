@@ -9,6 +9,7 @@ export type GeekIconName =
   | "box"
   | "collection"
   | "community"
+  | "close"
   | "chevron-down"
   | "chevron-left"
   | "diamond-gem"
@@ -28,6 +29,7 @@ export type GeekIconName =
   | "checkbox"
   | "square"
   | "radio"
+  | "search"
   | "shopping-cart"
   | "share"
   | "truck";
@@ -46,6 +48,8 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
     '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M4 4h16v2H4zm0 14h16v2H4zM2 6h2v12H2zm18 0h2v12h-2zM8 9h2v6H8z"/><path d="M6 11h6v2H6zm8-2h2v2h-2zm2 4h2v2h-2z"/></g></svg>',
   community:
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 21H5v-2h4zm10 0h-4v-2h4zM5 19H3v-2h2zm12-2h-2v2h-2v-2h-2v2H9v-2H7v-2h10zm4 2h-2v-2h2zM3 17H1V7h2zm20 0h-2V7h2zm-12-4H8v-3h3zm5 0h-3v-3h3zM5 7H3V5h2zm10 0H9V5h6zm6 0h-2V5h2zM9 5H5V3h4zm10 0h-4V3h4z"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 19H5v-2h2v2Zm12 0h-2v-2h2v2ZM9 15v2H7v-2h2Zm8 2h-2v-2h2v2Zm-6-2H9v-2h2v2Zm4 0h-2v-2h2v2Zm-2-2h-2v-2h2v2Zm-2-2H9V9h2v2Zm4 0h-2V9h2v2ZM9 9H7V7h2v2Zm8 0h-2V7h2v2ZM7 7H5V5h2v2Zm12 0h-2V5h2v2Z"/></svg>',
   "chevron-down":
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 16h-2v-2h2v2Zm-2-2H9v-2h2v2Zm4 0h-2v-2h2v2Zm-6-2H7v-2h2v2Zm8 0h-2v-2h2v2Zm-10-2H5V8h2v2Zm12 0h-2V8h2v2Z"/></svg>',
   "chevron-left":
@@ -81,6 +85,8 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
     '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M14.67 1.33V.67H1.33v.66H.67v13.34h.66v.66h13.34v-.66h.66V1.33h-.66ZM14 14H2V2h12v12Z"/></svg>',
   radio:
     '<svg viewBox="0 0 14 14"><path fill="currentColor" d="M6.42 5.25h1.16v1.17H6.42V5.25Zm0 2.33h1.16v1.17H6.42V7.58ZM5.25 6.42h1.17v1.16H5.25V6.42Zm2.33 0h1.17v1.16H7.58V6.42Zm3.5-1.17H9.92v3.5h1.16v-3.5Zm-8.16 0h1.16v3.5H2.92v-3.5Zm10.5-1.17h-1.17v5.84h1.17V4.08Zm-12.84 0h1.17v5.84H.58V4.08Zm9.34 0H8.75v1.17h1.17V4.08Zm-5.84 0h1.17v1.17H4.08V4.08Zm8.17-1.16h-1.17v1.16h1.17V2.92Zm-10.5 0h1.17v1.16H1.75V2.92Zm8.17 5.83H8.75v1.17h1.17V8.75Zm-5.84 0h1.17v1.17H4.08V8.75Zm8.17 1.17h-1.17v1.16h1.17V9.92Zm-10.5 0h1.17v1.16H1.75V9.92Z"/></svg>',
+  search:
+    '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M22 22h-2v-2h2v2Zm-2-2h-2v-2h2v2Zm-6-2H6v-2h8v2Zm4 0h-2v-2h2v2ZM6 16H4v-2h2v2Zm10 0h-2v-2h2v2ZM4 14H2V6h2v8Zm14 0h-2V6h2v8ZM6 6H4V4h2v2Zm10 0h-2V4h2v2Zm-2-2H6V2h8v2Z"/></svg>',
   "shopping-cart":
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 2h2v2H2zm2 6h2v4H4zm2 4h2v4H6zm2 4h10v2H8zm10-4h2v4h-2zm2-4h2v4h-2zM4 6h18v2H4zm0-4h2v4H4zm2 17h3v3H6zm11 0h3v3h-3z"/></svg>',
   share:

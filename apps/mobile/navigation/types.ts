@@ -32,6 +32,9 @@ export type RootStackParamList = {
   AuthError: undefined;
   PasswordUpdate: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
+  AddGameSearch: undefined;
+  PlatformCatalog: { readonly platformId: string };
+  GameRegions: { readonly gameId: string; readonly platformId: string };
   Collection: CollectionRouteParams;
   Game: { readonly gameId: string };
   Market: { readonly gameId: string; readonly editionId: string };

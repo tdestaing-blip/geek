@@ -32,6 +32,7 @@ export const MAJORA_GAME_FIXTURE = {
 export const MAJORA_EDITION_FIXTURE = {
   id: "20000000-0000-0000-0000-000000000201",
   gameId: MAJORA_GAME_FIXTURE.id,
+  region: "EU",
   regionLanguage: "PAL Europe · multilingue",
   releaseDate: "17 novembre 2000",
   code: "NUS-NZSP-EUR",
