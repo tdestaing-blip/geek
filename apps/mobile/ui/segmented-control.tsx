@@ -3,6 +3,34 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type CollectionSegment = "games" | "wishlist";
 
+type SegmentOption<T extends string> = {
+  readonly id: T;
+  readonly label: string;
+};
+
+export function SegmentedControl<T extends string>({
+  options,
+  selected,
+  onSelect,
+}: {
+  readonly options: readonly SegmentOption<T>[];
+  readonly selected: T;
+  readonly onSelect: (segment: T) => void;
+}) {
+  return (
+    <View accessibilityRole="tablist" style={styles.control}>
+      {options.map((option) => (
+        <SegmentButton
+          key={option.id}
+          label={option.label}
+          onPress={() => onSelect(option.id)}
+          selected={selected === option.id}
+        />
+      ))}
+    </View>
+  );
+}
+
 export function CollectionSegmentedControl({
   selected,
   onSelect,
@@ -11,18 +39,14 @@ export function CollectionSegmentedControl({
   readonly onSelect: (segment: CollectionSegment) => void;
 }) {
   return (
-    <View accessibilityRole="tablist" style={styles.control}>
-      <SegmentButton
-        label="Mes jeux 192"
-        onPress={() => onSelect("games")}
-        selected={selected === "games"}
-      />
-      <SegmentButton
-        label="Wishlist 18"
-        onPress={() => onSelect("wishlist")}
-        selected={selected === "wishlist"}
-      />
-    </View>
+    <SegmentedControl
+      onSelect={onSelect}
+      options={[
+        { id: "games", label: "Mes jeux 192" },
+        { id: "wishlist", label: "Wishlist 18" },
+      ]}
+      selected={selected}
+    />
   );
 }
 

@@ -18,9 +18,11 @@ import MY_MARIO_WORLD_COVER from "../assets/collection/v2/my-mario-world-cover.p
 import MY_PERFECT_DARK from "../assets/collection/v2/my-perfect-dark.png";
 import MY_SUPER_METROID from "../assets/collection/v2/my-super-metroid.png";
 import { CollectionHeader } from "../ui/collection-header";
+import { AlbumCard } from "../ui/album-card";
 import { GameGridItem, type GridItem } from "../ui/game-grid-item";
 import { CollectionSegmentedControl, type CollectionSegment } from "../ui/segmented-control";
 import { WISHLIST_MARKET_TARGETS } from "./marketplace-fixtures";
+import { ALBUMS } from "./album-fixtures";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
 type CollectionRouteProps = NativeStackScreenProps<RootStackParamList, "Collection">;
@@ -111,6 +113,7 @@ export function MyCollectionScreen({ navigation }: MyCollectionProps) {
           editionId,
         })
       }
+      onOpenAlbum={(albumId) => rootNavigation?.navigate("AlbumDetail", { albumId })}
     />
   );
 }
@@ -129,6 +132,7 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
           editionId,
         })
       }
+      onOpenAlbum={(albumId) => navigation.navigate("AlbumDetail", { albumId })}
     />
   );
 }
@@ -136,49 +140,104 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
 function CollectionView({
   onOpenCopy,
   onOpenGame,
+  onOpenAlbum,
 }: {
   readonly onOpenCopy: (copyId: string) => void;
   readonly onOpenGame: (gameId: string, editionId: string) => void;
+  readonly onOpenAlbum: (albumId: string) => void;
 }) {
-  const { width: screenWidth } = useWindowDimensions();
   const [segment, setSegment] = useState<CollectionSegment>("games");
   const [albumMode, setAlbumMode] = useState(false);
+
+  return (
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      {albumMode ? (
+        <AlbumsList onAlbumModeChange={setAlbumMode} onOpenAlbum={onOpenAlbum} />
+      ) : (
+        <CollectionGrid
+          onAlbumModeChange={setAlbumMode}
+          onOpenCopy={onOpenCopy}
+          onOpenGame={onOpenGame}
+          onSelectSegment={setSegment}
+          segment={segment}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+function AlbumsList({
+  onAlbumModeChange,
+  onOpenAlbum,
+}: {
+  readonly onAlbumModeChange: (value: boolean) => void;
+  readonly onOpenAlbum: (albumId: string) => void;
+}) {
+  return (
+    <FlatList
+      contentContainerStyle={styles.albumContent}
+      data={ALBUMS}
+      keyExtractor={({ id }) => id}
+      ListHeaderComponent={<CollectionHeader albumMode onAlbumModeChange={onAlbumModeChange} />}
+      renderItem={({ item }) => (
+        <AlbumCard
+          album={item}
+          onPress={item.id === "snes-essentials" ? () => onOpenAlbum(item.id) : undefined}
+        />
+      )}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+}
+
+function CollectionGrid({
+  onAlbumModeChange,
+  onOpenCopy,
+  onOpenGame,
+  onSelectSegment,
+  segment,
+}: {
+  readonly onAlbumModeChange: (value: boolean) => void;
+  readonly onOpenCopy: (copyId: string) => void;
+  readonly onOpenGame: (gameId: string, editionId: string) => void;
+  readonly onSelectSegment: (segment: CollectionSegment) => void;
+  readonly segment: CollectionSegment;
+}) {
+  const { width: screenWidth } = useWindowDimensions();
   const items = segment === "games" ? MY_GAMES : WISHLIST;
   const tileWidth = (screenWidth - spacing.page * 2 - spacing.compact) / 2;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
-      <FlatList
-        accessibilityLabel={segment === "games" ? "Mes jeux" : "Wishlist"}
-        columnWrapperStyle={styles.gridRow}
-        contentContainerStyle={styles.content}
-        data={items}
-        keyExtractor={(item) => item.gameId}
-        ListHeaderComponent={
-          <View style={styles.topContent}>
-            <CollectionHeader albumMode={albumMode} onAlbumModeChange={setAlbumMode} />
-            <CollectionSegmentedControl selected={segment} onSelect={setSegment} />
-          </View>
-        }
-        numColumns={2}
-        renderItem={({ item }) => (
-          <GameGridItem
-            isWishlist={segment === "wishlist"}
-            item={item}
-            onPress={() =>
-              segment === "games" && item.copyId
-                ? onOpenCopy(item.copyId)
-                : item.editionId
-                  ? onOpenGame(item.gameId, item.editionId)
-                  : undefined
-            }
-            width={tileWidth}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-        style={styles.page}
-      />
-    </SafeAreaView>
+    <FlatList
+      accessibilityLabel={segment === "games" ? "Mes jeux" : "Wishlist"}
+      columnWrapperStyle={styles.gridRow}
+      contentContainerStyle={styles.content}
+      data={items}
+      keyExtractor={(item) => item.gameId}
+      ListHeaderComponent={
+        <View style={styles.topContent}>
+          <CollectionHeader albumMode={false} onAlbumModeChange={onAlbumModeChange} />
+          <CollectionSegmentedControl selected={segment} onSelect={onSelectSegment} />
+        </View>
+      }
+      numColumns={2}
+      renderItem={({ item }) => (
+        <GameGridItem
+          isWishlist={segment === "wishlist"}
+          item={item}
+          onPress={() =>
+            segment === "games" && item.copyId
+              ? onOpenCopy(item.copyId)
+              : item.editionId
+                ? onOpenGame(item.gameId, item.editionId)
+                : undefined
+          }
+          width={tileWidth}
+        />
+      )}
+      showsVerticalScrollIndicator={false}
+      style={styles.page}
+    />
   );
 }
 
@@ -192,4 +251,5 @@ const styles = StyleSheet.create({
   },
   topContent: { gap: spacing.page, marginBottom: spacing.micro },
   gridRow: { gap: spacing.compact, justifyContent: "space-between", width: "100%" },
+  albumContent: { gap: spacing.compact, paddingBottom: 112, paddingHorizontal: spacing.page },
 });

@@ -38,6 +38,7 @@ export type RootStackParamList = {
   Edition: { readonly editionId: string };
   Copy: { readonly copyId: string };
   PublicCopy: { readonly copyId: string };
+  AlbumDetail: { readonly albumId: string };
   Listing: { readonly listingId: string };
   Auction: { readonly auctionId: string };
   Collector: { readonly collectorId: string };

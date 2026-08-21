@@ -18,6 +18,7 @@ import { CopyComponentCard } from "../ui/copy-component-card";
 import { DetailToolbar } from "../ui/detail-toolbar";
 import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
+import { StickyCommercialBar } from "../ui/sticky-commercial-bar";
 import { resolvePublicCopyFixture } from "./marketplace-fixtures";
 import type { RootStackParamList } from "./types";
 
@@ -39,7 +40,14 @@ function PublicCopyContent({ navigation, route }: Props) {
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
       <DetailToolbar title={game.title} onClose={navigation.goBack} onMore={() => undefined} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          opportunity && styles.contentWithBar,
+          opportunity?.type === "auction" && styles.contentWithAuction,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.heroGroup}>
           <View style={[styles.hero, { height: heroSize, width: heroSize }]}>
             <Image source={copy.photos[0]} style={styles.fill} />
@@ -82,6 +90,7 @@ function PublicCopyContent({ navigation, route }: Props) {
           title={game.about.title}
         />
       </ScrollView>
+      <StickyCommercialBar opportunity={opportunity} />
     </View>
   );
 }
@@ -133,7 +142,8 @@ function TradeCard({
 }: {
   readonly opportunity: ReturnType<typeof resolvePublicCopyFixture>["opportunity"];
 }) {
-  const reciprocalInterest = opportunity.reciprocalInterest;
+  const reciprocalInterest =
+    opportunity?.type === "listing" ? opportunity.reciprocalInterest : undefined;
   if (!reciprocalInterest) return null;
 
   return (
@@ -176,6 +186,8 @@ function TradeCard({
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
   content: { gap: 24, paddingBottom: 40 },
+  contentWithBar: { paddingBottom: 136 },
+  contentWithAuction: { paddingBottom: 168 },
   heroGroup: { gap: 16 },
   hero: { alignSelf: "center", borderRadius: radii.detailCard, overflow: "hidden" },
   fill: { height: "100%", width: "100%" },

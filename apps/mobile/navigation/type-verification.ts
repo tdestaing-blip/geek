@@ -15,6 +15,7 @@ navigation.navigate("Edition", { editionId: "edition-id" });
 navigation.navigate("Market", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("Copy", { copyId: "copy-id" });
 navigation.navigate("PublicCopy", { copyId: "copy-id" });
+navigation.navigate("AlbumDetail", { albumId: "album-id" });
 navigation.navigate("Listing", { listingId: "listing-id" });
 navigation.navigate("Auction", { auctionId: "auction-id" });
 navigation.navigate("Collector", { collectorId: "collector-id" });
@@ -33,6 +34,8 @@ navigation.navigate("Copy");
 navigation.navigate("Listing");
 // @ts-expect-error Public Copy identity is required.
 navigation.navigate("PublicCopy");
+// @ts-expect-error Album identity is required.
+navigation.navigate("AlbumDetail");
 // @ts-expect-error Auction identity is required.
 navigation.navigate("Auction");
 // @ts-expect-error Collector identity is required.

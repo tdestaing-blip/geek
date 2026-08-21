@@ -65,11 +65,20 @@ const CAMILLE_COPY_FIXTURE = {
   editionId: MAJORA_EDITION_FIXTURE.id,
   photos: [DIRECT_COPY],
   components: [
-    { condition: "Très bon état", label: "Cartouche", present: true },
-    { condition: "Bon état", label: "Boîte", present: true },
-    { condition: undefined, label: "Notice", present: false },
+    { condition: "Très bon état", image: COMPONENT_CARTRIDGE, label: "Cartouche", present: true },
+    { condition: "Bon état", image: COMPONENT_BOX, label: "Boîte", present: true },
+    { condition: undefined, image: COMPONENT_MANUAL, label: "Notice", present: false },
   ],
-  owner: { distance: "12km", name: "Camille Lefevre", rating: "4.5" },
+  owner: {
+    avatar: LEON_AVATAR,
+    collectionCount: 84,
+    distance: "12km",
+    name: "Camille Lefevre",
+    rating: "4.5",
+    wishlistPreview: [WISH_LINK_TO_PAST, WISH_YOSHI_ISLAND],
+    wishlistTotal: 12,
+  },
+  story: "Conservé avec soin dans ma collection.",
 } as const;
 
 const BASILE_COPY_FIXTURE = {
@@ -78,11 +87,20 @@ const BASILE_COPY_FIXTURE = {
   editionId: MAJORA_EDITION_FIXTURE.id,
   photos: [AUCTION_COPY],
   components: [
-    { condition: "Très bon état", label: "Cartouche", present: true },
-    { condition: "Bon état", label: "Boîte", present: true },
-    { condition: "Bon état", label: "Notice", present: true },
+    { condition: "Très bon état", image: COMPONENT_CARTRIDGE, label: "Cartouche", present: true },
+    { condition: "Bon état", image: COMPONENT_BOX, label: "Boîte", present: true },
+    { condition: "Bon état", image: COMPONENT_MANUAL, label: "Notice", present: true },
   ],
-  owner: { distance: "40km", name: "Basile Bolie", rating: "4.8" },
+  owner: {
+    avatar: LEON_AVATAR,
+    collectionCount: 136,
+    distance: "40km",
+    name: "Basile Bolie",
+    rating: "4.8",
+    wishlistPreview: [WISH_DONKEY_KONG, WISH_YOSHI_ISLAND],
+    wishlistTotal: 9,
+  },
+  story: "Une belle édition complète de ma collection.",
 } as const;
 
 type CopyFixture = {
@@ -132,7 +150,11 @@ const COPIES: readonly CopyFixture[] = [
   CAMILLE_COPY_FIXTURE,
   BASILE_COPY_FIXTURE,
 ];
-const PUBLIC_COPIES: readonly PublicCopyFixture[] = [LEON_PUBLIC_COPY_FIXTURE];
+const PUBLIC_COPIES: readonly PublicCopyFixture[] = [
+  LEON_PUBLIC_COPY_FIXTURE,
+  CAMILLE_COPY_FIXTURE,
+  BASILE_COPY_FIXTURE,
+];
 
 type ListingOpportunityFixture = {
   readonly id: string;
@@ -182,9 +204,9 @@ export const MAJORA_MARKET_OPPORTUNITIES: readonly MarketOpportunityFixture[] = 
     id: "40000000-0000-0000-0000-000000000403",
     type: "auction",
     copyId: BASILE_COPY_FIXTURE.id,
-    currentBid: "130€",
+    currentBid: "56€",
     bidCount: 7,
-    countdown: "2j 04h",
+    countdown: "2j : 04h : 36m",
   },
 ];
 
@@ -285,13 +307,13 @@ export function resolvePublicCopyFixture(copyId: string) {
   );
   const edition = getEditionFixture(copy.editionId);
   const game = getGameFixture(edition.gameId);
-  const opportunity = requireFixture(
-    MAJORA_MARKET_OPPORTUNITIES.find(
-      (candidate): candidate is ListingOpportunityFixture =>
-        candidate.type === "listing" && candidate.copyId === copy.id,
-    ),
-    `No local Listing fixture references Public Copy: ${copy.id}`,
+  const opportunities = MAJORA_MARKET_OPPORTUNITIES.filter(
+    (candidate) => candidate.copyId === copy.id,
   );
+  if (opportunities.length > 1) {
+    throw new Error(`Conflicting local commercial opportunities for Copy: ${copy.id}`);
+  }
+  const opportunity = opportunities[0] ?? null;
 
   if (copy.gameId !== game.id) {
     throw new Error(`Incoherent local Public Copy fixture: ${copy.id}`);

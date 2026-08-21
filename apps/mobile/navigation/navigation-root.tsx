@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../lib/auth/auth-provider";
 import { resolveNavigationBranch } from "./auth-branch";
 import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
+import { AlbumDetailScreen } from "./album-detail-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
 import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
@@ -70,6 +71,11 @@ export function NavigationRoot() {
               options={{ headerShown: false }}
             />
             <RootStack.Screen name="Collection" component={CollectionScreen} />
+            <RootStack.Screen
+              name="AlbumDetail"
+              component={AlbumDetailScreen}
+              options={{ animation: "slide_from_right", headerShown: false }}
+            />
             <RootStack.Screen name="Game" component={GameScreen} />
             <RootStack.Screen
               name="Market"
