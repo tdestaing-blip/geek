@@ -8,7 +8,7 @@ import NES from "../assets/add-game/platforms/nes.png";
 import PS1 from "../assets/add-game/platforms/ps1.png";
 import PS2 from "../assets/add-game/platforms/ps2.png";
 import SNES from "../assets/add-game/platforms/snes.png";
-import { WISHLIST_MARKET_TARGETS } from "./marketplace-fixtures";
+import { MAJORA_EDITION_FIXTURE, WISHLIST_MARKET_TARGETS } from "./marketplace-fixtures";
 
 export type PlatformFixture = {
   readonly id: string;
@@ -28,7 +28,12 @@ export type CatalogEditionFixture = {
   readonly id: string;
   readonly gameId: string;
   readonly platformId: string;
-  readonly region: "France";
+  readonly region: "EU";
+};
+
+export type CatalogRegionPresentation = {
+  readonly flag: string;
+  readonly label: string;
 };
 
 export type GamePlatformSearchResult = {
@@ -95,20 +100,18 @@ export const PLATFORMS: readonly PlatformFixture[] = [
   },
 ] as const;
 
-const PLATFORM_BY_WISHLIST_LABEL = { N64: "n64", SNES: "snes" } as const;
-
 export const CATALOG_GAMES: readonly CatalogGameFixture[] = WISHLIST_MARKET_TARGETS.map(
   ({ gameId, image, title }) => ({ id: gameId, artwork: image, title }),
 );
 
-export const CATALOG_EDITIONS: readonly CatalogEditionFixture[] = WISHLIST_MARKET_TARGETS.map(
-  ({ editionId, gameId, platform }) => ({
-    id: editionId,
-    gameId,
-    platformId: PLATFORM_BY_WISHLIST_LABEL[platform],
-    region: "France",
-  }),
-);
+export const CATALOG_EDITIONS: readonly CatalogEditionFixture[] = [
+  {
+    id: MAJORA_EDITION_FIXTURE.id,
+    gameId: MAJORA_EDITION_FIXTURE.gameId,
+    platformId: "n64",
+    region: MAJORA_EDITION_FIXTURE.region,
+  },
+];
 
 export function getPlatform(platformId: string): PlatformFixture {
   const platform = PLATFORMS.find(({ id }) => id === platformId);
@@ -120,6 +123,15 @@ export function getCatalogGame(gameId: string): CatalogGameFixture {
   const game = CATALOG_GAMES.find(({ id }) => id === gameId);
   if (!game) throw new Error(`Unknown local catalog Game fixture: ${gameId}`);
   return game;
+}
+
+export function getCatalogRegionPresentation(
+  region: CatalogEditionFixture["region"],
+): CatalogRegionPresentation {
+  switch (region) {
+    case "EU":
+      return { flag: "🇪🇺", label: "Europe" };
+  }
 }
 
 export function getGameRegionVariants(

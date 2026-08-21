@@ -3,10 +3,10 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import FRANCE_FLAG from "../assets/collection/v2/icon-france.png";
 import { AddGameToolbar } from "../ui/add-game-toolbar";
 import {
   getCatalogGame,
+  getCatalogRegionPresentation,
   getGameRegionVariants,
   getPlatform,
   type GameRegionVariant,
@@ -49,6 +49,7 @@ function GameRegionRow({
   readonly onPress: () => void;
   readonly platformName: string;
 }) {
+  const region = getCatalogRegionPresentation(item.region);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
       <Image source={item.artwork} style={styles.artwork} />
@@ -57,9 +58,9 @@ function GameRegionRow({
           {item.title}
         </Text>
         <View style={styles.meta}>
-          <Image source={FRANCE_FLAG} style={styles.flag} />
+          <Text style={styles.flag}>{region.flag}</Text>
           <Text style={styles.platform}>
-            {item.region} · {platformName}
+            {region.label} · {platformName}
           </Text>
         </View>
       </View>
@@ -83,6 +84,6 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: spacing.micro },
   title: { ...typography.body, color: colors.text, fontWeight: "600" },
   meta: { alignItems: "center", flexDirection: "row", gap: spacing.micro },
-  flag: { borderRadius: 8, height: 16, width: 16 },
+  flag: { fontSize: 16, lineHeight: 18 },
   platform: { ...typography.metadata, color: colors.textSecondary },
 });
