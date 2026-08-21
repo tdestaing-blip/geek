@@ -160,6 +160,8 @@ const PUBLIC_COPIES: readonly PublicCopyFixture[] = [
   BASILE_COPY_FIXTURE,
 ];
 
+const COLLECTORS: readonly PublicCopyFixture["owner"][] = PUBLIC_COPIES.map(({ owner }) => owner);
+
 type ListingOpportunityFixture = {
   readonly id: string;
   readonly type: "listing";
@@ -324,4 +326,22 @@ export function resolvePublicCopyFixture(copyId: string) {
   }
 
   return { copy, edition, game, opportunity } as const;
+}
+
+export function resolveCollectorFixture(userId: string): PublicCopyFixture["owner"] {
+  return requireFixture(
+    COLLECTORS.find(({ id }) => id === userId),
+    `Unknown local collector fixture: ${userId}`,
+  );
+}
+
+export function resolveActiveMarketOpportunitiesForOwner(userId: string) {
+  const seenCopyIds = new Set<string>();
+
+  return MAJORA_MARKET_OPPORTUNITIES.flatMap((opportunity) => {
+    const resolved = resolvePublicCopyFixture(opportunity.copyId);
+    if (resolved.copy.owner.id !== userId || seenCopyIds.has(resolved.copy.id)) return [];
+    seenCopyIds.add(resolved.copy.id);
+    return [{ opportunity, resolved }] as const;
+  });
 }
