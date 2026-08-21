@@ -1,10 +1,16 @@
+import type { CopyAvailability } from "@geek/domain";
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
-
-export function StickyAvailabilityBar({ hasCopyPhoto }: { readonly hasCopyPhoto: boolean }) {
+export function StickyAvailabilityBar({
+  availability = "private",
+  hasCopyPhoto,
+}: {
+  readonly availability?: CopyAvailability;
+  readonly hasCopyPhoto: boolean;
+}) {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
@@ -22,7 +28,7 @@ export function StickyAvailabilityBar({ hasCopyPhoto }: { readonly hasCopyPhoto:
       >
         <View>
           <Text style={styles.statusLabel}>Status</Text>
-          <Text style={styles.status}>Privé</Text>
+          <Text style={styles.status}>{AVAILABILITY_LABELS[availability]}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -37,6 +43,13 @@ export function StickyAvailabilityBar({ hasCopyPhoto }: { readonly hasCopyPhoto:
     </View>
   );
 }
+
+const AVAILABILITY_LABELS: Record<CopyAvailability, string> = {
+  private: "Privé",
+  open_to_trade: "Ouvert à l’échange",
+  for_sale: "En vente",
+  in_auction: "Aux enchères",
+};
 
 const styles = StyleSheet.create({
   root: { bottom: 0, left: 0, position: "absolute", right: 0 },

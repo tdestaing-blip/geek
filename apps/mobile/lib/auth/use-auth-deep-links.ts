@@ -1,5 +1,5 @@
 import * as Linking from "expo-linking";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { AuthCallbackOutcome } from "./callback";
 import { handleAuthCallbackUrl } from "./callback";
@@ -14,39 +14,82 @@ import { handleAuthCallbackUrl } from "./callback";
  * through its own Auth subscription. Nothing here writes Auth state directly, so
  * the two cannot disagree.
  */
-export function useAuthDeepLinks(onOutcome?: (outcome: AuthCallbackOutcome) => void): void {
-  const url = Linking.useURL();
-
-  // `useURL` keeps returning the last URL. Callback parameters are single-use, so
-  // re-processing one would fail and report a spurious error.
-  const handledUrlRef = useRef<string | null>(null);
-  // Holds the latest callback so a caller passing an inline function does not
-  // cause the link-handling effect below to re-run on every render.
-  const onOutcomeRef = useRef(onOutcome);
-
-  useEffect(() => {
-    onOutcomeRef.current = onOutcome;
-  }, [onOutcome]);
+export function useAuthDeepLinks(
+  onComplete: (outcome: AuthCallbackOutcome | null) => Promise<void>,
+): boolean {
+  const [resolving, setResolving] = useState(true);
+  // Callback parameters are single-use, so a cold URL later repeated as a warm
+  // event must not be processed twice.
+  const handledUrlsRef = useRef<Set<string>>(new Set());
+  const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
-    if (url === null || url === undefined || handledUrlRef.current === url) {
-      return;
-    }
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
-    handledUrlRef.current = url;
-
+  useEffect(() => {
     let active = true;
+    let pendingOperations = 1;
+    let processingQueue = Promise.resolve();
 
-    void handleAuthCallbackUrl(url).then((outcome) => {
-      if (!active || outcome.outcome === "ignored") {
-        return;
-      }
+    const finishOperation = (): void => {
+      pendingOperations -= 1;
+      if (active && pendingOperations === 0) setResolving(false);
+    };
 
-      onOutcomeRef.current?.(outcome);
+    const enqueue = (url: string | null, resolveWhenAbsent = false): void => {
+      if (!active || (url !== null && handledUrlsRef.current.has(url))) return;
+
+      if (url !== null) handledUrlsRef.current.add(url);
+      pendingOperations += 1;
+      setResolving(true);
+
+      const process = async (): Promise<void> => {
+        try {
+          if (!active) return;
+
+          if (url !== null) {
+            const outcome = await handleAuthCallbackUrl(url);
+            if (!active) return;
+
+            await onCompleteRef.current(outcome);
+          } else if (resolveWhenAbsent) {
+            await onCompleteRef.current(null);
+          }
+        } catch {
+          // Expected provider failures are represented by AuthCallbackOutcome. This
+          // reports only an unexpected native/callback failure without logging the
+          // callback URL or its credentials.
+          console.error("Auth callback resolution failed.");
+        } finally {
+          finishOperation();
+        }
+      };
+
+      processingQueue = processingQueue.then(process);
+    };
+
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      enqueue(url);
     });
+
+    void Linking.getInitialURL()
+      .then((url) => {
+        enqueue(url, true);
+      })
+      .catch(() => {
+        // Do not log the rejected URL or any callback credentials.
+        console.error("Initial Auth callback URL resolution failed.");
+      })
+      .finally(() => {
+        finishOperation();
+      });
 
     return () => {
       active = false;
+      subscription.remove();
     };
-  }, [url]);
+  }, []);
+
+  return resolving;
 }

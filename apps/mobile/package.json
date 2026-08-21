@@ -16,6 +16,8 @@
     "@expo-google-fonts/press-start-2p": "^0.4.1",
     "@expo-google-fonts/titan-one": "^0.4.1",
     "@geek/design-tokens": "workspace:*",
+    "@geek/data": "workspace:*",
+    "@geek/domain": "workspace:*",
     "@geek/supabase": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "7.18.16",

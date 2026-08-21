@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { supabase } from "../supabase";
+import { useAuthDeepLinks } from "./use-auth-deep-links";
 
 type AuthContextValue = {
   readonly state: GeekAuthState;
@@ -22,6 +23,8 @@ type AuthContextValue = {
    * Cleared by signing out, and by the user update that sets the new password.
    */
   readonly passwordRecoveryRequested: boolean;
+  /** Whether an initial or foreground Auth callback is still being resolved. */
+  readonly callbackResolutionPending: boolean;
   /**
    * Re-resolves Auth state.
    *
@@ -129,8 +132,20 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     void resolve();
   }, [resolve]);
 
+  const callbackResolutionPending = useAuthDeepLinks(async (outcome) => {
+    if (outcome?.outcome === "session_established") {
+      setPasswordRecoveryRequested(outcome.intent === "password_recovery");
+    }
+
+    // Resolving after callback processing also covers a cold start with no URL:
+    // persisted storage remains the canonical source in both cases.
+    await resolve();
+  });
+
   return (
-    <AuthContext.Provider value={{ state, passwordRecoveryRequested, reload }}>
+    <AuthContext.Provider
+      value={{ state, passwordRecoveryRequested, callbackResolutionPending, reload }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -7,7 +7,8 @@ import { GeekIcon } from "./geek-icon";
 export type GameGridItemContent = {
   readonly image: ImageSourcePropType;
   readonly title: string;
-  readonly platform: "N64" | "SNES";
+  readonly platform: string;
+  readonly regionCode?: string | null;
   readonly components?: readonly ("gamepad" | "box")[];
   readonly overlay?: "sale" | "photo" | "bell";
   readonly opportunities?: number;
@@ -18,6 +19,10 @@ export type GridItem = GameGridItemContent & {
   readonly gameId: string;
   readonly editionId?: string;
   readonly copyId?: string;
+};
+
+type RenderableGameGridItemContent = Omit<GameGridItemContent, "image"> & {
+  readonly image?: ImageSourcePropType;
 };
 
 export function GameGridItem({
@@ -31,7 +36,7 @@ export function GameGridItem({
   wanted = false,
   width,
 }: {
-  readonly item: GameGridItemContent;
+  readonly item: RenderableGameGridItemContent;
   readonly isWishlist: boolean;
   readonly imageOpacity?: number;
   readonly onPress?: () => void;
@@ -50,11 +55,17 @@ export function GameGridItem({
       style={({ pressed }) => [styles.tile, { width }, pressed && styles.pressed]}
     >
       <View style={[styles.imageFrame, isWishlist ? styles.wishlistImage : styles.copyImage]}>
-        <Image
-          resizeMode="cover"
-          source={item.image}
-          style={[styles.image, { opacity: imageOpacity }]}
-        />
+        {item.image ? (
+          <Image
+            resizeMode="cover"
+            source={item.image}
+            style={[styles.image, { opacity: imageOpacity }]}
+          />
+        ) : (
+          <View style={[styles.imagePlaceholder, { opacity: imageOpacity }]}>
+            <GeekIcon color={colors.textSecondary} name="collection" size={32} />
+          </View>
+        )}
         {slotNumber ? (
           <View pointerEvents="none" style={styles.slotNumberWrap}>
             <Text style={styles.slotNumber}>{slotNumber}</Text>
@@ -83,7 +94,9 @@ export function GameGridItem({
           )}
         </View>
         <View style={styles.platformRow}>
-          <Image source={FRANCE_ICON} style={styles.flag} />
+          {item.regionCode === undefined || item.regionCode === "FR" ? (
+            <Image source={FRANCE_ICON} style={styles.flag} />
+          ) : null}
           <Text style={styles.platform}>{platformLabel ?? item.platform}</Text>
         </View>
       </View>
@@ -141,6 +154,13 @@ const styles = StyleSheet.create({
   copyImage: { borderRadius: radii.copyImage },
   wishlistImage: { borderRadius: radii.wishlistImage },
   image: { height: "100%", width: "100%" },
+  imagePlaceholder: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceSubtle,
+    height: "100%",
+    justifyContent: "center",
+    width: "100%",
+  },
   slotNumberWrap: {
     alignItems: "center",
     bottom: 0,

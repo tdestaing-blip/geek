@@ -68,7 +68,8 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackOu
     return { outcome: "ignored" };
   }
 
-  const intent = classifyAuthCallback(normalizeQueryParams(Linking.parse(url).queryParams));
+  const params = authCallbackParams(url);
+  const intent = classifyAuthCallback(params);
 
   switch (intent.kind) {
     case "exchange_code": {
@@ -125,7 +126,32 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackOu
         code: intent.code,
       };
 
-    case "unrecognized":
+    case "unrecognized": {
+      const accessToken = params["access_token"];
+      const refreshToken = params["refresh_token"];
+
+      if (accessToken !== undefined && refreshToken !== undefined) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error !== null) {
+          return {
+            outcome: "failed",
+            reason: "exchange_failed",
+            message: "This sign-in link could not be completed. Please try signing in again.",
+            providerMessage: error.message,
+            code: error.code ?? null,
+          };
+        }
+
+        return {
+          outcome: "session_established",
+          intent: params["type"] === "recovery" ? "password_recovery" : "sign_in",
+        };
+      }
+
       // A callback carrying nothing usable, typically a link that was already
       // consumed or truncated in transit.
       return {
@@ -135,7 +161,32 @@ export async function handleAuthCallbackUrl(url: string): Promise<AuthCallbackOu
         providerMessage: null,
         code: null,
       };
+    }
   }
+}
+
+/**
+ * Reads callback parameters from both query and fragment components.
+ *
+ * PKCE callbacks use `?code=`, while GoTrue's implicit email callback carries
+ * the issued session in the fragment. Expo's parser intentionally exposes only
+ * query parameters, so native fragment parameters have to be merged explicitly.
+ */
+function authCallbackParams(url: string): Record<string, string | undefined> {
+  const params = normalizeQueryParams(Linking.parse(url).queryParams);
+  const fragment = url.split("#", 2)[1];
+
+  if (fragment === undefined || fragment === "") {
+    return params;
+  }
+
+  for (const [key, value] of new URLSearchParams(fragment)) {
+    // A parameter repeated between query and fragment is ambiguous. Drop it
+    // rather than choosing whichever credential happened to be parsed last.
+    params[key] = params[key] === undefined ? value : undefined;
+  }
+
+  return params;
 }
 
 /**
