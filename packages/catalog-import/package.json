@@ -11,6 +11,8 @@
   },
   "scripts": {
     "import:libretro": "node --experimental-strip-types src/cli.ts",
+    "import:mobygames": "node --experimental-strip-types src/mobygames-cli.ts",
+    "test:mobygames": "node --experimental-strip-types --test src/mobygames.test.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
