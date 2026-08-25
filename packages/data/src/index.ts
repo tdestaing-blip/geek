@@ -31,7 +31,14 @@ export type { Page, PageRequest } from "./pagination";
 
 export { getAlbumDetail, getAlbums } from "./albums/albums";
 
-export { getEdition, getEditionsForGame, getGame } from "./catalog/catalog";
+export {
+  getEdition,
+  getEditionsForGame,
+  getEditionsForPlatform,
+  getGame,
+  getPlatform,
+  getPlatforms,
+} from "./catalog/catalog";
 export {
   getPrimaryEditionCover,
   getPrimaryEditionCovers,
