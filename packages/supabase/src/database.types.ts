@@ -368,6 +368,7 @@ export type Database = {
         Row: {
           checksum: string;
           created_at: string;
+          evidence_children: Json;
           fetched_at: string;
           id: string;
           payload: Json;
@@ -381,6 +382,7 @@ export type Database = {
         Insert: {
           checksum: string;
           created_at?: string;
+          evidence_children?: Json;
           fetched_at: string;
           id?: string;
           payload: Json;
@@ -394,6 +396,7 @@ export type Database = {
         Update: {
           checksum?: string;
           created_at?: string;
+          evidence_children?: Json;
           fetched_at?: string;
           id?: string;
           payload?: Json;
@@ -1835,6 +1838,17 @@ export type Database = {
         Args: { target_conversation_id: string; target_trade_offer_id: string };
         Returns: string;
       };
+      persist_mobygames_edition_candidate: {
+        Args: {
+          candidate_value: Json;
+          existing_edition_id_value?: string;
+          failure_stage_value?: string;
+          game_id_value: string;
+          platform_id_value: string;
+          source_records_value: Json;
+        };
+        Returns: Json;
+      };
       place_auction_bid: {
         Args: { bid_amount_minor: number; target_auction_id: string };
         Returns: {
@@ -1887,6 +1901,38 @@ export type Database = {
         Returns: {
           checksum: string;
           created_at: string;
+          evidence_children: Json;
+          fetched_at: string;
+          id: string;
+          payload: Json;
+          provider: string;
+          provider_external_id: string | null;
+          record_type: string;
+          revision: number;
+          source_key: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "catalog_source_records";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      upsert_mobygames_catalog_source_record: {
+        Args: {
+          checksum_value: string;
+          evidence_children_value: Json;
+          fetched_at_value: string;
+          payload_value: Json;
+          provider_external_id_value: string;
+          record_type_name: string;
+          source_key_value: string;
+        };
+        Returns: {
+          checksum: string;
+          created_at: string;
+          evidence_children: Json;
           fetched_at: string;
           id: string;
           payload: Json;

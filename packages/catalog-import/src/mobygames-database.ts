@@ -56,6 +56,14 @@ type ExistingEvidence = {
   readonly fingerprint: string;
 };
 
+type PersistedCandidate = {
+  readonly editionId: string;
+  readonly created: boolean;
+  readonly identifiersCreated: number;
+  readonly evidenceLinksCreated: number;
+  readonly mediaCreated: number;
+};
+
 /** Persists one reviewed MobyGames plan through trusted service-role access. */
 export async function writeMobyGamesImportPlan(
   client: GeekSupabaseClient,
@@ -68,7 +76,7 @@ export async function writeMobyGamesImportPlan(
     );
   }
 
-  const sourceRecords = await persistSourceRecords(client, plan.sourceRecords);
+  const sourceRecords = await persistSourceRecords(client, plan);
   const platformId = await resolvePlatform(
     client,
     plan.platformExternalId,
@@ -97,34 +105,35 @@ export async function writeMobyGamesImportPlan(
       continue;
     }
 
-    const resolved = await resolveEdition(
-      client,
-      gameId,
-      platformId,
-      candidate,
-      existingEvidence,
-      existingEditions,
-    );
-    candidateReconciliations.push({
-      candidateKey: candidate.key,
-      status: resolved.status,
-      editionId: resolved.editionId,
-    });
-    if (resolved.editionId === null) {
+    const resolution = resolveEdition(candidate, existingEvidence, existingEditions);
+    if (resolution.status === "RECONCILIATION_AMBIGUOUS") {
+      candidateReconciliations.push({
+        candidateKey: candidate.key,
+        status: resolution.status,
+        editionId: null,
+      });
       ambiguousCandidatesSkipped += 1;
       continue;
     }
-    if (resolved.created) editionsCreated += 1;
-    else editionsReused += 1;
-    identifiersCreated += await persistIdentifiers(client, resolved.editionId, candidate);
-    await pruneStaleEvidence(client, resolved.editionId, candidate, sourceRecords);
-    evidenceLinksCreated += await persistEvidence(
+
+    const persisted = await persistCandidate(
       client,
-      resolved.editionId,
+      gameId,
+      platformId,
+      resolution.editionId,
       candidate,
       sourceRecords,
     );
-    mediaCreated += await persistMedia(client, resolved.editionId, candidate);
+    candidateReconciliations.push({
+      candidateKey: candidate.key,
+      status: resolution.status,
+      editionId: persisted.editionId,
+    });
+    if (persisted.created) editionsCreated += 1;
+    else editionsReused += 1;
+    identifiersCreated += persisted.identifiersCreated;
+    evidenceLinksCreated += persisted.evidenceLinksCreated;
+    mediaCreated += persisted.mediaCreated;
   }
 
   const sourceRevisions = Object.fromEntries(
@@ -167,18 +176,18 @@ export async function writeMobyGamesImportPlan(
 
 async function persistSourceRecords(
   client: GeekSupabaseClient,
-  records: readonly MobyGamesSourceRecord[],
+  plan: MobyGamesImportPlan,
 ): Promise<readonly PersistedSourceRecord[]> {
   const persisted: PersistedSourceRecord[] = [];
-  for (const record of records) {
-    const { data, error } = await client.rpc("upsert_catalog_source_record", {
-      provider_name: record.provider,
+  for (const record of plan.sourceRecords) {
+    const { data, error } = await client.rpc("upsert_mobygames_catalog_source_record", {
       record_type_name: record.recordType,
       source_key_value: record.sourceKey,
       provider_external_id_value: record.providerExternalId ?? "",
       payload_value: record.payload as Json,
       checksum_value: record.checksum,
       fetched_at_value: record.fetchedAt,
+      evidence_children_value: sourceEvidenceChildren(plan, record) as Json,
     });
     if (error !== null) throw databaseError("persist source record", error);
     if (
@@ -187,7 +196,7 @@ async function persistSourceRecords(
       typeof data.record_type !== "string" ||
       !Number.isInteger(data.revision)
     ) {
-      throw new TypeError("upsert_catalog_source_record returned an invalid row");
+      throw new TypeError("upsert_mobygames_catalog_source_record returned an invalid row");
     }
     persisted.push({
       id: data.id,
@@ -196,6 +205,27 @@ async function persistSourceRecords(
     });
   }
   return persisted;
+}
+
+function sourceEvidenceChildren(
+  plan: MobyGamesImportPlan,
+  record: MobyGamesSourceRecord,
+): { readonly kind: "release" | "cover_group"; readonly fingerprint: string }[] {
+  const evidence = plan.editions
+    .flatMap(({ evidence: candidateEvidence }) => candidateEvidence)
+    .filter(({ sourceRecordType }) => sourceRecordType === record.recordType)
+    .map(({ kind, fingerprint }) => ({ kind, fingerprint }));
+  if (record.recordType === "covers") {
+    for (const unresolved of plan.unresolvedEvidence) {
+      const fingerprint = unresolved.startsWith("cover_group:")
+        ? unresolved.slice("cover_group:".length)
+        : null;
+      if (fingerprint !== null) evidence.push({ kind: "cover_group", fingerprint });
+    }
+  }
+  return [
+    ...new Map(evidence.map((item) => [`${item.kind}\u0000${item.fingerprint}`, item])).values(),
+  ];
 }
 
 async function resolvePlatform(
@@ -279,18 +309,14 @@ async function resolveGame(client: GeekSupabaseClient, plan: MobyGamesImportPlan
   return gameId;
 }
 
-async function resolveEdition(
-  client: GeekSupabaseClient,
-  gameId: string,
-  platformId: string,
+function resolveEdition(
   candidate: MobyGamesEditionCandidate,
   existingEvidence: readonly ExistingEvidence[],
   existingEditions: readonly ExistingEditionForMobyGamesReconciliation[],
-): Promise<{
+): {
   readonly editionId: string | null;
-  readonly created: boolean;
   readonly status: MobyGamesCandidateReconciliation["status"];
-}> {
+} {
   const fingerprints = new Set(candidate.evidence.map(({ fingerprint }) => fingerprint));
   const sourceEditionIds = [
     ...new Set(
@@ -304,24 +330,7 @@ async function resolveEdition(
     existingEditions,
     sourceEditionIds,
   );
-  if (decision.status !== "NEW") {
-    return { ...decision, created: false };
-  }
-
-  const created = await client
-    .from("editions")
-    .insert({
-      game_id: gameId,
-      platform_id: platformId,
-      edition_name: candidate.editionName,
-      region_code: candidate.regionCode,
-      release_date: candidate.releaseDate,
-      publisher_name: candidate.publisherName,
-    })
-    .select("id")
-    .single();
-  if (created.error !== null) throw databaseError("create Edition", created.error);
-  return { editionId: created.data.id, created: true, status: "NEW" };
+  return decision;
 }
 
 export function decideMobyGamesEditionReconciliation(
@@ -386,137 +395,71 @@ export function decideMobyGamesEditionReconciliation(
   return { editionId: null, status: "NEW" };
 }
 
-async function pruneStaleEvidence(
+async function persistCandidate(
   client: GeekSupabaseClient,
-  editionId: string,
+  gameId: string,
+  platformId: string,
+  existingEditionId: string | null,
   candidate: MobyGamesEditionCandidate,
   sourceRecords: readonly PersistedSourceRecord[],
-): Promise<void> {
-  for (const source of sourceRecords) {
-    if (source.record_type !== "game_platform" && source.record_type !== "covers") continue;
-    const kind = source.record_type === "game_platform" ? "release" : "cover_group";
-    const currentFingerprints = new Set(
-      candidate.evidence
-        .filter(
-          (evidence) => evidence.sourceRecordType === source.record_type && evidence.kind === kind,
-        )
-        .map(({ fingerprint }) => fingerprint),
-    );
-    const existing = await client
-      .from("edition_source_evidence")
-      .select("evidence_fingerprint")
-      .eq("edition_id", editionId)
-      .eq("source_record_id", source.id)
-      .eq("evidence_kind", kind);
-    if (existing.error !== null)
-      throw databaseError("resolve stale Edition evidence", existing.error);
-    for (const evidence of existing.data) {
-      if (currentFingerprints.has(evidence.evidence_fingerprint)) continue;
-      const removed = await client
-        .from("edition_source_evidence")
-        .delete()
-        .eq("edition_id", editionId)
-        .eq("source_record_id", source.id)
-        .eq("evidence_kind", kind)
-        .eq("evidence_fingerprint", evidence.evidence_fingerprint);
-      if (removed.error !== null)
-        throw databaseError("remove stale Edition evidence", removed.error);
-    }
+): Promise<PersistedCandidate> {
+  const evidence = candidate.evidence.map((item) => {
+    const source = sourceRecords.find(({ record_type }) => record_type === item.sourceRecordType);
+    if (source === undefined) throw new Error(`Missing ${item.sourceRecordType} source record`);
+    return {
+      sourceRecordId: source.id,
+      kind: item.kind,
+      fingerprint: item.fingerprint,
+    };
+  });
+  const result = await client.rpc("persist_mobygames_edition_candidate", {
+    game_id_value: gameId,
+    platform_id_value: platformId,
+    ...(existingEditionId === null ? {} : { existing_edition_id_value: existingEditionId }),
+    candidate_value: {
+      editionName: candidate.editionName,
+      regionCode: candidate.regionCode,
+      releaseDate: candidate.releaseDate,
+      publisherName: candidate.publisherName,
+      identifiers: candidate.identifiers.map(({ scheme, value, authority }) => ({
+        scheme,
+        value,
+        authority,
+      })),
+      evidence,
+      media: candidate.media.map((media) => ({
+        kind: media.kind,
+        assetUrl: media.assetUrl,
+        sourceAssetId: media.sourceAssetId,
+        sourcePageUrl: media.sourcePageUrl,
+        width: media.width,
+        height: media.height,
+        attribution: media.attribution,
+      })),
+    },
+    source_records_value: sourceRecords
+      .filter(({ record_type }) => record_type === "game_platform" || record_type === "covers")
+      .map(({ id, record_type }) => ({ id, recordType: record_type })),
+  });
+  if (result.error !== null)
+    throw databaseError("persist MobyGames Edition candidate", result.error);
+  if (
+    !isRecord(result.data) ||
+    typeof result.data.editionId !== "string" ||
+    typeof result.data.created !== "boolean" ||
+    !Number.isInteger(result.data.identifiersCreated) ||
+    !Number.isInteger(result.data.evidenceLinksCreated) ||
+    !Number.isInteger(result.data.mediaCreated)
+  ) {
+    throw new TypeError("persist_mobygames_edition_candidate returned an invalid result");
   }
-}
-
-async function persistEvidence(
-  client: GeekSupabaseClient,
-  editionId: string,
-  candidate: MobyGamesEditionCandidate,
-  sourceRecords: readonly PersistedSourceRecord[],
-): Promise<number> {
-  let created = 0;
-  for (const evidence of candidate.evidence) {
-    const source = sourceRecords.find(
-      ({ record_type }) => record_type === evidence.sourceRecordType,
-    );
-    if (source === undefined) throw new Error(`Missing ${evidence.sourceRecordType} source record`);
-    const result = await client
-      .from("edition_source_evidence")
-      .upsert(
-        {
-          edition_id: editionId,
-          source_record_id: source.id,
-          evidence_kind: evidence.kind,
-          evidence_fingerprint: evidence.fingerprint,
-        },
-        {
-          onConflict: "edition_id,source_record_id,evidence_kind,evidence_fingerprint",
-          ignoreDuplicates: true,
-        },
-      )
-      .select("edition_id");
-    if (result.error !== null) throw databaseError("persist Edition evidence", result.error);
-    created += result.data.length;
-  }
-  return created;
-}
-
-async function persistIdentifiers(
-  client: GeekSupabaseClient,
-  editionId: string,
-  candidate: MobyGamesEditionCandidate,
-): Promise<number> {
-  let created = 0;
-  for (const identifier of candidate.identifiers) {
-    const result = await client
-      .from("edition_identifiers")
-      .upsert(
-        {
-          edition_id: editionId,
-          scheme: identifier.scheme,
-          value: identifier.value,
-          authority: identifier.authority,
-        },
-        { onConflict: "edition_id,scheme,value", ignoreDuplicates: true },
-      )
-      .select("id");
-    if (result.error !== null) throw databaseError("persist Edition identifier", result.error);
-    created += result.data.length;
-  }
-  return created;
-}
-
-async function persistMedia(
-  client: GeekSupabaseClient,
-  editionId: string,
-  candidate: MobyGamesEditionCandidate,
-): Promise<number> {
-  let created = 0;
-  for (const media of candidate.media) {
-    const existing = await client
-      .from("catalog_media")
-      .select("id")
-      .eq("edition_id", editionId)
-      .eq("source_provider", PROVIDER)
-      .eq("source_asset_id", media.sourceAssetId)
-      .maybeSingle();
-    if (existing.error !== null) throw databaseError("resolve CatalogMedia", existing.error);
-    if (existing.data !== null) continue;
-    const result = await client.from("catalog_media").insert({
-      edition_id: editionId,
-      game_id: null,
-      kind: media.kind,
-      asset_url: media.assetUrl,
-      source_provider: PROVIDER,
-      source_asset_id: media.sourceAssetId,
-      source_page_url: media.sourcePageUrl,
-      rights_status: "restricted",
-      attribution: media.attribution,
-      width: media.width,
-      height: media.height,
-      is_primary: false,
-    });
-    if (result.error !== null) throw databaseError("persist CatalogMedia", result.error);
-    created += 1;
-  }
-  return created;
+  return {
+    editionId: result.data.editionId,
+    created: result.data.created,
+    identifiersCreated: result.data.identifiersCreated as number,
+    evidenceLinksCreated: result.data.evidenceLinksCreated as number,
+    mediaCreated: result.data.mediaCreated as number,
+  };
 }
 
 async function insertImportRun(

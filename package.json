@@ -29,6 +29,7 @@
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",
     "catalog:import:mobygames:smoke": "node --experimental-strip-types scripts/supabase-mobygames-import-smoke.mjs",
+    "catalog:import:mobygames:atomicity-smoke": "node --experimental-strip-types scripts/supabase-mobygames-atomicity-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint eslint.config.mjs scripts && pnpm --recursive --if-present run lint",

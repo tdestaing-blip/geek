@@ -173,7 +173,18 @@ If changed evidence cannot be reconciled with exactly one canonical Edition,
 the candidate is skipped as ambiguous rather than creating a duplicate or
 replacing identity. The writer is source-first and idempotently resumable: a
 failure may leave newer trusted source evidence without a successful import
-run, and the same plan can safely be retried.
+run, and the same plan can safely be retried. Each deterministic candidate's
+Edition creation or enrichment, identifiers, current source-evidence links, and
+supported CatalogMedia are persisted in one service-role-only database
+transaction, so a failed candidate leaves no partial canonical writes.
+Before that transaction can mutate canonical rows or prune stale links, the
+database resolves the target Game and Platform's persisted MobyGames mappings
+and requires each source record's compound key to match that exact pair. The
+trusted source upsert also stores the release/cover child fingerprints derived
+from its payload; candidate evidence must match a child registered on that
+same source record. Cross-Game, cross-Platform, cross-provider, wrong-resource,
+and source/fingerprint mismatch inputs therefore fail before canonical or
+existing provenance state can change.
 
 Edition grouping partitions release evidence by Platform and explicit collector
 variant, then forms connected components using explicitly recognized strong

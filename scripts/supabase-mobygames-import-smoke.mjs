@@ -223,25 +223,25 @@ assert.deepEqual(
 );
 
 const gameSource = sourceRows.data.find(({ record_type }) => record_type === "game");
-const unchanged = await service.rpc("upsert_catalog_source_record", {
-  provider_name: "mobygames",
+const unchanged = await service.rpc("upsert_mobygames_catalog_source_record", {
   record_type_name: "game",
   source_key_value: "3550",
   provider_external_id_value: "3550",
   payload_value: { game_id: 3550 },
   checksum_value: gameSource.checksum,
   fetched_at_value: "2026-08-24T13:00:00.000Z",
+  evidence_children_value: [],
 });
 assert.equal(unchanged.error, null);
 assert.equal(unchanged.data.revision, 1);
-const changed = await service.rpc("upsert_catalog_source_record", {
-  provider_name: "mobygames",
+const changed = await service.rpc("upsert_mobygames_catalog_source_record", {
   record_type_name: "game",
   source_key_value: "3550",
   provider_external_id_value: "3550",
   payload_value: { game_id: 3550, title: "Changed" },
   checksum_value: "a".repeat(64),
   fetched_at_value: "2026-08-24T14:00:00.000Z",
+  evidence_children_value: [],
 });
 assert.equal(changed.error, null);
 assert.equal(changed.data.revision, 2);
