@@ -10,7 +10,7 @@ The import flow is:
 local provider checkout
 -> provider adapter
 -> normalized platform/game/edition/identifier records
--> trusted atomic database batch
+-> trusted database writer
 -> canonical Geek catalog + generic provider mappings
 ```
 
@@ -128,3 +128,110 @@ shape, but this import writer deliberately rejects nonempty media batches until
 an explicitly licensed workflow owns that write path. A future licensed
 provider can add normalized media behind the same adapter boundary without
 changing Geek canonical identity or weakening CatalogMedia rights checks.
+
+## MobyGames source evidence
+
+The MobyGames adapter is server-side tooling. It reads `MOBYGAMES_API_KEY`
+only from the importer process environment and calls the official game,
+game/platform, and covers endpoints. Mobile and web bundles never receive the
+credential or call MobyGames directly. The default request interval is five
+seconds, requests are sequential, and retries are bounded to transient network
+errors plus HTTP 429/5xx responses.
+
+Run a reviewed Game and Platform pair in dry-run mode before writing locally:
+
+```sh
+MOBYGAMES_API_KEY=... pnpm catalog:import:mobygames -- \
+  --game-id 3550 \
+  --platform-id 9 \
+  --dry-run
+
+MOBYGAMES_API_KEY=... pnpm catalog:import:mobygames -- \
+  --game-id 3550 \
+  --platform-id 9
+```
+
+Dry-run fetches and derives the plan but cannot invoke the trusted database
+writer. Real mode first upserts the current raw resources into trusted-only
+`catalog_source_records`, using `(provider, record_type, source_key)` as Geek's
+resource identity. `source_key` is internal reconciliation metadata and is not
+presented as a provider ID. An unchanged checksum refreshes `fetched_at`
+without incrementing the revision; a changed checksum replaces the current
+payload and increments it. Historical snapshots are deliberately out of scope.
+
+`platform_provider_mappings` resolves MobyGames Platform 9 to Geek's existing
+`nintendo-64` Platform. `game_provider_mappings` retains MobyGames Game
+identity. MobyGames does not provide stable Edition IDs, so canonical Editions
+instead link to one or more child records through `edition_source_evidence`.
+Evidence fingerprints are Geek-owned internal locators, never MobyGames IDs.
+One MobyGames release, product code, or cover group is therefore evidence, not
+automatically one Geek Edition. Product codes remain optional, and this
+importer introduces no `PackagingVariant`; packaging distinctions remain
+source evidence unless approved physical identity and explicit variant
+semantics establish an Edition.
+If changed evidence cannot be reconciled with exactly one canonical Edition,
+the candidate is skipped as ambiguous rather than creating a duplicate or
+replacing identity. The writer is source-first and idempotently resumable: a
+failure may leave newer trusted source evidence without a successful import
+run, and the same plan can safely be retried.
+
+Edition grouping partitions release evidence by Platform and explicit collector
+variant, then forms connected components using explicitly recognized strong
+physical-media identifiers. Region coverage is derived afterward, so one exact
+physical identity distributed across Australia and New Zealand becomes a
+deterministic `AU+NZ` candidate rather than duplicate country Editions.
+Nintendo Media PN is currently strong; UPC-A and EAN-13 are corroborating
+package/product identifiers; ASIN, eBay Product ID, unknown code types, and
+generic publisher product codes are weak. Corroborating or weak identifiers are
+preserved but cannot bridge contradictory strong identities. This
+classification is deliberately closed: unknown code types gain no identity
+strength by inference.
+
+Dates and publisher identity support review but are not flat grouping keys.
+Country launch dates and distributor differences alone do not split an
+Edition. Multiple localized European release and cover rows may support one
+`EU` Edition when they share physical identity; Europe is never inferred as
+France. Explicit variants such as Preorder, Collector's Edition, Players
+Choice, and Limited Edition remain distinct even when a physical-media code is
+shared. Cover groups attach only when region and variant evidence identify one
+candidate; otherwise they stay unresolved. A release without a strong ID joins
+a strong partition only through a unique exact overlap in corroborating UPC-A
+or EAN-13 evidence and compatible derived region coverage. Region,
+null/Standard variant, dates, publisher, distributor, array position, and weak
+commerce identifiers are never sufficient by elimination. Without positive
+corroborating evidence, the release becomes source-ambiguous even when only one
+strong partition exists. Ambiguous candidates are reported and never
+canonicalized.
+
+Every candidate also needs positive evidence that it represents a physical
+collector object. A recognized strong physical-media identifier satisfies that
+requirement. Without one, region, an explicit variant label, dates, companies,
+response uniqueness, UPC-A/EAN-13, and generic cover geography remain
+insufficient. The current conservative exception is a physical Front/Back Cover
+scan whose non-generic variant label and region identify exactly one matching
+candidate; this is recorded as variant-specific package evidence. It does not
+make covers generally authoritative and does not promote EAN-only candidates.
+Unsupported country labels remain in raw source evidence. Supported Mexico
+evidence normalizes to `MX`; MobyGames' non-country `Other` label is preserved
+only in the source payload.
+
+Canonical reconciliation follows a separate conservative order. Existing
+MobyGames source-evidence links are strongest for repeat imports. Otherwise an
+exact typed strong-identifier match may reuse an Edition only when no
+conflicting strong identity or variant collision exists. MobyGames exposes no
+stable Edition provider ID, so the importer never synthesizes one. A matching
+Game, Platform, region, and Edition name detects only a possible collision; it
+is never sufficient proof for mutation. An unproven coarse collision is
+reported as `RECONCILIATION_AMBIGUOUS`, and the importer neither enriches the
+existing row nor silently creates a near-duplicate. Dry-run output exposes the
+candidate evidence tiers, release dates, cover association, grouping reasons,
+ambiguities, and reconciliation status without credentials or provider request
+URLs.
+
+Only Front Cover and Back Cover scans map to current CatalogMedia roles. Other
+cover scans remain intact in the source payload. MobyGames image URLs are
+retained directly with provider attribution, an internal URL fingerprint for
+deduplication, and `restricted` rights status. They are therefore importer
+evidence, not Copy photos, and are not exposed by the public CatalogMedia RLS
+policy. Any future product publication must use rights appropriate to the
+active MobyGames plan and retain the required “Data by MobyGames.com” credit.

@@ -364,6 +364,48 @@ export type Database = {
           },
         ];
       };
+      catalog_source_records: {
+        Row: {
+          checksum: string;
+          created_at: string;
+          fetched_at: string;
+          id: string;
+          payload: Json;
+          provider: string;
+          provider_external_id: string | null;
+          record_type: string;
+          revision: number;
+          source_key: string;
+          updated_at: string;
+        };
+        Insert: {
+          checksum: string;
+          created_at?: string;
+          fetched_at: string;
+          id?: string;
+          payload: Json;
+          provider: string;
+          provider_external_id?: string | null;
+          record_type: string;
+          revision?: number;
+          source_key: string;
+          updated_at?: string;
+        };
+        Update: {
+          checksum?: string;
+          created_at?: string;
+          fetched_at?: string;
+          id?: string;
+          payload?: Json;
+          provider?: string;
+          provider_external_id?: string | null;
+          record_type?: string;
+          revision?: number;
+          source_key?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       conversation_messages: {
         Row: {
           body: string;
@@ -819,6 +861,45 @@ export type Database = {
           },
         ];
       };
+      edition_source_evidence: {
+        Row: {
+          created_at: string;
+          edition_id: string;
+          evidence_fingerprint: string;
+          evidence_kind: string;
+          source_record_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          edition_id: string;
+          evidence_fingerprint: string;
+          evidence_kind: string;
+          source_record_id: string;
+        };
+        Update: {
+          created_at?: string;
+          edition_id?: string;
+          evidence_fingerprint?: string;
+          evidence_kind?: string;
+          source_record_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "edition_source_evidence_edition_id_fkey";
+            columns: ["edition_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "edition_source_evidence_source_record_id_fkey";
+            columns: ["source_record_id"];
+            isOneToOne: false;
+            referencedRelation: "catalog_source_records";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       editions: {
         Row: {
           created_at: string;
@@ -1024,6 +1105,41 @@ export type Database = {
             columns: ["seller_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      platform_provider_mappings: {
+        Row: {
+          created_at: string;
+          external_id: string;
+          platform_id: string;
+          provider: string;
+          source_name: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          external_id: string;
+          platform_id: string;
+          provider: string;
+          source_name?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          external_id?: string;
+          platform_id?: string;
+          provider?: string;
+          source_name?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_provider_mappings_platform_id_fkey";
+            columns: ["platform_id"];
+            isOneToOne: false;
+            referencedRelation: "platforms";
             referencedColumns: ["id"];
           },
         ];
@@ -1757,6 +1873,36 @@ export type Database = {
           conversation_id: string;
           message_id: string;
         }[];
+      };
+      upsert_catalog_source_record: {
+        Args: {
+          checksum_value: string;
+          fetched_at_value: string;
+          payload_value: Json;
+          provider_external_id_value: string;
+          provider_name: string;
+          record_type_name: string;
+          source_key_value: string;
+        };
+        Returns: {
+          checksum: string;
+          created_at: string;
+          fetched_at: string;
+          id: string;
+          payload: Json;
+          provider: string;
+          provider_external_id: string | null;
+          record_type: string;
+          revision: number;
+          source_key: string;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "catalog_source_records";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
     };
     Enums: {
