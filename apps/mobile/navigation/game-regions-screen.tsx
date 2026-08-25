@@ -1,35 +1,60 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AddGameToolbar } from "../ui/add-game-toolbar";
-import {
-  getCatalogGame,
-  getCatalogRegionPresentation,
-  getGameRegionVariants,
-  getPlatform,
-  type GameRegionVariant,
-} from "./add-game-fixtures";
+import { GeekIcon } from "../ui/geek-icon";
+import { getCatalogRegionPresentation, getEditionVariantLabel } from "./canonical-catalog";
+import { loadCanonicalGameRegions, type CanonicalGameRegions } from "./canonical-catalog-data";
+import type { GameRegionVariant } from "./canonical-catalog";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GameRegions">;
 
 export function GameRegionsScreen({ navigation, route }: Props) {
-  const game = getCatalogGame(route.params.gameId);
-  const platform = getPlatform(route.params.platformId);
-  const variants = getGameRegionVariants(game.id, platform.id);
+  const [catalog, setCatalog] = useState<CanonicalGameRegions | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    let active = true;
+    void loadCanonicalGameRegions(route.params.gameId, route.params.platformId).then((result) => {
+      if (!active) return;
+      if (result.outcome === "ok") {
+        setCatalog(result.data);
+        setState("ready");
+      } else {
+        setCatalog(null);
+        setState("error");
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [route.params.gameId, route.params.platformId]);
+
+  const stateMessage =
+    state === "loading"
+      ? "Chargement des éditions…"
+      : state === "error"
+        ? "Ce jeu est indisponible. Revenez en arrière pour réessayer."
+        : "Aucune édition physique disponible.";
   return (
     <SafeAreaView edges={["top"]} style={styles.page}>
-      <AddGameToolbar mode="back" onPress={navigation.goBack} title={game.title} />
+      <AddGameToolbar
+        mode="back"
+        onPress={navigation.goBack}
+        title={catalog?.game.canonicalTitle ?? "Éditions"}
+      />
       <FlatList
         contentContainerStyle={styles.content}
-        data={variants}
+        data={state === "ready" ? (catalog?.variants ?? []) : []}
         keyExtractor={({ editionId }) => editionId}
+        ListEmptyComponent={<Text style={styles.stateText}>{stateMessage}</Text>}
         renderItem={({ item }) => (
           <GameRegionRow
             item={item}
-            platformName={platform.name}
             onPress={() =>
               navigation.navigate("Market", { gameId: item.gameId, editionId: item.editionId })
             }
@@ -43,24 +68,29 @@ export function GameRegionsScreen({ navigation, route }: Props) {
 function GameRegionRow({
   item,
   onPress,
-  platformName,
 }: {
   readonly item: GameRegionVariant;
   readonly onPress: () => void;
-  readonly platformName: string;
 }) {
-  const region = getCatalogRegionPresentation(item.region);
+  const region = getCatalogRegionPresentation(item.regionCode);
+  const variant = getEditionVariantLabel(item.editionName);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <Image source={item.artwork} style={styles.artwork} />
+      {item.artworkUrl ? (
+        <Image source={{ uri: item.artworkUrl }} style={styles.artwork} />
+      ) : (
+        <View style={[styles.artwork, styles.placeholder]}>
+          <GeekIcon color={colors.textSecondary} name="gamepad" size={28} />
+        </View>
+      )}
       <View style={styles.copy}>
         <Text numberOfLines={2} style={styles.title}>
           {item.title}
         </Text>
         <View style={styles.meta}>
           <Text style={styles.flag}>{region.flag}</Text>
-          <Text style={styles.platform}>
-            {region.label} · {platformName}
+          <Text numberOfLines={2} style={styles.platform}>
+            {region.label} · {variant} · {item.platformName}
           </Text>
         </View>
       </View>
@@ -70,7 +100,7 @@ function GameRegionRow({
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
-  content: { paddingBottom: 32, paddingTop: spacing.compact },
+  content: { flexGrow: 1, paddingBottom: 32, paddingTop: spacing.compact },
   row: {
     alignItems: "center",
     flexDirection: "row",
@@ -81,9 +111,20 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.65 },
   artwork: { borderRadius: radii.wishlistImage, height: 70, width: 70 },
+  placeholder: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceSubtle,
+    justifyContent: "center",
+  },
   copy: { flex: 1, gap: spacing.micro },
   title: { ...typography.body, color: colors.text, fontWeight: "600" },
   meta: { alignItems: "center", flexDirection: "row", gap: spacing.micro },
   flag: { fontSize: 16, lineHeight: 18 },
-  platform: { ...typography.metadata, color: colors.textSecondary },
+  platform: { ...typography.metadata, color: colors.textSecondary, flex: 1 },
+  stateText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    padding: spacing.page,
+    textAlign: "center",
+  },
 });

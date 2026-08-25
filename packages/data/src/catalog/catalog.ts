@@ -1,11 +1,11 @@
-import type { Edition, Game } from "@geek/domain";
+import type { Edition, Game, Platform } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import type { Page, PageRequest } from "../pagination";
 import { resolvePage, toRange } from "../pagination";
 import type { EntityResult, ReadResult } from "../result";
 import { databaseFailure, mapRows } from "../result";
-import { toEdition, toGame } from "./mapping";
+import { toEdition, toGame, toPlatform } from "./mapping";
 
 /**
  * Reads of Geek's catalog.
@@ -20,8 +20,10 @@ import { toEdition, toGame } from "./mapping";
  */
 
 const EDITIONS_PAGE = { defaultLimit: 50, maxLimit: 100 } as const;
+const PLATFORMS_PAGE = { defaultLimit: 50, maxLimit: 100 } as const;
 
 const GAME_COLUMNS = "id, canonical_title, description, original_release_date";
+const PLATFORM_COLUMNS = "id, slug, name";
 const EDITION_COLUMNS =
   "id, game_id, platform_id, edition_name, region_code, supported_languages, release_date, publisher_name, packaging_type";
 
@@ -52,6 +54,40 @@ export async function getGame(
   }
 
   return mapRows(() => toGame(data));
+}
+
+/** Reads one canonical Platform by Geek-owned identity. */
+export async function getPlatform(
+  client: GeekSupabaseClient,
+  platformId: string,
+): Promise<EntityResult<Platform>> {
+  const { data, error } = await client
+    .from("platforms")
+    .select(PLATFORM_COLUMNS)
+    .eq("id", platformId)
+    .maybeSingle();
+
+  if (error !== null) return databaseFailure(error);
+  if (data === null) return { outcome: "not_found" };
+  return mapRows(() => toPlatform(data));
+}
+
+/** Lists canonical Platforms alphabetically for catalog discovery surfaces. */
+export async function getPlatforms(
+  client: GeekSupabaseClient,
+  page?: PageRequest,
+): Promise<ReadResult<Page<Platform>>> {
+  const { limit, offset } = resolvePage(page, PLATFORMS_PAGE);
+  const range = toRange(limit, offset);
+  const { data, error } = await client
+    .from("platforms")
+    .select(PLATFORM_COLUMNS)
+    .order("name", { ascending: true })
+    .order("id", { ascending: true })
+    .range(range.from, range.to);
+
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() => ({ items: data.map(toPlatform), limit, offset }));
 }
 
 /** Reads one Edition. Its Game is a separate read, by `edition.gameId`. */
@@ -107,5 +143,26 @@ export async function getEditionsForGame(
     return databaseFailure(error);
   }
 
+  return mapRows(() => ({ items: data.map(toEdition), limit, offset }));
+}
+
+/** Lists canonical Editions for one Platform, with no Game identity inference. */
+export async function getEditionsForPlatform(
+  client: GeekSupabaseClient,
+  platformId: string,
+  page?: PageRequest,
+): Promise<ReadResult<Page<Edition>>> {
+  const { limit, offset } = resolvePage(page, EDITIONS_PAGE);
+  const range = toRange(limit, offset);
+  const { data, error } = await client
+    .from("editions")
+    .select(EDITION_COLUMNS)
+    .eq("platform_id", platformId)
+    .order("game_id", { ascending: true })
+    .order("release_date", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(range.from, range.to);
+
+  if (error !== null) return databaseFailure(error);
   return mapRows(() => ({ items: data.map(toEdition), limit, offset }));
 }
