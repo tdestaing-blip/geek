@@ -696,6 +696,50 @@ export type Database = {
           },
         ];
       };
+      copy_photos: {
+        Row: {
+          byte_size: number;
+          copy_id: string;
+          created_at: string;
+          height: number;
+          id: string;
+          mime_type: string;
+          sort_order: number;
+          storage_path: string;
+          width: number;
+        };
+        Insert: {
+          byte_size: number;
+          copy_id: string;
+          created_at?: string;
+          height: number;
+          id: string;
+          mime_type: string;
+          sort_order?: number;
+          storage_path: string;
+          width: number;
+        };
+        Update: {
+          byte_size?: number;
+          copy_id?: string;
+          created_at?: string;
+          height?: number;
+          id?: string;
+          mime_type?: string;
+          sort_order?: number;
+          storage_path?: string;
+          width?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "copy_photos_copy_id_fkey";
+            columns: ["copy_id"];
+            isOneToOne: false;
+            referencedRelation: "copies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       copy_private_details: {
         Row: {
           acquired_at: string | null;
@@ -1555,6 +1599,7 @@ export type Database = {
         Args: { target_trade_offer_id: string };
         Returns: undefined;
       };
+      delete_copy_photo: { Args: { p_photo_id: string }; Returns: string };
       derive_matching_location: {
         Args: { exact_location: unknown };
         Returns: unknown;

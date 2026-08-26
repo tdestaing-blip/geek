@@ -46,6 +46,7 @@ export type RootStackParamList = {
     readonly gameId: string;
     readonly editionId: string;
     readonly enrichmentWarning: boolean;
+    readonly photoWarning: boolean;
   };
   Edition: { readonly editionId: string };
   Copy: { readonly copyId: string };

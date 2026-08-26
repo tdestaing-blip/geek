@@ -96,6 +96,7 @@ test("double confirmation creates one Copy and enrichment failure cannot reopen 
     enrichCopy: async () => {
       throw new Error("transient enrichment failure");
     },
+    persistPhotos: async () => true,
     resolveAlbums: async () => ({ kind: "none" }),
   });
 
@@ -116,12 +117,57 @@ test("creation failure creates no committed state and can be retried", async () 
       return calls === 1 ? { outcome: "failed" } : { outcome: "ok", copyId: "copy-after-retry" };
     },
     enrichCopy: async () => true,
+    persistPhotos: async () => true,
     resolveAlbums: async () => ({ kind: "none" }),
   });
 
   assert.deepEqual(await coordinator.submit(), { outcome: "creation_failed" });
   assert.equal((await coordinator.submit()).outcome, "committed");
   assert.equal(calls, 2);
+});
+
+test("photo persistence begins only after Copy creation and cannot recreate after partial failure", async () => {
+  const calls: string[] = [];
+  const coordinator = createAddCopySubmissionCoordinator({
+    createCopy: async () => {
+      calls.push("copy");
+      return { outcome: "ok", copyId: "copy-1" };
+    },
+    enrichCopy: async () => {
+      calls.push("enrichment");
+      return true;
+    },
+    persistPhotos: async () => {
+      calls.push("photos");
+      return false;
+    },
+    resolveAlbums: async () => {
+      calls.push("albums");
+      return { kind: "none" };
+    },
+  });
+
+  const result = await coordinator.submit();
+  assert.deepEqual(calls, ["copy", "enrichment", "photos", "albums"]);
+  assert.equal(result.outcome === "committed" && result.photoWarning, true);
+  assert.deepEqual(await coordinator.submit(), { outcome: "ignored" });
+  assert.equal(calls.filter((call) => call === "copy").length, 1);
+});
+
+test("failed Copy creation uploads no photos", async () => {
+  let photoCalls = 0;
+  const coordinator = createAddCopySubmissionCoordinator({
+    createCopy: async () => ({ outcome: "failed" }),
+    enrichCopy: async () => true,
+    persistPhotos: async () => {
+      photoCalls += 1;
+      return true;
+    },
+    resolveAlbums: async () => ({ kind: "none" }),
+  });
+
+  assert.deepEqual(await coordinator.submit(), { outcome: "creation_failed" });
+  assert.equal(photoCalls, 0);
 });
 
 function album(id: string, targetKind: "game" | "edition", editionId: string | null) {

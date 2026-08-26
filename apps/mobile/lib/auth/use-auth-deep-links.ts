@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { AuthCallbackOutcome } from "./callback";
 import { handleAuthCallbackUrl } from "./callback";
 
+const AUTH_CALLBACK_TIMEOUT_MS = 10_000;
+
 /**
  * Completes Auth callbacks that arrive as deep links.
  *
@@ -49,12 +51,12 @@ export function useAuthDeepLinks(
           if (!active) return;
 
           if (url !== null) {
-            const outcome = await handleAuthCallbackUrl(url);
+            const outcome = await withTimeout(handleAuthCallbackUrl(url), AUTH_CALLBACK_TIMEOUT_MS);
             if (!active) return;
 
-            await onCompleteRef.current(outcome);
+            await withTimeout(onCompleteRef.current(outcome), AUTH_CALLBACK_TIMEOUT_MS);
           } else if (resolveWhenAbsent) {
-            await onCompleteRef.current(null);
+            await withTimeout(onCompleteRef.current(null), AUTH_CALLBACK_TIMEOUT_MS);
           }
         } catch {
           // Expected provider failures are represented by AuthCallbackOutcome. This
@@ -73,7 +75,7 @@ export function useAuthDeepLinks(
       enqueue(url);
     });
 
-    void Linking.getInitialURL()
+    void withTimeout(Linking.getInitialURL(), AUTH_CALLBACK_TIMEOUT_MS)
       .then((url) => {
         enqueue(url, true);
       })
@@ -92,4 +94,22 @@ export function useAuthDeepLinks(
   }, []);
 
   return resolving;
+}
+
+async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error("Auth callback operation timed out.")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
 }

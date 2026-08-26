@@ -28,6 +28,8 @@ Collection currently establishes the first local reusable components:
 - `StickyAvailabilityBar` for safe-area-aware Copy availability presentation and photo gating.
 - `StickyCommercialBar` for Copy-resolved direct Listing and Auction actions.
 - `AlbumCard` for curated editorial Album summaries and calculated progress.
+- `CopyPhotoGallery` for the approved no-photo prompt, private Copy-photo
+  paging, page indicators, and local pending-photo removal.
 
 Album cards use only their approved editorial display families: Titan One,
 Audiowide, Press Start 2P, and Cinzel. These are loaded through Expo Font and

@@ -120,12 +120,14 @@ export type AddCopySubmissionResult =
       readonly outcome: "committed";
       readonly copyId: string;
       readonly enrichmentWarning: boolean;
+      readonly photoWarning: boolean;
       readonly albumSelection: AlbumRevealSelection;
     };
 
 export function createAddCopySubmissionCoordinator(dependencies: {
   readonly createCopy: () => Promise<CopyCreationOutcome>;
   readonly enrichCopy: (copyId: string) => Promise<boolean>;
+  readonly persistPhotos: (copyId: string) => Promise<boolean>;
   readonly resolveAlbums: () => Promise<AlbumRevealSelection>;
 }) {
   let status: "idle" | "pending" | "committed" = "idle";
@@ -149,6 +151,13 @@ export function createAddCopySubmissionCoordinator(dependencies: {
           enrichmentWarning = true;
         }
 
+        let photoWarning = false;
+        try {
+          photoWarning = !(await dependencies.persistPhotos(creation.copyId));
+        } catch {
+          photoWarning = true;
+        }
+
         let albumSelection: AlbumRevealSelection = { kind: "none" };
         try {
           albumSelection = await dependencies.resolveAlbums();
@@ -160,6 +169,7 @@ export function createAddCopySubmissionCoordinator(dependencies: {
           outcome: "committed",
           copyId: creation.copyId,
           enrichmentWarning,
+          photoWarning,
           albumSelection,
         };
       } catch {

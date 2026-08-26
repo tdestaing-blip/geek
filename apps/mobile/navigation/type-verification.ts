@@ -21,6 +21,7 @@ navigation.navigate("AlbumReveal", {
   gameId: "game-id",
   editionId: "edition-id",
   enrichmentWarning: false,
+  photoWarning: false,
 });
 navigation.navigate("Copy", { copyId: "copy-id" });
 navigation.navigate("PublicCopy", { copyId: "copy-id" });

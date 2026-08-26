@@ -46,13 +46,13 @@ export type Failed = { readonly outcome: "failed"; readonly failure: DataFailure
 /**
  * A provider failure, preserved rather than flattened to a string.
  *
- * `source` distinguishes the Auth server from PostgREST, because "your session
- * expired" and "that query was rejected" lead somewhere different. The
- * PostgREST fields are kept verbatim; Auth errors have no equivalent of
- * `details` or `hint` and leave them null.
+ * `source` distinguishes Auth, PostgREST, and private Storage because an
+ * expired session, a rejected row, and a failed object upload lead somewhere
+ * different. PostgREST fields are kept verbatim; Auth and Storage errors have
+ * no equivalent of `details` or `hint` and leave them null.
  */
 export type DataFailure = {
-  readonly source: "auth" | "database";
+  readonly source: "auth" | "database" | "storage";
   readonly message: string;
   readonly code: string | null;
   readonly details: string | null;
@@ -124,6 +124,20 @@ export function authFailure(error: { message: string; code?: string | null }): F
       source: "auth",
       message: error.message,
       code: error.code ?? null,
+      details: null,
+      hint: null,
+    },
+  };
+}
+
+/** Converts a private Storage API failure into the shared failure shape. */
+export function storageFailure(error: { message: string; statusCode?: string | number }): Failed {
+  return {
+    outcome: "failed",
+    failure: {
+      source: "storage",
+      message: error.message,
+      code: error.statusCode === undefined ? null : String(error.statusCode),
       details: null,
       hint: null,
     },

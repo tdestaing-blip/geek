@@ -36,6 +36,31 @@ Private owner metadata lives separately in `copy_private_details`, including:
 
 Making a Copy public must never expose these fields.
 
+## Copy photos
+
+Copy photos depict one collector's specific physical object. They are not
+CatalogMedia and they never become a Game or Edition cover. Canonical metadata
+lives in `copy_photos`; JPEG bytes live in the private `copy-photos` Storage
+bucket under `<copy_id>/<photo_id>.jpg`.
+
+A Copy has zero to six ordered photos. The database assigns contiguous
+zero-based ordering while holding the parent Copy lock, so concurrent uploads
+cannot exceed the limit or claim the same position. The first ordered photo is
+the Copy's primary image. Deleting a photo compacts the remaining order
+deterministically, and deleting a Copy cascades its photo metadata.
+
+Only the current owner may read metadata, create short-lived signed URLs,
+upload, or delete Copy-photo objects. The bucket is private; anonymous users,
+other collectors, Public Copy projections, and Catalog APIs receive neither
+the bytes nor durable URLs. Mobile acquisition regenerates selected media as a
+JPEG (quality 0.85, long edge at most 2000 px) without retaining the source
+EXIF payload, including embedded location metadata.
+
+The Add Copy flow keeps selected photos locally until Copy creation succeeds.
+It then uploads photos against the committed Copy ID. A partial upload failure
+does not roll back or recreate the Copy; the UI reports the partial result and
+the owner can add photos later from Owned Copy Detail.
+
 ## Visibility
 
 Copy visibility is independent from commercial availability. Initial
@@ -201,8 +226,8 @@ mean missing or unknown.
 ## Ownership deletion
 
 Owners may remove a Copy they created while no transaction-domain constraints
-exist. Deleting a Copy also removes its private details and component states so
-referential integrity is preserved.
+exist. Deleting a Copy also removes its private details, component states, and
+Copy-photo metadata so referential integrity is preserved.
 
 Future marketplace references may prevent destructive deletion or replace it
 with explicit lifecycle behavior.
