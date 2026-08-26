@@ -1,6 +1,7 @@
 import { colors, radii, typography } from "@geek/design-tokens";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,6 +13,7 @@ import {
   type CanonicalMarketCatalog,
 } from "./canonical-catalog";
 import { loadCanonicalMarket } from "./canonical-catalog-data";
+import { loadExactEditionOwnership } from "./add-copy-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Market">;
@@ -28,6 +30,7 @@ function MarketplaceContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [catalog, setCatalog] = useState<CanonicalMarketCatalog | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [ownedCopyCount, setOwnedCopyCount] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,6 +48,23 @@ function MarketplaceContent({ navigation, route }: Props) {
       active = false;
     };
   }, [route.params.editionId, route.params.gameId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadExactEditionOwnership(route.params.editionId).then(
+        (copies) => {
+          if (active) setOwnedCopyCount(copies?.length ?? null);
+        },
+        () => {
+          if (active) setOwnedCopyCount(null);
+        },
+      );
+      return () => {
+        active = false;
+      };
+    }, [route.params.editionId]),
+  );
 
   if (state !== "ready" || !catalog) {
     return (
@@ -95,7 +115,18 @@ function MarketplaceContent({ navigation, route }: Props) {
         </View>
         <View style={styles.actions}>
           <ActionPill icon="bell-ring" label="Wishlist" />
-          <ActionPill dark icon="folder-plus" label="Collection" />
+          <ActionPill
+            dark
+            disabled={ownedCopyCount !== null && ownedCopyCount > 0}
+            icon={ownedCopyCount && ownedCopyCount > 0 ? "checkbox" : "folder-plus"}
+            label={ownedCopyCount && ownedCopyCount > 0 ? "Dans ma collection" : "Collection"}
+            onPress={() =>
+              navigation.navigate("AddCopy", {
+                gameId: catalog.game.id,
+                editionId: catalog.edition.id,
+              })
+            }
+          />
         </View>
         <View style={styles.noOffers}>
           <GeekIcon color={colors.textSecondary} name="shopping-cart" size={24} />
@@ -117,15 +148,23 @@ function MarketplaceContent({ navigation, route }: Props) {
 
 function ActionPill({
   dark = false,
+  disabled = false,
   icon,
   label,
+  onPress,
 }: {
   readonly dark?: boolean;
-  readonly icon: "bell-ring" | "folder-plus";
+  readonly disabled?: boolean;
+  readonly icon: "bell-ring" | "checkbox" | "folder-plus";
   readonly label: string;
+  readonly onPress?: () => void;
 }) {
   return (
-    <Pressable style={[styles.action, dark && styles.actionDark]}>
+    <Pressable
+      disabled={disabled || !onPress}
+      onPress={onPress}
+      style={[styles.action, dark && styles.actionDark]}
+    >
       <GeekIcon color={dark ? colors.controlSelected : colors.text} name={icon} size={18} />
       <Text style={[styles.actionText, dark && styles.actionTextDark]}>{label}</Text>
     </Pressable>

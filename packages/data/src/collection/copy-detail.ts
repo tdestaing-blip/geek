@@ -67,7 +67,7 @@ const COMPONENT_SELECT = `
 
 const PRIVATE_DETAILS_SELECT = `
   copy_id, owner_id, acquired_at, purchase_amount_minor, purchase_currency,
-  provenance, private_notes, storage_location
+  provenance, is_completed, private_notes, storage_location
 `;
 
 /**

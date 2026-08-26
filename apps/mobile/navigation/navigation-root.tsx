@@ -6,6 +6,8 @@ import { useAuth } from "../lib/auth/auth-provider";
 import { resolveNavigationBranch } from "./auth-branch";
 import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
 import { AlbumDetailScreen } from "./album-detail-screen";
+import { AddCopyScreen } from "./add-copy-screen";
+import { AlbumRevealScreen } from "./album-reveal-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
 import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
@@ -116,7 +118,13 @@ export function NavigationRoot() {
             <RootStack.Group screenOptions={detailModalOptions}>
               <RootStack.Screen name="PublicCopy" component={PublicCopyDetailScreen} />
               <RootStack.Screen name="PublicProfile" component={PublicProfileScreen} />
+              <RootStack.Screen name="AlbumReveal" component={AlbumRevealScreen} />
             </RootStack.Group>
+            <RootStack.Screen
+              name="AddCopy"
+              component={AddCopyScreen}
+              options={addCopySheetOptions}
+            />
           </>
         ) : null}
       </RootStack.Navigator>
@@ -134,6 +142,14 @@ const detailModalOptions = {
 const detailPushOptions = {
   animation: "slide_from_right" as const,
   headerShown: false,
+};
+
+const addCopySheetOptions = {
+  gestureEnabled: true,
+  headerShown: false,
+  presentation: "formSheet" as const,
+  sheetAllowedDetents: [1] as number[],
+  sheetInitialDetentIndex: 0,
 };
 
 const addGameRootOptions = {

@@ -32,13 +32,18 @@ const {
   addCopy,
   addQuickCopy,
   getEdition,
+  getEditionComponents,
+  getEditionIdentifiers,
   getEditionsForGame,
   getGame,
   getMyCollection,
+  getMyCopiesForEdition,
   getMyCopyDetail,
   getMyProfile,
   searchCatalog,
   setCopyEdition,
+  updateCopyComponentStates,
+  updateCopyPrivateDetails,
   updateCopyAvailability,
 } = await import("../packages/data/src/index.ts");
 
@@ -226,6 +231,18 @@ try {
   const [standardEdition, playersChoiceEdition] = editionsInsert.data;
   fixtures.editionIds.push(standardEdition.id, playersChoiceEdition.id);
 
+  const identifierInsert = await admin.from("edition_identifiers").insert({
+    edition_id: standardEdition.id,
+    scheme: "manufacturer_part_number",
+    value: `SMOKE-${runId}`,
+    authority: "Smoke fixture",
+  });
+  record(
+    "the Edition has one typed identifier fixture",
+    identifierInsert.error === null,
+    identifierInsert.error?.message,
+  );
+
   const otherGameInsert = await admin
     .from("games")
     .insert({ canonical_title: `Smoke Metroid ${runId}` })
@@ -345,6 +362,25 @@ try {
       Array.isArray(editionRead.data.supportedLanguages) &&
       editionRead.data.supportedLanguages.length === 2 &&
       !("canonicalTitle" in editionRead.data),
+  );
+
+  const identifierRead = await getEditionIdentifiers(anonymous, standardEdition.id);
+  record(
+    "getEditionIdentifiers returns the Edition's typed identifiers",
+    identifierRead.outcome === "ok" &&
+      identifierRead.data.length === 1 &&
+      identifierRead.data[0].editionId === standardEdition.id &&
+      identifierRead.data[0].value === `SMOKE-${runId}`,
+    describeOutcome(identifierRead),
+  );
+
+  const componentCatalog = await getEditionComponents(anonymous, standardEdition.id);
+  record(
+    "getEditionComponents returns canonical components in catalog order",
+    componentCatalog.outcome === "ok" &&
+      componentCatalog.data.map((component) => component.componentKey).join(",") ===
+        "disc,manual,case",
+    describeOutcome(componentCatalog),
   );
 
   const gameByEditionId = await getGame(anonymous, standardEdition.id);
@@ -703,6 +739,70 @@ try {
       openInsertState.data.availability === "open_to_trade" &&
       openInsertState.data.trade_availability === "open_to_trade",
     describeOutcome(openAtCreation),
+  );
+
+  const exactEditionCopies = await getMyCopiesForEdition(owner, standardEdition.id);
+  record(
+    "exact Edition ownership reads only the caller's matching Copies",
+    exactEditionCopies.outcome === "ok" &&
+      exactEditionCopies.data.length === 2 &&
+      exactEditionCopies.data.every(
+        (copy) => copy.ownerId === ownerId && copy.editionId === standardEdition.id,
+      ),
+    describeOutcome(exactEditionCopies),
+  );
+
+  const enrichmentComponents = await updateCopyComponentStates(
+    owner,
+    openAtCreation.data.id,
+    standardEdition.id,
+    [
+      { editionComponentId: componentIds.disc, presence: "present" },
+      { editionComponentId: componentIds.manual, presence: "missing" },
+    ],
+  );
+  record(
+    "the ownership enrichment adapter persists canonical component states",
+    enrichmentComponents.outcome === "ok" &&
+      enrichmentComponents.data.length === 2 &&
+      enrichmentComponents.data[0].presence === "present" &&
+      enrichmentComponents.data[1].presence === "missing",
+    describeOutcome(enrichmentComponents),
+  );
+
+  const acquiredAt = domain.parseCalendarDate("2025-08-25");
+  const euro = domain.parseCurrencyCode("EUR");
+  const purchasePrice = euro ? domain.createMoney(1250, euro) : null;
+  const enrichmentDetails = await updateCopyPrivateDetails(owner, openAtCreation.data.id, {
+    acquiredAt,
+    purchasePrice,
+    provenance: "A physical Copy story",
+    isCompleted: true,
+  });
+  record(
+    "the ownership enrichment adapter persists private date, EUR money, provenance, and completion",
+    enrichmentDetails.outcome === "ok" &&
+      enrichmentDetails.data.acquiredAt === "2025-08-25" &&
+      enrichmentDetails.data.purchasePrice?.amountMinor === 1250 &&
+      enrichmentDetails.data.purchasePrice.currency === "EUR" &&
+      enrichmentDetails.data.provenance === "A physical Copy story" &&
+      enrichmentDetails.data.isCompleted,
+    describeOutcome(enrichmentDetails),
+  );
+
+  const enrichedCopyDetail = await getMyCopyDetail(owner, openAtCreation.data.id);
+  record(
+    "canonical Copy detail reads the enrichment without exposing a parallel UI model",
+    enrichedCopyDetail.outcome === "ok" &&
+      enrichedCopyDetail.data.privateDetails?.isCompleted === true &&
+      enrichedCopyDetail.data.privateDetails.provenance === "A physical Copy story" &&
+      enrichedCopyDetail.data.components.find(
+        (component) => component.component.id === componentIds.disc,
+      )?.state?.presence === "present" &&
+      enrichedCopyDetail.data.components.find(
+        (component) => component.component.id === componentIds.manual,
+      )?.state?.presence === "missing",
+    describeOutcome(enrichedCopyDetail),
   );
 
   const contradictoryOpenInsert = await admin
@@ -1290,6 +1390,7 @@ try {
     purchase_amount_minor: null,
     purchase_currency: null,
     provenance: null,
+    is_completed: false,
     private_notes: null,
     storage_location: null,
   };

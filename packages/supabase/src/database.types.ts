@@ -701,6 +701,7 @@ export type Database = {
           acquired_at: string | null;
           copy_id: string;
           created_at: string;
+          is_completed: boolean;
           owner_id: string;
           private_notes: string | null;
           provenance: string | null;
@@ -713,6 +714,7 @@ export type Database = {
           acquired_at?: string | null;
           copy_id: string;
           created_at?: string;
+          is_completed?: boolean;
           owner_id: string;
           private_notes?: string | null;
           provenance?: string | null;
@@ -725,6 +727,7 @@ export type Database = {
           acquired_at?: string | null;
           copy_id?: string;
           created_at?: string;
+          is_completed?: boolean;
           owner_id?: string;
           private_notes?: string | null;
           provenance?: string | null;

@@ -13,6 +13,15 @@ declare const navigation: NativeStackNavigationProp<RootStackParamList>;
 navigation.navigate("Game", { gameId: "game-id" });
 navigation.navigate("Edition", { editionId: "edition-id" });
 navigation.navigate("Market", { gameId: "game-id", editionId: "edition-id" });
+navigation.navigate("AddCopy", { gameId: "game-id", editionId: "edition-id" });
+navigation.navigate("AlbumReveal", {
+  albumId: "album-id",
+  entryId: "entry-id",
+  copyId: "copy-id",
+  gameId: "game-id",
+  editionId: "edition-id",
+  enrichmentWarning: false,
+});
 navigation.navigate("Copy", { copyId: "copy-id" });
 navigation.navigate("PublicCopy", { copyId: "copy-id" });
 navigation.navigate("PublicProfile", { userId: "user-id" });
@@ -32,6 +41,10 @@ navigation.navigate("Game");
 navigation.navigate("Edition");
 // @ts-expect-error Market identity requires both the Game and Edition.
 navigation.navigate("Market", { gameId: "game-id" });
+// @ts-expect-error Add Copy must preserve exact Game and Edition identity.
+navigation.navigate("AddCopy", { gameId: "game-id" });
+// @ts-expect-error Album reveal must identify its exact canonical entry and new Copy.
+navigation.navigate("AlbumReveal", { albumId: "album-id", entryId: "entry-id" });
 // @ts-expect-error Copy identity is required.
 navigation.navigate("Copy");
 // @ts-expect-error Listing identity is required.

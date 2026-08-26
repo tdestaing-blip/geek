@@ -103,3 +103,22 @@ export async function getMyCollection(
     offset,
   }));
 }
+
+/** Reads the caller's Copies for one exact Edition without choosing among duplicates. */
+export async function getMyCopiesForEdition(
+  client: GeekSupabaseClient,
+  editionId: string,
+): Promise<OwnedResult<readonly Copy[]>> {
+  const caller = await resolveCaller(client);
+  if (caller.outcome !== "ok") return caller;
+
+  const { data, error } = await client
+    .from("copies")
+    .select("id, game_id, edition_id, owner_id, visibility, availability, created_at")
+    .eq("owner_id", caller.userId)
+    .eq("edition_id", editionId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() => data.map(toCopy));
+}
