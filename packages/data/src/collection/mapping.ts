@@ -56,6 +56,7 @@ type CopyPrivateDetailsFields = Pick<
   | "purchase_amount_minor"
   | "purchase_currency"
   | "provenance"
+  | "is_completed"
   | "private_notes"
   | "storage_location"
 >;
@@ -156,6 +157,7 @@ export function toCopyPrivateDetails(row: CopyPrivateDetailsFields): CopyPrivate
     acquiredAt: toOptionalCalendarDate(row.acquired_at, "copy_private_details.acquired_at"),
     purchasePrice: toPurchasePrice(row.purchase_amount_minor, row.purchase_currency),
     provenance: row.provenance,
+    isCompleted: row.is_completed,
     privateNotes: row.private_notes,
     storageLocation: row.storage_location,
   };

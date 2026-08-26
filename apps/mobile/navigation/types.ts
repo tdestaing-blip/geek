@@ -38,6 +38,15 @@ export type RootStackParamList = {
   Collection: CollectionRouteParams;
   Game: { readonly gameId: string };
   Market: { readonly gameId: string; readonly editionId: string };
+  AddCopy: { readonly gameId: string; readonly editionId: string };
+  AlbumReveal: {
+    readonly albumId: string;
+    readonly entryId: string;
+    readonly copyId: string;
+    readonly gameId: string;
+    readonly editionId: string;
+    readonly enrichmentWarning: boolean;
+  };
   Edition: { readonly editionId: string };
   Copy: { readonly copyId: string };
   PublicCopy: { readonly copyId: string };

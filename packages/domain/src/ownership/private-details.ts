@@ -19,6 +19,8 @@ export type CopyPrivateDetails = {
   /** What this owner paid. Never an estimate of what the Copy is worth. */
   readonly purchasePrice: Money | null;
   readonly provenance: string | null;
+  /** Whether this owner considers the game completed for this physical Copy. */
+  readonly isCompleted: boolean;
   readonly privateNotes: string | null;
   readonly storageLocation: string | null;
 };

@@ -12,7 +12,7 @@
 export type { CalendarDate, CurrencyCode, Money } from "./values";
 export { createMoney, parseCalendarDate, parseCurrencyCode } from "./values";
 
-export type { Edition, Game, Platform } from "./catalog/catalog";
+export type { Edition, EditionIdentifier, Game, Platform } from "./catalog/catalog";
 
 export type { CatalogMedia, CatalogMediaKind, CatalogMediaRightsStatus } from "./catalog/media";
 export { parseCatalogMediaKind, parseCatalogMediaRightsStatus } from "./catalog/media";

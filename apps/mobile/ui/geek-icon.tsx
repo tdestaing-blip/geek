@@ -10,6 +10,7 @@ export type GeekIconName =
   | "collection"
   | "community"
   | "close"
+  | "check"
   | "chevron-down"
   | "chevron-left"
   | "diamond-gem"
@@ -50,6 +51,8 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 21H5v-2h4zm10 0h-4v-2h4zM5 19H3v-2h2zm12-2h-2v2h-2v-2h-2v2H9v-2H7v-2h10zm4 2h-2v-2h2zM3 17H1V7h2zm20 0h-2V7h2zm-12-4H8v-3h3zm5 0h-3v-3h3zM5 7H3V5h2zm10 0H9V5h6zm6 0h-2V5h2zM9 5H5V3h4zm10 0h-4V3h4z"/></svg>',
   close:
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 19H5v-2h2v2Zm12 0h-2v-2h2v2ZM9 15v2H7v-2h2Zm8 2h-2v-2h2v2Zm-6-2H9v-2h2v2Zm4 0h-2v-2h2v2Zm-2-2h-2v-2h2v2Zm-2-2H9V9h2v2Zm4 0h-2V9h2v2ZM9 9H7V7h2v2Zm8 0h-2V7h2v2ZM7 7H5V5h2v2Zm12 0h-2V5h2v2Z"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 18H8v-2h2v2Zm-2-2H6v-2h2v2Zm4-2v2h-2v-2h2Zm-6 0H4v-2h2v2Zm8 0h-2v-2h2v2Zm2-2h-2v-2h2v2Zm2-2h-2V8h2v2Zm2-2h-2V6h2v2Z"/></svg>',
   "chevron-down":
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 16h-2v-2h2v2Zm-2-2H9v-2h2v2Zm4 0h-2v-2h2v2Zm-6-2H7v-2h2v2Zm8 0h-2v-2h2v2Zm-10-2H5V8h2v2Zm12 0h-2V8h2v2Z"/></svg>',
   "chevron-left":

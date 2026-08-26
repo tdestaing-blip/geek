@@ -56,3 +56,12 @@ export type Edition = {
   readonly publisherName: string | null;
   readonly packagingType: string | null;
 };
+
+/** One typed external or manufacturer identifier attached to an Edition. */
+export type EditionIdentifier = {
+  readonly id: string;
+  readonly editionId: string;
+  readonly scheme: string;
+  readonly value: string;
+  readonly authority: string | null;
+};

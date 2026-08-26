@@ -7,6 +7,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "platforms": ["ios", "android"],
-    "scheme": "geek"
+    "scheme": "geek",
+    "plugins": ["@react-native-community/datetimepicker"]
   }
 }

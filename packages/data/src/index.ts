@@ -33,6 +33,7 @@ export { getAlbumDetail, getAlbums } from "./albums/albums";
 
 export {
   getEdition,
+  getEditionIdentifiers,
   getEditionsForGame,
   getEditionsForPlatform,
   getGame,
@@ -48,10 +49,17 @@ export {
 export { searchCatalog } from "./catalog/search";
 
 export type { CollectionEntry } from "./collection/collection";
-export { getMyCollection } from "./collection/collection";
+export { getMyCollection, getMyCopiesForEdition } from "./collection/collection";
 
 export type { MyCopyDetail } from "./collection/copy-detail";
 export { getMyCopyDetail } from "./collection/copy-detail";
+
+export type { CopyComponentStateInput, CopyPrivateDetailsInput } from "./collection/enrichment";
+export {
+  getEditionComponents,
+  updateCopyComponentStates,
+  updateCopyPrivateDetails,
+} from "./collection/enrichment";
 
 export type {
   AddCopyInput,

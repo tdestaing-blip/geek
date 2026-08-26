@@ -227,6 +227,7 @@ function PrivateDetailsSection({ details }: { readonly details: CopyPrivateDetai
       : null,
     details.storageLocation ? { label: "Emplacement", value: details.storageLocation } : null,
     details.provenance ? { label: "Provenance", value: details.provenance } : null,
+    details.isCompleted ? { label: "Terminé", value: "Oui" } : null,
     details.privateNotes ? { label: "Notes privées", value: details.privateNotes } : null,
   ].filter((field): field is { readonly label: string; readonly value: string } => field !== null);
 

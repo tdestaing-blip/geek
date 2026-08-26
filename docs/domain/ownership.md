@@ -29,7 +29,8 @@ Private owner metadata lives separately in `copy_private_details`, including:
 - acquisition date
 - purchase price
 - purchase currency
-- private provenance notes
+- provenance: the collector's story or history for this physical Copy
+- whether this owner considers the game completed
 - private notes
 - physical storage location
 
@@ -112,15 +113,17 @@ Object state, preserved on transfer:
 Current-owner state, not inherited by the new owner:
 
 - `copy_private_details`: acquisition date, purchase amount and currency,
-  provenance notes, private notes, and storage location
+  provenance, completion status, private notes, and storage location
 - `visibility`, reset to `private`
 - `availability`, reset to `private`
 
 ### Private details belong to an owner, not to a Copy
 
 Private details are owner-specific data that happens to be about a Copy. A
-purchase price, an acquisition date, and a storage location describe one
-person's relationship with the object, not the object itself.
+purchase price, an acquisition date, the collector's provenance story, whether
+they consider the game completed, and a storage location describe one person's
+relationship with the object, not the object itself. Completion is a boolean;
+Geek does not infer or store a completion date.
 
 `copy_private_details` is therefore keyed by `(copy_id, owner_id)` and its
 row-level security scopes each row to `owner_id = auth.uid()`. Access follows

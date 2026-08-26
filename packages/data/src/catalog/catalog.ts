@@ -1,4 +1,4 @@
-import type { Edition, Game, Platform } from "@geek/domain";
+import type { Edition, EditionIdentifier, Game, Platform } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import type { Page, PageRequest } from "../pagination";
@@ -26,6 +26,7 @@ const GAME_COLUMNS = "id, canonical_title, description, original_release_date";
 const PLATFORM_COLUMNS = "id, slug, name";
 const EDITION_COLUMNS =
   "id, game_id, platform_id, edition_name, region_code, supported_languages, release_date, publisher_name, packaging_type";
+const EDITION_IDENTIFIER_COLUMNS = "id, edition_id, scheme, value, authority";
 
 /**
  * Reads one Game.
@@ -110,6 +111,31 @@ export async function getEdition(
   }
 
   return mapRows(() => toEdition(data));
+}
+
+/** Lists the typed identifiers recorded for one canonical Edition. */
+export async function getEditionIdentifiers(
+  client: GeekSupabaseClient,
+  editionId: string,
+): Promise<ReadResult<readonly EditionIdentifier[]>> {
+  const { data, error } = await client
+    .from("edition_identifiers")
+    .select(EDITION_IDENTIFIER_COLUMNS)
+    .eq("edition_id", editionId)
+    .order("scheme", { ascending: true })
+    .order("value", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() =>
+    data.map((row) => ({
+      id: row.id,
+      editionId: row.edition_id,
+      scheme: row.scheme,
+      value: row.value,
+      authority: row.authority,
+    })),
+  );
 }
 
 /**
