@@ -104,6 +104,12 @@ export {
 export { getMyProfile } from "./profile/profile";
 
 export {
+  compareMarketOpportunities,
+  getEditionMarketOpportunities,
+  getPublicCopyDetail,
+} from "./marketplace/opportunities";
+
+export {
   getListingMatchesForWishlist,
   getMyReciprocalTradeMatches,
   getWishlistMatches,

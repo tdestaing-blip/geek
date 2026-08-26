@@ -10,6 +10,7 @@ import { AddCopyScreen } from "./add-copy-screen";
 import { AlbumRevealScreen } from "./album-reveal-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
+import { MarketplaceOffersScreen } from "./marketplace-offers-screen";
 import { PublicCopyDetailScreen } from "./public-copy-detail-screen";
 import { MyProfileScreen, PublicProfileScreen } from "./profile-screen";
 import { AddGameSearchScreen } from "./add-game-search-screen";
@@ -88,6 +89,11 @@ export function NavigationRoot() {
               <RootStack.Screen
                 name="Market"
                 component={MarketplaceScreen}
+                options={detailPushOptions}
+              />
+              <RootStack.Screen
+                name="MarketOffers"
+                component={MarketplaceOffersScreen}
                 options={detailPushOptions}
               />
               <RootStack.Screen name="Edition" component={EditionScreen} />

@@ -74,6 +74,15 @@ export type {
 export { parseMatchDistanceBucket, parseMatchTargetKind } from "./matching/contracts";
 
 export type {
+  AuctionOpportunity,
+  DirectListingOpportunity,
+  EditionMarketOpportunity,
+  PublicCopyComponentAssessment,
+  PublicCopyDetail,
+  ReciprocalTradeOpportunity,
+} from "./marketplace/opportunities";
+
+export type {
   Album,
   AlbumDetail,
   AlbumEditionTarget,

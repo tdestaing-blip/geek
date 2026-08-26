@@ -1,20 +1,23 @@
 import { colors, typography } from "@geek/design-tokens";
+import type { Money, PublicCopyDetail } from "@geek/domain";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { MarketOpportunityFixture } from "../navigation/marketplace-fixtures";
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
 import { GeekIcon } from "./geek-icon";
 
 export function StickyCommercialBar({
   opportunity,
 }: {
-  readonly opportunity: MarketOpportunityFixture | null;
+  readonly opportunity: PublicCopyDetail["opportunity"];
 }) {
   const insets = useSafeAreaInsets();
   if (!opportunity) return null;
   const auction = opportunity.type === "auction";
-  const value = auction ? opportunity.currentBid : opportunity.price;
+  const trade = opportunity.type === "trade";
+  const value = trade
+    ? null
+    : formatMoney(auction ? opportunity.currentPrice : opportunity.askingPrice);
   return (
     <View pointerEvents="box-none" style={styles.position}>
       {auction ? (
@@ -22,30 +25,55 @@ export function StickyCommercialBar({
           <Text style={styles.signalText}>{opportunity.bidCount} enchères</Text>
           <View style={styles.signalRight}>
             <GeekIcon name="radio" size={14} />
-            <Text style={styles.signalText}>Fin dans {opportunity.countdown}</Text>
+            <Text style={styles.signalText}>Fin dans {formatCountdown(opportunity.endsAt)}</Text>
           </View>
         </View>
       ) : null}
       <AdaptiveGlassSurface
         style={[styles.surface, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
-        <View>
-          <Text style={styles.label}>{auction ? "Mise actuelle" : "Prix"}</Text>
-          <Text style={styles.price}>{value}</Text>
-        </View>
+        {trade ? (
+          <View style={styles.tradeCopy}>
+            <Text style={styles.label}>Échange réciproque</Text>
+            <Text style={styles.tradeLabel}>Vos Wishlist se correspondent</Text>
+          </View>
+        ) : (
+          <View>
+            <Text style={styles.label}>{auction ? "Mise actuelle" : "Prix"}</Text>
+            <Text style={styles.price}>{value}</Text>
+          </View>
+        )}
         <View style={styles.actions}>
-          {!auction ? (
+          {!auction && !trade ? (
             <Pressable style={styles.secondary}>
               <Text style={styles.buttonText}>Faire une offre</Text>
             </Pressable>
           ) : null}
           <Pressable style={styles.primary}>
-            <Text style={styles.primaryText}>{auction ? "Enchérir" : `Acheter ${value}`}</Text>
+            <Text style={styles.primaryText}>
+              {trade ? "Proposer un échange" : auction ? "Enchérir" : `Acheter ${value}`}
+            </Text>
           </Pressable>
         </View>
       </AdaptiveGlassSurface>
     </View>
   );
+}
+
+function formatMoney(money: Money): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: money.currency,
+    maximumFractionDigits: money.amountMinor % 100 === 0 ? 0 : 2,
+  }).format(money.amountMinor / 100);
+}
+
+function formatCountdown(endsAt: string): string {
+  const remaining = Math.max(0, Date.parse(endsAt) - Date.now());
+  const minutes = Math.floor(remaining / 60_000);
+  const days = Math.floor(minutes / (24 * 60));
+  const hours = Math.floor((minutes % (24 * 60)) / 60);
+  return `${days}j : ${String(hours).padStart(2, "0")}h`;
 }
 
 const styles = StyleSheet.create({
@@ -71,6 +99,8 @@ const styles = StyleSheet.create({
   },
   label: { ...typography.metadata, color: colors.textSecondary },
   price: { fontSize: 24, fontWeight: "600", lineHeight: 29 },
+  tradeCopy: { flex: 1, paddingRight: 12 },
+  tradeLabel: { ...typography.body, fontWeight: "600" },
   actions: { flexDirection: "row", gap: 8 },
   secondary: {
     backgroundColor: colors.controlSelected,

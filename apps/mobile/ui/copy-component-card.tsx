@@ -1,5 +1,7 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
-import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text } from "react-native";
+import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
+
+import { GeekIcon } from "./geek-icon";
 
 export function CopyComponentCard({
   conditionLabel,
@@ -11,7 +13,7 @@ export function CopyComponentCard({
   mediaState,
 }: {
   readonly conditionLabel?: string;
-  readonly image: ImageSourcePropType;
+  readonly image?: ImageSourcePropType;
   readonly label: string;
   readonly onPress?: () => void;
   readonly selected?: boolean;
@@ -39,7 +41,13 @@ export function CopyComponentCard({
       style={[styles.card, present && styles.present, selected && styles.selected]}
     >
       <Text style={styles.label}>{label}</Text>
-      <Image resizeMode="contain" source={image} style={styles.image} />
+      {image ? (
+        <Image resizeMode="contain" source={image} style={styles.image} />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <GeekIcon color={colors.textSecondary} name="box" size={28} />
+        </View>
+      )}
       <Text style={[styles.state, present && styles.presentText]}>{stateLabel}</Text>
     </Pressable>
   );
@@ -70,6 +78,7 @@ const styles = StyleSheet.create({
   selected: { borderColor: colors.text, borderWidth: 2 },
   label: { color: colors.text, ...typography.body },
   image: { height: 40, width: "62%" },
+  imagePlaceholder: { alignItems: "center", height: 40, justifyContent: "center", width: "62%" },
   state: { color: colors.textSecondary, textAlign: "center", ...typography.metadata },
   presentText: { color: colors.text },
 });
