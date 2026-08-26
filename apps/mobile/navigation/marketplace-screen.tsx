@@ -1,4 +1,5 @@
 import { colors, radii, typography } from "@geek/design-tokens";
+import type { EditionMarketOpportunity } from "@geek/domain";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useState } from "react";
@@ -8,6 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { DetailToolbar } from "../ui/detail-toolbar";
 import { AboutGameCard } from "../ui/about-game-card";
 import { GeekIcon } from "../ui/geek-icon";
+import { MarketplaceOpportunityCard } from "../ui/marketplace-opportunity-card";
 import {
   getCatalogRegionPresentation,
   getEditionVariantLabel,
@@ -16,6 +18,7 @@ import {
 import { loadCanonicalMarket } from "./canonical-catalog-data";
 import { loadExactEditionOwnership } from "./add-copy-data";
 import { findActiveWishlistIntent, toggleWishlistIntent } from "./collection-surfaces-data";
+import { loadEditionMarketOpportunities } from "./marketplace-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Market">;
@@ -31,10 +34,13 @@ export function MarketplaceScreen(props: Props) {
 function MarketplaceContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [catalog, setCatalog] = useState<CanonicalMarketCatalog | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [state, setState] = useState<"error" | "loading" | "ready" | "unavailable">("loading");
   const [ownedCopyCount, setOwnedCopyCount] = useState<number | null>(null);
   const [wishlistIntentId, setWishlistIntentId] = useState<string | null | undefined>(undefined);
   const [wishlistBusy, setWishlistBusy] = useState(false);
+  const [opportunities, setOpportunities] = useState<
+    readonly EditionMarketOpportunity[] | "error" | null
+  >(null);
 
   useEffect(() => {
     let active = true;
@@ -45,7 +51,7 @@ function MarketplaceContent({ navigation, route }: Props) {
         setState("ready");
       } else {
         setCatalog(null);
-        setState("unavailable");
+        setState(result.outcome === "not_found" ? "unavailable" : "error");
       }
     });
     return () => {
@@ -68,6 +74,21 @@ function MarketplaceContent({ navigation, route }: Props) {
         active = false;
       };
     }, [route.params.editionId]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setOpportunities(null);
+      void loadEditionMarketOpportunities(route.params.gameId, route.params.editionId).then(
+        (result) => {
+          if (active) setOpportunities(result.outcome === "ok" ? result.data : "error");
+        },
+      );
+      return () => {
+        active = false;
+      };
+    }, [route.params.editionId, route.params.gameId]),
   );
 
   useFocusEffect(
@@ -97,7 +118,9 @@ function MarketplaceContent({ navigation, route }: Props) {
           <Text style={styles.unavailableText}>
             {state === "loading"
               ? "Chargement du marché…"
-              : "Cette édition est indisponible. Revenez en arrière pour réessayer."}
+              : state === "error"
+                ? "Impossible de charger ce marché. Revenez en arrière pour réessayer."
+                : "Cette édition est indisponible. Revenez en arrière pour réessayer."}
           </Text>
         </View>
       </View>
@@ -164,13 +187,55 @@ function MarketplaceContent({ navigation, route }: Props) {
             }
           />
         </View>
-        <View style={styles.noOffers}>
-          <GeekIcon color={colors.textSecondary} name="shopping-cart" size={24} />
-          <Text style={styles.noOffersTitle}>Aucune offre pour cette édition</Text>
-          <Text style={styles.noOffersCopy}>
-            Les ventes, enchères et échanges apparaîtront ici lorsqu’ils seront disponibles.
+        {opportunities === null ? (
+          <Text style={styles.offersLoading}>Chargement des offres…</Text>
+        ) : opportunities === "error" ? (
+          <Text style={styles.offersError}>
+            Impossible de charger les offres actuelles. Revenez sur cet écran pour réessayer.
           </Text>
-        </View>
+        ) : opportunities.length === 0 ? (
+          <View style={styles.noOffers}>
+            <GeekIcon color={colors.textSecondary} name="shopping-cart" size={24} />
+            <Text style={styles.noOffersTitle}>Aucune offre pour cette édition</Text>
+            <Text style={styles.noOffersCopy}>
+              Les ventes, enchères et échanges apparaîtront ici lorsqu’ils seront disponibles.
+            </Text>
+            <Pressable
+              accessibilityHint="Cette alerte sera disponible dans une prochaine version"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: true }}
+              disabled
+              style={styles.dibs}
+            >
+              <GeekIcon name="bell-ring" size={18} />
+              <Text style={styles.dibsText}>Me prévenir</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.offers}>
+            {opportunities.slice(0, 3).map((opportunity) => (
+              <MarketplaceOpportunityCard
+                key={`${opportunity.type}:${opportunity.copyId}`}
+                artworkUrl={catalog.artworkUrl}
+                opportunity={opportunity}
+                onPress={() => navigation.navigate("PublicCopy", { copyId: opportunity.copyId })}
+              />
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                navigation.navigate("MarketOffers", {
+                  gameId: catalog.game.id,
+                  editionId: catalog.edition.id,
+                })
+              }
+              style={styles.allOffers}
+            >
+              <Text style={styles.allOffersText}>Voir toutes les offres</Text>
+              <Text style={styles.allOffersCount}>{opportunities.length}</Text>
+            </Pressable>
+          </View>
+        )}
         {catalog.game.description || catalog.aboutArtworkUrl ? (
           <AboutGameCard
             description={catalog.game.description}
@@ -262,4 +327,37 @@ const styles = StyleSheet.create({
   },
   noOffersTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
   noOffersCopy: { ...typography.metadata, color: colors.textSecondary, textAlign: "center" },
+  offersLoading: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  offersError: {
+    ...typography.body,
+    color: colors.textSecondary,
+    paddingHorizontal: 24,
+    textAlign: "center",
+  },
+  offers: { gap: 8, paddingHorizontal: 8 },
+  dibs: {
+    alignItems: "center",
+    backgroundColor: colors.controlSelected,
+    borderColor: colors.divider,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  dibsText: { ...typography.body, fontWeight: "600" },
+  allOffers: {
+    alignItems: "center",
+    borderColor: colors.divider,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  allOffersText: { ...typography.body, fontWeight: "600" },
+  allOffersCount: { ...typography.metadata, color: colors.textSecondary, marginLeft: 6 },
 });

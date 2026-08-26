@@ -1869,6 +1869,45 @@ export type Database = {
           their_target_kind: string;
         }[];
       };
+      get_public_copy_detail: {
+        Args: { target_copy_id: string };
+        Returns: {
+          auction_amount_minor: number;
+          auction_bid_count: number;
+          auction_currency: string;
+          auction_ends_at: string;
+          auction_id: string;
+          availability: string;
+          component_condition_grade: number;
+          component_kind: string;
+          component_name: string;
+          component_presence: string;
+          component_sort_order: number;
+          copy_id: string;
+          edition_component_id: string;
+          edition_id: string;
+          edition_name: string;
+          edition_publisher_name: string;
+          edition_release_date: string;
+          game_description: string;
+          game_id: string;
+          game_original_release_date: string;
+          game_title: string;
+          listing_amount_minor: number;
+          listing_currency: string;
+          listing_id: string;
+          owner_avatar_path: string;
+          owner_bio: string;
+          owner_display_name: string;
+          owner_id: string;
+          owner_username: string;
+          platform_id: string;
+          platform_name: string;
+          platform_slug: string;
+          region_code: string;
+          trade_available: boolean;
+        }[];
+      };
       get_trade_discovery: {
         Args: {
           result_limit?: number;

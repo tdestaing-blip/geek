@@ -13,6 +13,7 @@ declare const navigation: NativeStackNavigationProp<RootStackParamList>;
 navigation.navigate("Game", { gameId: "game-id" });
 navigation.navigate("Edition", { editionId: "edition-id" });
 navigation.navigate("Market", { gameId: "game-id", editionId: "edition-id" });
+navigation.navigate("MarketOffers", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("AddCopy", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("AlbumReveal", {
   albumId: "album-id",
@@ -42,6 +43,8 @@ navigation.navigate("Game");
 navigation.navigate("Edition");
 // @ts-expect-error Market identity requires both the Game and Edition.
 navigation.navigate("Market", { gameId: "game-id" });
+// @ts-expect-error All Offers identity requires both the Game and Edition.
+navigation.navigate("MarketOffers", { editionId: "edition-id" });
 // @ts-expect-error Add Copy must preserve exact Game and Edition identity.
 navigation.navigate("AddCopy", { gameId: "game-id" });
 // @ts-expect-error Album reveal must identify its exact canonical entry and new Copy.

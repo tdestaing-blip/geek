@@ -1,28 +1,27 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
+import type { Profile, PublicCopyComponentAssessment, PublicCopyDetail } from "@geek/domain";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
-import FRANCE_FLAG from "../assets/collection/v2/icon-france.png";
 import { AboutGameCard } from "../ui/about-game-card";
-import { CopyComponentCard } from "../ui/copy-component-card";
+import { CopyComponentCard, getCopyComponentLabel } from "../ui/copy-component-card";
 import { DetailToolbar } from "../ui/detail-toolbar";
 import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
 import { StickyCommercialBar } from "../ui/sticky-commercial-bar";
-import { resolvePublicCopyFixture } from "./marketplace-fixtures";
+import { getCatalogRegionPresentation, type CanonicalMarketCatalog } from "./canonical-catalog";
+import { loadCanonicalPublicCopy } from "./marketplace-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PublicCopy">;
+
+type PublicCopyViewData = {
+  readonly detail: PublicCopyDetail;
+  readonly catalog: CanonicalMarketCatalog;
+};
 
 export function PublicCopyDetailScreen(props: Props) {
   return (
@@ -36,245 +35,227 @@ function PublicCopyContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const heroSize = width - spacing.page * 2;
-  const { copy, edition, game, opportunity } = resolvePublicCopyFixture(route.params.copyId);
+  const [data, setData] = useState<PublicCopyViewData | null>(null);
+  const [state, setState] = useState<"error" | "loading" | "ready" | "unavailable">("loading");
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setData(null);
+      setState("loading");
+      void loadCanonicalPublicCopy(route.params.copyId).then((result) => {
+        if (!active) return;
+        if (result.outcome === "ok") {
+          setData(result.data);
+          setState("ready");
+        } else {
+          setData(null);
+          setState(result.outcome === "not_found" ? "unavailable" : "error");
+        }
+      });
+      return () => {
+        active = false;
+      };
+    }, [route.params.copyId]),
+  );
+
+  if (state !== "ready" || data === null) {
+    return (
+      <View style={[styles.page, { paddingTop: insets.top }]}>
+        <DetailToolbar title="Copie" onClose={navigation.goBack} onMore={() => undefined} />
+        <View style={styles.unavailable}>
+          <Text style={styles.unavailableText}>
+            {state === "loading"
+              ? "Chargement de la copie…"
+              : state === "error"
+                ? "Impossible de charger cette copie. Revenez en arrière pour réessayer."
+                : "Cette copie n’est plus disponible."}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const { catalog, detail } = data;
+  const region = getCatalogRegionPresentation(catalog.edition.regionCode);
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
-      <DetailToolbar title={game.title} onClose={navigation.goBack} onMore={() => undefined} />
+      <DetailToolbar
+        title={detail.game.canonicalTitle}
+        onClose={navigation.goBack}
+        onMore={() => undefined}
+      />
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          opportunity && styles.contentWithBar,
-          opportunity?.type === "auction" && styles.contentWithAuction,
+          detail.opportunity && styles.contentWithBar,
+          detail.opportunity?.type === "auction" && styles.contentWithAuction,
         ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroGroup}>
-          <View style={[styles.hero, { height: heroSize, width: heroSize }]}>
-            <Image source={copy.photos[0]} style={styles.fill} />
-            <View style={styles.dots}>
-              <View style={styles.dotActive} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
+          {catalog.artworkUrl ? (
+            <Image
+              resizeMode="cover"
+              source={{ uri: catalog.artworkUrl }}
+              style={[styles.hero, { height: heroSize, width: heroSize }]}
+            />
+          ) : (
+            <View
+              style={[styles.hero, styles.heroPlaceholder, { height: heroSize, width: heroSize }]}
+            >
+              <GeekIcon color={colors.textSecondary} name="gamepad" size={52} />
             </View>
-          </View>
-          <View style={styles.components}>
-            {copy.components.map((component) => (
-              <CopyComponentCard
-                key={component.label}
-                image={component.image}
-                label={component.label}
-                state={component.present ? "present" : "missing"}
-              />
-            ))}
-          </View>
+          )}
+          {detail.components.length > 0 ? (
+            <View style={styles.components}>
+              {detail.components.map((component) => (
+                <CopyComponentCard
+                  key={component.editionComponentId}
+                  conditionLabel={formatCondition(component)}
+                  label={getCopyComponentLabel(component.kind, component.name)}
+                  state={component.presence ?? "unassessed"}
+                />
+              ))}
+            </View>
+          ) : null}
         </View>
         <View style={styles.heading}>
-          <Text style={styles.title}>{game.title}</Text>
+          <Text style={styles.title}>{detail.game.canonicalTitle}</Text>
           <View style={styles.platformRow}>
-            <Image source={FRANCE_FLAG} style={styles.flag} />
-            <Text style={styles.platform}>{game.platform}</Text>
+            <Text style={styles.flag}>{region.flag}</Text>
+            <Text style={styles.platform}>{detail.platform?.name ?? catalog.platform.name}</Text>
           </View>
         </View>
-        <OwnerCard
-          copy={copy}
-          onPress={() => navigation.navigate("PublicProfile", { userId: copy.owner.id })}
-        />
-        <TradeCard opportunity={opportunity} />
+        <OwnerCard owner={detail.owner} />
+        {detail.opportunity?.type === "trade" ? <TradeCard /> : null}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Édition</Text>
-          <MetadataField label="Région / langue" value={edition.regionLanguage} />
-          <MetadataField label="Sortie européenne" value={edition.releaseDate} />
-          <MetadataField label="Code associé" value={edition.code} />
+          {detail.edition?.regionCode ? (
+            <MetadataField label="Région" value={detail.edition.regionCode} />
+          ) : null}
+          {detail.edition?.releaseDate ? (
+            <MetadataField label="Sortie" value={detail.edition.releaseDate} />
+          ) : null}
+          {detail.edition?.publisherName ? (
+            <MetadataField label="Éditeur" value={detail.edition.publisherName} />
+          ) : null}
         </View>
         <AboutGameCard
-          description={game.about.description}
-          image={game.about.image}
-          title={game.about.title}
+          description={detail.game.description}
+          facts={[
+            { label: "Plateforme", value: detail.platform?.name ?? catalog.platform.name },
+            ...(detail.edition?.regionCode
+              ? [{ label: "Région", value: detail.edition.regionCode }]
+              : []),
+          ]}
+          image={catalog.aboutArtworkUrl ? { uri: catalog.aboutArtworkUrl } : null}
+          title={detail.game.canonicalTitle}
         />
       </ScrollView>
-      <StickyCommercialBar opportunity={opportunity} />
+      <StickyCommercialBar opportunity={detail.opportunity} />
     </View>
   );
 }
 
-function OwnerCard({
-  copy,
-  onPress,
-}: {
-  readonly copy: ReturnType<typeof resolvePublicCopyFixture>["copy"];
-  readonly onPress: () => void;
-}) {
+function OwnerCard({ owner }: { readonly owner: Profile }) {
+  const name = owner.displayName ?? owner.username ?? "Collectionneur Geek";
   return (
-    <Pressable
-      accessibilityLabel={`Voir le profil de ${copy.owner.name}`}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.owner, pressed && styles.ownerPressed]}
-    >
-      <View style={styles.ownerTop}>
-        <View style={styles.identity}>
-          <View>
-            <Image source={copy.owner.avatar} style={styles.avatar} />
-            <View style={styles.online} />
-          </View>
-          <View>
-            <View style={styles.inline}>
-              <Text style={styles.body}>À {copy.owner.name}</Text>
-              <GeekIcon name="star" size={18} />
-              <Text style={styles.small}>{copy.owner.rating}</Text>
-              <GeekIcon name="map-pin" size={18} />
-              <Text style={styles.small}>{copy.owner.distance}</Text>
-            </View>
-            <Text style={styles.small}>{copy.owner.collectionCount} jeux</Text>
-          </View>
-        </View>
-        <Text style={styles.body}>{copy.story}</Text>
+    <View style={styles.owner}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{name.slice(0, 1).toLocaleUpperCase()}</Text>
       </View>
-      <View style={styles.wishlist}>
-        <Text style={styles.body}>{copy.owner.wishlistTotal} jeux recherchés</Text>
-        <View style={styles.coverStack}>
-          {copy.owner.wishlistPreview.map((source, index) => (
-            <Image
-              key={index}
-              source={source}
-              style={[styles.cover, index > 0 && styles.coverOverlap]}
-            />
-          ))}
-        </View>
+      <View style={styles.ownerCopy}>
+        <Text style={styles.body}>À {name}</Text>
+        {owner.bio ? (
+          <Text numberOfLines={2} style={styles.small}>
+            {owner.bio}
+          </Text>
+        ) : (
+          <Text style={styles.small}>Collectionneur Geek</Text>
+        )}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
-function TradeCard({
-  opportunity,
-}: {
-  readonly opportunity: ReturnType<typeof resolvePublicCopyFixture>["opportunity"];
-}) {
-  const reciprocalInterest =
-    opportunity?.type === "listing" ? opportunity.reciprocalInterest : undefined;
-  if (!reciprocalInterest) return null;
-
+function TradeCard() {
   return (
     <View style={styles.trade}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Svg height="100%" preserveAspectRatio="none" width="100%">
-          <Defs>
-            <LinearGradient id="trade" x1="0" x2="1" y1="0" y2="1">
-              <Stop offset="0" stopColor="#92AEF4" />
-              <Stop offset="1" stopColor="#8781DF" />
-            </LinearGradient>
-          </Defs>
-          <Rect fill="url(#trade)" height="100%" width="100%" />
-        </Svg>
+      <View style={styles.tradeSignal}>
+        <GeekIcon color={colors.controlSelected} name="fire" size={14} />
+        <Text style={styles.tradeText}>Vos Wishlist se correspondent</Text>
       </View>
-      <View style={styles.tradeTop}>
-        <View>
-          <View style={styles.tradeSignal}>
-            <GeekIcon color={colors.controlSelected} name="fire" size={14} />
-            <Text style={styles.tradeText}>
-              {reciprocalInterest.gameCount} jeux l’intéresse chez toi
-            </Text>
-          </View>
-          <Text style={styles.tradeValue}>Valeur estimé: {reciprocalInterest.estimatedValue}</Text>
-        </View>
-        <View style={styles.tradeCovers}>
-          {reciprocalInterest.previewImages.map((source, index) => (
-            <Image key={index} source={source} style={styles.tradeCover} />
-          ))}
-        </View>
-      </View>
-      <Pressable style={styles.tradeButton}>
-        <GeekIcon name="chevrons-horizontal" size={20} />
-        <Text style={styles.body}>Proposer un échange</Text>
-      </Pressable>
+      <Text style={styles.tradeCopy}>
+        Cette copie fait partie d’une opportunité d’échange réciproque actuelle.
+      </Text>
     </View>
   );
+}
+
+function formatCondition(component: PublicCopyComponentAssessment): string | undefined {
+  if (component.presence !== "present" || component.conditionGrade === null) return undefined;
+  const labels = {
+    1: "État faible",
+    2: "État correct",
+    3: "Bon état",
+    4: "Très bon état",
+    5: "Excellent état",
+  } as const;
+  return labels[component.conditionGrade];
 }
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
+  unavailable: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
+  unavailableText: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
   content: { gap: 24, paddingBottom: 40 },
   contentWithBar: { paddingBottom: 136 },
   contentWithAuction: { paddingBottom: 168 },
   heroGroup: { gap: 16 },
   hero: { alignSelf: "center", borderRadius: radii.detailCard, overflow: "hidden" },
-  fill: { height: "100%", width: "100%" },
-  dots: {
-    alignSelf: "center",
-    backgroundColor: "rgba(255,255,255,.25)",
-    borderRadius: 20,
-    bottom: 12,
-    flexDirection: "row",
-    gap: 4,
-    padding: 5,
-    position: "absolute",
+  heroPlaceholder: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceSubtle,
+    justifyContent: "center",
   },
-  dot: { backgroundColor: "rgba(255,255,255,.45)", borderRadius: 4, height: 8, width: 8 },
-  dotActive: { backgroundColor: colors.controlSelected, borderRadius: 4, height: 8, width: 8 },
   components: { flexDirection: "row", gap: 8, justifyContent: "center", paddingHorizontal: 16 },
   heading: { gap: 4, paddingHorizontal: 24 },
   title: { ...typography.screenTitle },
   platform: { ...typography.body },
   platformRow: { alignItems: "center", flexDirection: "row", gap: 4 },
-  flag: { height: 16, width: 16 },
+  flag: { fontSize: 16, lineHeight: 18 },
   owner: {
+    alignItems: "center",
     backgroundColor: colors.surfaceSubtle,
     borderRadius: 16,
+    flexDirection: "row",
+    gap: 12,
     marginHorizontal: 12,
-    overflow: "hidden",
-  },
-  ownerPressed: { opacity: 0.72 },
-  ownerTop: { gap: 16, padding: 12 },
-  identity: { alignItems: "center", flexDirection: "row", gap: 12 },
-  avatar: { borderRadius: 24, height: 48, width: 48 },
-  online: {
-    backgroundColor: colors.success,
-    borderRadius: 8,
-    bottom: 0,
-    height: 12,
-    position: "absolute",
-    right: 0,
-    width: 12,
-  },
-  inline: { alignItems: "center", flexDirection: "row", gap: 4 },
-  body: { ...typography.body },
-  small: { fontSize: 13 },
-  wishlist: {
-    alignItems: "center",
-    borderTopColor: colors.background,
-    borderTopWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-  },
-  coverStack: { flexDirection: "row" },
-  cover: {
-    borderColor: colors.controlSelected,
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 32,
-    width: 43,
-  },
-  coverOverlap: { marginLeft: -8 },
-  trade: { borderRadius: 16, gap: 16, marginHorizontal: 12, overflow: "hidden", padding: 16 },
-  tradeTop: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  tradeText: { color: colors.controlSelected, fontSize: 15 },
-  tradeSignal: { alignItems: "center", flexDirection: "row", gap: 4 },
-  tradeValue: { color: colors.controlSelected, fontSize: 13, marginTop: 4 },
-  tradeCovers: { flexDirection: "row" },
-  tradeCover: { borderRadius: 4, height: 46, marginLeft: -4, width: 62 },
-  tradeButton: {
-    alignItems: "center",
-    backgroundColor: colors.controlSelected,
-    borderRadius: 999,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
     padding: 12,
   },
+  avatar: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceSelected,
+    borderRadius: 24,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  avatarText: { fontSize: 20, fontWeight: "700" },
+  ownerCopy: { flex: 1, gap: 2 },
+  body: { ...typography.body },
+  small: { ...typography.metadata, color: colors.textSecondary },
+  trade: {
+    backgroundColor: "#8781DF",
+    borderRadius: 16,
+    gap: 8,
+    marginHorizontal: 12,
+    padding: 16,
+  },
+  tradeSignal: { alignItems: "center", flexDirection: "row", gap: 4 },
+  tradeText: { color: colors.controlSelected, fontSize: 15, fontWeight: "600" },
+  tradeCopy: { ...typography.metadata, color: colors.controlSelected },
   section: { gap: 16, paddingHorizontal: 24 },
   sectionTitle: { ...typography.sectionTitle },
 });
