@@ -34,7 +34,7 @@ export type NormalizedCatalogMediaRecord = {
   readonly sourceProvider: string;
   readonly sourceAssetId: string | null;
   readonly sourcePageUrl: string | null;
-  readonly rightsStatus: "reusable" | "licensed" | "restricted" | "unknown";
+  readonly rightsStatus: "reusable" | "licensed" | "noncommercial" | "restricted" | "unknown";
   readonly licenseName: string | null;
   readonly licenseUrl: string | null;
   readonly attribution: string | null;

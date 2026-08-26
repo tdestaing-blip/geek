@@ -68,6 +68,14 @@ one Edition; component keys are not globally unique.
 EditionComponents are publicly readable Catalog data. Normal clients may not
 create or modify them.
 
+The reviewed Nintendo 64 MobyGames importer uses the canonical kinds
+`cartridge`, `box`, and `manual` only when the exact Edition's associated source
+cover group contains the corresponding physical scan evidence. It does not
+infer a manual, box, or cartridge merely from Platform or release identity.
+Catalog components describe what shipped with an Edition; they do not assert
+that a particular Copy still has the component and never create a condition
+grade.
+
 ## Provider mappings
 
 External provider IDs are not physical Edition identifiers and must not be
@@ -84,10 +92,18 @@ Games and Editions. It supports front covers, back covers, artwork, and logos.
 Each row targets exactly one Game or Edition; multiple assets may exist for one
 target and kind, but at most one can be primary.
 
-Rights are explicit. `reusable` and `licensed` assets are publishable through
-normal catalog clients. `restricted` and `unknown` assets may be retained for
-trusted provenance or import research but are not exposed to anonymous or
-authenticated clients.
+Rights are explicit. `reusable` assets follow their reusable-source terms;
+`licensed` assets have the general/commercial display rights Geek requires.
+`noncommercial` assets may be displayed only when both the server environment
+and canonical client data policy are explicitly configured for non-commercial
+use. `restricted` and `unknown` assets may be retained for trusted provenance
+or import research but are never product media.
+
+The production-safe server and client default is `commercial`, which permits
+only `reusable` and `licensed`. Current local Geek development may opt into
+`noncommercial` while Thomas's MobyGames Hobbyist API subscription is active.
+This two-layer rule keeps rights decisions out of UI components and prevents a
+future commercial build from silently shipping Hobbyist media.
 
 `source_provider` and `source_asset_id` identify an upstream asset for future
 idempotent ingestion. Their uniqueness is scoped to a canonical target because
@@ -110,10 +126,19 @@ Edition primary front cover
 Absence of media is valid. No generated or fake replacement cover is stored as
 canonical CatalogMedia.
 
+When a Game has no Game-targeted primary cover, its presentation cover is
+derived without changing CatalogMedia identity: a standard Edition with a
+primary front cover wins, then the earliest known release date, region code,
+and canonical Edition ID provide stable tie-breakers. Back covers are never
+presentation covers. Provider attribution remains attached to the selected
+CatalogMedia row as canonical provenance even when the current mobile
+presentation does not render provider-credit UI.
+
 ## Access
 
-Canonical Catalog data and publishable CatalogMedia are publicly readable.
-Restricted or unknown-rights media is not. Catalog writes are controlled by
-Geek and are not directly available to normal anonymous or authenticated client
-users. Trusted Geek server and administrative workflows will own catalog
-writes.
+Canonical Catalog data and displayable CatalogMedia are publicly readable.
+The database's singleton media-usage configuration controls whether
+`noncommercial` rows pass RLS; `restricted` and `unknown` never do. The local
+Hobbyist setting is an environment operation, not a migration default. Catalog
+writes are controlled by Geek and are not directly available to normal
+anonymous or authenticated client users.

@@ -38,7 +38,8 @@ export type {
 export { parseConditionGrade, parseCopyComponentPresence } from "./ownership/components";
 
 export type { CopyPrivateDetails } from "./ownership/private-details";
-export type { CopyPhoto } from "./ownership/photo";
+export type { CopyPhoto, CopyPhotoRole } from "./ownership/photo";
+export { COPY_PHOTO_ROLES, parseCopyPhotoRole } from "./ownership/photo";
 
 export type {
   WishlistCompletenessPreference,

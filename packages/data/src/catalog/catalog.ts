@@ -27,6 +27,57 @@ const PLATFORM_COLUMNS = "id, slug, name";
 const EDITION_COLUMNS =
   "id, game_id, platform_id, edition_name, region_code, supported_languages, release_date, publisher_name, packaging_type";
 const EDITION_IDENTIFIER_COLUMNS = "id, edition_id, scheme, value, authority";
+const BATCH_LIMIT = 100;
+
+/** Reads a bounded set of Games without turning catalog grids into N+1 queries. */
+export async function getGamesByIds(
+  client: GeekSupabaseClient,
+  gameIds: readonly string[],
+): Promise<ReadResult<readonly Game[]>> {
+  const ids = boundedDistinctIds(gameIds);
+  if (ids.length === 0) return { outcome: "ok", data: [] };
+  const { data, error } = await client
+    .from("games")
+    .select(GAME_COLUMNS)
+    .in("id", ids)
+    .order("canonical_title", { ascending: true })
+    .order("id", { ascending: true });
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() => data.map(toGame));
+}
+
+/** Reads a bounded set of Editions while preserving their canonical identities. */
+export async function getEditionsByIds(
+  client: GeekSupabaseClient,
+  editionIds: readonly string[],
+): Promise<ReadResult<readonly Edition[]>> {
+  const ids = boundedDistinctIds(editionIds);
+  if (ids.length === 0) return { outcome: "ok", data: [] };
+  const { data, error } = await client
+    .from("editions")
+    .select(EDITION_COLUMNS)
+    .in("id", ids)
+    .order("id", { ascending: true });
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() => data.map(toEdition));
+}
+
+/** Reads a bounded set of Platforms for catalog presentation joins. */
+export async function getPlatformsByIds(
+  client: GeekSupabaseClient,
+  platformIds: readonly string[],
+): Promise<ReadResult<readonly Platform[]>> {
+  const ids = boundedDistinctIds(platformIds);
+  if (ids.length === 0) return { outcome: "ok", data: [] };
+  const { data, error } = await client
+    .from("platforms")
+    .select(PLATFORM_COLUMNS)
+    .in("id", ids)
+    .order("name", { ascending: true })
+    .order("id", { ascending: true });
+  if (error !== null) return databaseFailure(error);
+  return mapRows(() => data.map(toPlatform));
+}
 
 /**
  * Reads one Game.
@@ -191,4 +242,12 @@ export async function getEditionsForPlatform(
 
   if (error !== null) return databaseFailure(error);
   return mapRows(() => ({ items: data.map(toEdition), limit, offset }));
+}
+
+function boundedDistinctIds(ids: readonly string[]): readonly string[] {
+  const distinct = [...new Set(ids)];
+  if (distinct.length > BATCH_LIMIT) {
+    throw new RangeError(`Catalog batch reads support at most ${BATCH_LIMIT} ids`);
+  }
+  return distinct;
 }

@@ -84,7 +84,7 @@ export function NavigationRoot() {
                 component={AlbumDetailScreen}
                 options={{ animation: "slide_from_right", headerShown: false }}
               />
-              <RootStack.Screen name="Game" component={GameScreen} />
+              <RootStack.Screen name="Game" component={GameScreen} options={detailPushOptions} />
               <RootStack.Screen
                 name="Market"
                 component={MarketplaceScreen}

@@ -174,9 +174,10 @@ the candidate is skipped as ambiguous rather than creating a duplicate or
 replacing identity. The writer is source-first and idempotently resumable: a
 failure may leave newer trusted source evidence without a successful import
 run, and the same plan can safely be retried. Each deterministic candidate's
-Edition creation or enrichment, identifiers, current source-evidence links, and
-supported CatalogMedia are persisted in one service-role-only database
-transaction, so a failed candidate leaves no partial canonical writes.
+Edition creation or enrichment, identifiers, current source-evidence links,
+explicitly evidenced physical components, and supported CatalogMedia are
+persisted in one service-role-only database transaction, so a failed candidate
+leaves no partial canonical writes.
 Before that transaction can mutate canonical rows or prune stale links, the
 database resolves the target Game and Platform's persisted MobyGames mappings
 and requires each source record's compound key to match that exact pair. The
@@ -214,6 +215,14 @@ corroborating evidence, the release becomes source-ambiguous even when only one
 strong partition exists. Ambiguous candidates are reported and never
 canonicalized.
 
+For the reviewed Nintendo 64 mapping, component curation is conservative and
+comes only from a cover group already associated with exactly one Edition.
+MobyGames `Media` scans evidence the cartridge, front/back/spine scans evidence
+the box, and `Manual` scans evidence the manual. Those rows become canonical
+`edition_components`; missing scan types remain unknown rather than being
+invented. Repeating the import adds no duplicate component, and component
+curation never creates Copy state or a condition grade.
+
 Every candidate also needs positive evidence that it represents a physical
 collector object. A recognized strong physical-media identifier satisfies that
 requirement. Without one, region, an explicit variant label, dates, companies,
@@ -241,8 +250,20 @@ URLs.
 
 Only Front Cover and Back Cover scans map to current CatalogMedia roles. Other
 cover scans remain intact in the source payload. MobyGames image URLs are
-retained directly with provider attribution, an internal URL fingerprint for
-deduplication, and `restricted` rights status. They are therefore importer
-evidence, not Copy photos, and are not exposed by the public CatalogMedia RLS
-policy. Any future product publication must use rights appropriate to the
-active MobyGames plan and retain the required “Data by MobyGames.com” credit.
+retained directly with provider attribution and an internal URL fingerprint for
+deduplication. Under the current MobyPlus + Hobbyist API configuration they are
+stored as `noncommercial`, never as unrestricted or generally licensed.
+
+One deterministic front scan per canonical Edition is primary (stable source
+asset fingerprint order); back scans never become primary. Re-imports preserve
+canonical IDs and do not duplicate media. The “Data by MobyGames.com” source
+credit remains attached to every imported row as canonical provenance. The
+current private-development mobile presentation does not render provider-credit
+UI; removing it from presentation does not erase or weaken stored provenance.
+
+Local non-commercial development explicitly enables these rows in both the
+database media-usage configuration and the application's canonical data-layer
+policy. Both defaults remain `commercial`, so a production deployment rejects
+`noncommercial` media unless it is deliberately reconfigured. Before a public
+commercial release, Geek must upgrade to an appropriate MobyGames commercial
+plan, obtain suitable rights, or stop displaying these rows.

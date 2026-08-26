@@ -1,15 +1,15 @@
-import type { CopyPhoto } from "@geek/domain";
+import { parseCopyPhotoRole, type CopyPhoto, type CopyPhotoRole } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import { resolveCaller } from "../caller";
-import type { OwnedEntityResult } from "../result";
+import type { OwnedEntityResult, OwnedResult } from "../result";
 import { databaseFailure, InvalidRowError, mapRows, storageFailure } from "../result";
 
 export const COPY_PHOTO_LIMIT = 6;
 const COPY_PHOTO_BUCKET = "copy-photos";
 const SIGNED_URL_LIFETIME_SECONDS = 300;
 const PHOTO_COLUMNS =
-  "id, copy_id, storage_path, sort_order, mime_type, width, height, byte_size, created_at";
+  "id, copy_id, edition_component_id, photo_role, storage_path, sort_order, mime_type, width, height, byte_size, created_at";
 
 export type CopyPhotoRead = {
   readonly photo: CopyPhoto;
@@ -20,6 +20,8 @@ export type CopyPhotoRead = {
 export type AddCopyPhotoInput = {
   readonly photoId: string;
   readonly copyId: string;
+  readonly editionComponentId?: string;
+  readonly photoRole?: CopyPhotoRole;
   readonly bytes: ArrayBuffer;
   readonly width: number;
   readonly height: number;
@@ -81,6 +83,60 @@ export async function getCopyPhotoGallery(
   );
 }
 
+/**
+ * Reads and signs at most one primary photo for each requested owner-visible Copy.
+ * This is deliberately owner-scoped and bounded for Collection and Album grids.
+ */
+export async function getMyPrimaryCopyPhotos(
+  client: GeekSupabaseClient,
+  copyIds: readonly string[],
+): Promise<OwnedResult<readonly CopyPhotoRead[]>> {
+  const caller = await resolveCaller(client);
+  if (caller.outcome !== "ok") return caller;
+  const ids = [...new Set(copyIds)];
+  if (ids.length > 100) throw new RangeError("Primary Copy photo reads support at most 100 ids");
+  if (ids.length === 0) return { outcome: "ok", data: [] };
+
+  const owned = await client
+    .from("copies")
+    .select("id")
+    .eq("owner_id", caller.userId)
+    .in("id", ids);
+  if (owned.error !== null) return databaseFailure(owned.error);
+  const ownedIds = owned.data.map(({ id }) => id);
+  if (ownedIds.length === 0) return { outcome: "ok", data: [] };
+
+  const selected = await client
+    .from("copy_photos")
+    .select(PHOTO_COLUMNS)
+    .in("copy_id", ownedIds)
+    .eq("sort_order", 0)
+    .order("copy_id", { ascending: true })
+    .order("id", { ascending: true });
+  if (selected.error !== null) return databaseFailure(selected.error);
+  const mapped = mapRows(() => selected.data.map(toCopyPhoto));
+  if (mapped.outcome !== "ok") return mapped;
+  if (mapped.data.length === 0) return { outcome: "ok", data: [] };
+
+  const signed = await client.storage.from(COPY_PHOTO_BUCKET).createSignedUrls(
+    mapped.data.map((photo) => photo.storagePath),
+    SIGNED_URL_LIFETIME_SECONDS,
+  );
+  if (signed.error !== null) return storageFailure(signed.error);
+  const signedByPath = new Map(
+    signed.data.flatMap((item) => (item.signedUrl ? [[item.path, item.signedUrl] as const] : [])),
+  );
+  return mapRows(() =>
+    mapped.data.map((photo) => {
+      const signedUrl = signedByPath.get(photo.storagePath);
+      if (!signedUrl) {
+        throw new InvalidRowError("copy_photos.storage_path", "could not create a signed URL");
+      }
+      return { photo, signedUrl };
+    }),
+  );
+}
+
 /** Uploads one normalized JPEG, then persists its canonical private metadata. */
 export async function addCopyPhoto(
   client: GeekSupabaseClient,
@@ -104,6 +160,9 @@ export async function addCopyPhoto(
 
   const photoId = input.photoId;
   if (!isUuid(photoId)) throw new TypeError("Copy photo id must be a UUID");
+  if (input.editionComponentId && !isUuid(input.editionComponentId)) {
+    throw new TypeError("Edition component id must be a UUID");
+  }
   const storagePath = `${input.copyId}/${photoId}.jpg`;
   const bucket = client.storage.from(COPY_PHOTO_BUCKET);
   const uploaded = await bucket.upload(storagePath, input.bytes, {
@@ -117,6 +176,8 @@ export async function addCopyPhoto(
     .insert({
       id: photoId,
       copy_id: input.copyId,
+      edition_component_id: input.editionComponentId ?? null,
+      photo_role: input.photoRole ?? null,
       storage_path: storagePath,
       mime_type: "image/jpeg",
       width: input.width,
@@ -197,6 +258,8 @@ async function requireOwnedCopy(
 function toCopyPhoto(row: {
   readonly id: string;
   readonly copy_id: string;
+  readonly edition_component_id: string | null;
+  readonly photo_role: string | null;
   readonly storage_path: string;
   readonly sort_order: number;
   readonly mime_type: string;
@@ -224,9 +287,15 @@ function toCopyPhoto(row: {
   if (row.storage_path !== `${row.copy_id}/${row.id}.jpg`) {
     throw new InvalidRowError("copy_photos.storage_path", "path is not canonical");
   }
+  const photoRole = row.photo_role === null ? null : parseCopyPhotoRole(row.photo_role);
+  if (row.photo_role !== null && photoRole === null) {
+    throw new InvalidRowError("copy_photos.photo_role", `unsupported ${row.photo_role}`);
+  }
   return {
     id: row.id,
     copyId: row.copy_id,
+    editionComponentId: row.edition_component_id,
+    photoRole,
     storagePath: row.storage_path,
     sortOrder: row.sort_order,
     mimeType: row.mime_type,

@@ -19,7 +19,12 @@ import { albumRevealHaptic, albumTargetArrivedHaptic } from "../lib/haptics";
 import { GameGridItem, type GameGridItemContent } from "../ui/game-grid-item";
 import { GeekIcon } from "../ui/geek-icon";
 import { getPlatformPresentation } from "./add-game-fixtures";
-import { loadExactEditionOwnership, loadRevealAlbum, type RevealAlbumData } from "./add-copy-data";
+import {
+  loadExactEditionOwnership,
+  loadRevealAlbum,
+  loadRevealMedia,
+  type RevealAlbumData,
+} from "./add-copy-data";
 import {
   findAlbumRevealRowIndex,
   groupAlbumRevealEntriesIntoRows,
@@ -44,6 +49,7 @@ type RevealState =
       readonly catalog: CanonicalMarketCatalog;
       readonly rows: readonly AlbumRevealRow[];
       readonly targetRowIndex: number;
+      readonly revealMediaUrl: string | null;
     };
 
 const ALBUM_GRID_COLUMNS = 2;
@@ -81,8 +87,9 @@ function AlbumRevealContent({ navigation, route }: Props) {
       loadRevealAlbum(route.params.albumId),
       loadCanonicalMarket(route.params.gameId, route.params.editionId),
       loadExactEditionOwnership(route.params.editionId),
+      loadRevealMedia(route.params.copyId, route.params.gameId, route.params.editionId),
     ]).then(
-      ([albumData, catalog, exactCopies]) => {
+      ([albumData, catalog, exactCopies, revealMedia]) => {
         if (!active) return;
         const targetIndex = albumData
           ? resolveAlbumRevealEntryIndex(
@@ -115,6 +122,7 @@ function AlbumRevealContent({ navigation, route }: Props) {
           catalog: catalog.data,
           rows,
           targetRowIndex,
+          revealMediaUrl: revealMedia.url,
         });
         Animated.parallel([
           Animated.timing(intro, {
@@ -248,6 +256,7 @@ function AlbumRevealContent({ navigation, route }: Props) {
     <RevealIntro
       albumData={state.albumData}
       catalog={state.catalog}
+      revealMediaUrl={state.revealMediaUrl}
       enrichmentWarning={route.params.enrichmentWarning}
       photoWarning={route.params.photoWarning}
       intro={intro}
@@ -264,6 +273,7 @@ function AlbumRevealContent({ navigation, route }: Props) {
       onViewableItemsChanged={onViewableItemsChanged}
       phase={phase}
       rows={state.rows}
+      revealMediaUrl={state.revealMediaUrl}
       stagedOverlay={stagedOverlay}
       targetEntryId={route.params.entryId}
     />
@@ -273,6 +283,7 @@ function AlbumRevealContent({ navigation, route }: Props) {
 function RevealIntro({
   albumData,
   catalog,
+  revealMediaUrl,
   enrichmentWarning,
   photoWarning,
   intro,
@@ -281,6 +292,7 @@ function RevealIntro({
 }: {
   readonly albumData: RevealAlbumData;
   readonly catalog: CanonicalMarketCatalog;
+  readonly revealMediaUrl: string | null;
   readonly enrichmentWarning: boolean;
   readonly photoWarning: boolean;
   readonly intro: Animated.Value;
@@ -305,8 +317,8 @@ function RevealIntro({
           <Text style={styles.newBadgeText}>NOUVEAU</Text>
         </Animated.View>
         <Animated.View style={[styles.introArtwork, { opacity: intro, transform: [{ scale }] }]}>
-          {catalog.artworkUrl ? (
-            <Image source={{ uri: catalog.artworkUrl }} style={styles.fill} />
+          {revealMediaUrl ? (
+            <Image source={{ uri: revealMediaUrl }} style={styles.fill} />
           ) : (
             <View style={styles.artworkPlaceholder}>
               <GeekIcon color={colors.textSecondary} name="gamepad" size={52} />
@@ -360,6 +372,7 @@ function RevealAlbum({
   onViewableItemsChanged,
   phase,
   rows,
+  revealMediaUrl,
   stagedOverlay,
   targetEntryId,
 }: {
@@ -371,6 +384,7 @@ function RevealAlbum({
   readonly onViewableItemsChanged: (info: { viewableItems: ViewToken<AlbumRevealRow>[] }) => void;
   readonly phase: AlbumRevealRenderPhase;
   readonly rows: readonly AlbumRevealRow[];
+  readonly revealMediaUrl: string | null;
   readonly stagedOverlay: Animated.Value;
   readonly targetEntryId: string;
 }) {
@@ -408,12 +422,16 @@ function RevealAlbum({
           <View style={styles.gridRow}>
             {row.entries.map((entry) => {
               const stageTarget = shouldStageAlbumRevealEntry(entry, targetEntryId, phase);
+              const isTarget = entry.id === targetEntryId;
               const content: Omit<GameGridItemContent, "image"> & {
                 readonly image?: GameGridItemContent["image"];
               } = {
-                image: data.artworkByEntryId[entry.id]
-                  ? { uri: data.artworkByEntryId[entry.id] }
-                  : undefined,
+                image:
+                  isTarget && revealMediaUrl
+                    ? { uri: revealMediaUrl }
+                    : data.artworkByEntryId[entry.id]
+                      ? { uri: data.artworkByEntryId[entry.id] }
+                      : undefined,
                 title: entry.target.gameTitle,
                 platform: entry.target.kind === "edition" ? entry.target.platformName : "",
                 regionCode: entry.target.kind === "edition" ? entry.target.regionCode : null,

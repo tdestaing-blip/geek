@@ -2,18 +2,21 @@ import {
   getEdition,
   getEditionsForGame,
   getEditionsForPlatform,
+  getGamePresentationCover,
+  getGamePresentationCovers,
   getGame,
   getPlatform,
   getPlatforms,
   getPrimaryEditionCover,
   getPrimaryEditionCovers,
-  getPrimaryGameCover,
-  getPrimaryGameCovers,
+  getPrimaryGameArtwork,
   searchCatalog,
+  type GamePresentationMedia,
 } from "@geek/data";
 import type { CatalogMedia, Edition, Game, Platform } from "@geek/domain";
 
 import { supabase } from "../lib/supabase";
+import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
 import {
   buildGamePlatformResults,
   buildGameRegionVariants,
@@ -102,7 +105,7 @@ export async function loadCanonicalGameRegions(
   const editions = editionsResult.data.filter((edition) => edition.platformId === platformId);
   const [editionCovers, gameCover] = await Promise.all([
     loadPrimaryEditionCovers(editions.map((edition) => edition.id)),
-    getPrimaryGameCover(supabase, gameId),
+    getGamePresentationCover(supabase, gameId, catalogMediaReadOptions),
   ]);
   if (editionCovers.outcome !== "ok" || gameCover.outcome !== "ok") return { outcome: "error" };
   return {
@@ -115,7 +118,7 @@ export async function loadCanonicalGameRegions(
         platformResult.data,
         editions,
         editionCovers.data,
-        gameCover.data,
+        gameCover.data?.media ?? null,
       ),
     },
   };
@@ -133,16 +136,18 @@ export async function loadCanonicalMarket(
     return { outcome: "not_found" };
   }
   if (gameResult.outcome !== "ok" || editionResult.outcome !== "ok") return { outcome: "error" };
-  const [platformResult, editionCover, gameCover] = await Promise.all([
+  const [platformResult, editionCover, gameCover, gameArtwork] = await Promise.all([
     getPlatform(supabase, editionResult.data.platformId),
-    getPrimaryEditionCover(supabase, editionId),
-    getPrimaryGameCover(supabase, gameId),
+    getPrimaryEditionCover(supabase, editionId, catalogMediaReadOptions),
+    getGamePresentationCover(supabase, gameId, catalogMediaReadOptions),
+    getPrimaryGameArtwork(supabase, gameId, catalogMediaReadOptions),
   ]);
   if (platformResult.outcome === "not_found") return { outcome: "not_found" };
   if (
     platformResult.outcome !== "ok" ||
     editionCover.outcome !== "ok" ||
-    gameCover.outcome !== "ok"
+    gameCover.outcome !== "ok" ||
+    gameArtwork.outcome !== "ok"
   )
     return { outcome: "error" };
   const data = resolveCanonicalMarket(
@@ -150,7 +155,8 @@ export async function loadCanonicalMarket(
     editionResult.data,
     platformResult.data,
     editionCover.data,
-    gameCover.data,
+    gameCover.data?.media ?? null,
+    gameArtwork.data,
   );
   return data ? { outcome: "ok", data } : { outcome: "not_found" };
 }
@@ -175,14 +181,32 @@ async function buildCatalogProjection(
 
 async function loadPrimaryGameCovers(
   gameIds: readonly string[],
-): Promise<CatalogLoadResult<readonly CatalogMedia[]>> {
-  return loadCoverBatches(gameIds, (ids) => getPrimaryGameCovers(supabase, ids));
+): Promise<CatalogLoadResult<readonly GamePresentationMedia[]>> {
+  return loadPresentationCoverBatches(gameIds);
 }
 
 async function loadPrimaryEditionCovers(
   editionIds: readonly string[],
 ): Promise<CatalogLoadResult<readonly CatalogMedia[]>> {
-  return loadCoverBatches(editionIds, (ids) => getPrimaryEditionCovers(supabase, ids));
+  return loadCoverBatches(editionIds, (ids) =>
+    getPrimaryEditionCovers(supabase, ids, catalogMediaReadOptions),
+  );
+}
+
+async function loadPresentationCoverBatches(
+  ids: readonly string[],
+): Promise<CatalogLoadResult<readonly GamePresentationMedia[]>> {
+  const covers: GamePresentationMedia[] = [];
+  for (let index = 0; index < ids.length; index += 100) {
+    const batch = await getGamePresentationCovers(
+      supabase,
+      ids.slice(index, index + 100),
+      catalogMediaReadOptions,
+    );
+    if (batch.outcome !== "ok") return { outcome: "error" };
+    covers.push(...batch.data);
+  }
+  return { outcome: "ok", data: covers };
 }
 
 async function loadCoverBatches(

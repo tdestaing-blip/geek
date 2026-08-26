@@ -33,19 +33,32 @@ export { getAlbumDetail, getAlbums } from "./albums/albums";
 
 export {
   getEdition,
+  getEditionsByIds,
   getEditionIdentifiers,
   getEditionsForGame,
   getEditionsForPlatform,
   getGame,
+  getGamesByIds,
   getPlatform,
+  getPlatformsByIds,
   getPlatforms,
 } from "./catalog/catalog";
 export {
+  getGamePresentationCover,
+  getGamePresentationCovers,
   getPrimaryEditionCover,
   getPrimaryEditionCovers,
+  getPrimaryGameArtwork,
   getPrimaryGameCover,
   getPrimaryGameCovers,
 } from "./catalog/media";
+export type { CatalogMediaReadOptions, GamePresentationMedia } from "./catalog/media";
+export {
+  catalogMediaRightsForUsageMode,
+  isCatalogMediaDisplayable,
+  parseCatalogMediaUsageMode,
+} from "./catalog/media-policy";
+export type { CatalogMediaUsageMode } from "./catalog/media-policy";
 export { searchCatalog } from "./catalog/search";
 
 export type { CollectionEntry } from "./collection/collection";
@@ -66,6 +79,7 @@ export {
   deleteCopyPhoto,
   getCopyPhotoGallery,
   getCopyPhotos,
+  getMyPrimaryCopyPhotos,
 } from "./collection/photos";
 
 export type { CopyComponentStateInput, CopyPrivateDetailsInput } from "./collection/enrichment";

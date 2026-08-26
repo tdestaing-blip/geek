@@ -6,6 +6,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DetailToolbar } from "../ui/detail-toolbar";
+import { AboutGameCard } from "../ui/about-game-card";
 import { GeekIcon } from "../ui/geek-icon";
 import {
   getCatalogRegionPresentation,
@@ -14,6 +15,7 @@ import {
 } from "./canonical-catalog";
 import { loadCanonicalMarket } from "./canonical-catalog-data";
 import { loadExactEditionOwnership } from "./add-copy-data";
+import { findActiveWishlistIntent, toggleWishlistIntent } from "./collection-surfaces-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Market">;
@@ -31,6 +33,8 @@ function MarketplaceContent({ navigation, route }: Props) {
   const [catalog, setCatalog] = useState<CanonicalMarketCatalog | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [ownedCopyCount, setOwnedCopyCount] = useState<number | null>(null);
+  const [wishlistIntentId, setWishlistIntentId] = useState<string | null | undefined>(undefined);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +68,20 @@ function MarketplaceContent({ navigation, route }: Props) {
         active = false;
       };
     }, [route.params.editionId]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void findActiveWishlistIntent(route.params.gameId, route.params.editionId).then(
+        (intentId) => {
+          if (active) setWishlistIntentId(intentId);
+        },
+      );
+      return () => {
+        active = false;
+      };
+    }, [route.params.editionId, route.params.gameId]),
   );
 
   if (state !== "ready" || !catalog) {
@@ -114,7 +132,25 @@ function MarketplaceContent({ navigation, route }: Props) {
           </View>
         </View>
         <View style={styles.actions}>
-          <ActionPill icon="bell-ring" label="Wishlist" />
+          <ActionPill
+            disabled={wishlistBusy || wishlistIntentId === undefined}
+            icon={wishlistIntentId ? "checkbox" : "bell-ring"}
+            label={wishlistIntentId ? "Dans la Wishlist" : "Wishlist"}
+            onPress={() => {
+              const previous = wishlistIntentId;
+              setWishlistBusy(true);
+              setWishlistIntentId(previous ? null : "pending");
+              void toggleWishlistIntent({
+                gameId: catalog.game.id,
+                editionId: catalog.edition.id,
+                ...(previous ? { intentId: previous } : {}),
+              })
+                .then(() => findActiveWishlistIntent(catalog.game.id, catalog.edition.id))
+                .then(setWishlistIntentId)
+                .catch(() => setWishlistIntentId(previous))
+                .finally(() => setWishlistBusy(false));
+            }}
+          />
           <ActionPill
             dark
             disabled={ownedCopyCount !== null && ownedCopyCount > 0}
@@ -135,11 +171,24 @@ function MarketplaceContent({ navigation, route }: Props) {
             Les ventes, enchères et échanges apparaîtront ici lorsqu’ils seront disponibles.
           </Text>
         </View>
-        {catalog.game.description ? (
-          <View style={styles.about}>
-            <Text style={styles.aboutTitle}>À propos du jeu</Text>
-            <Text style={styles.aboutCopy}>{catalog.game.description}</Text>
-          </View>
+        {catalog.game.description || catalog.aboutArtworkUrl ? (
+          <AboutGameCard
+            description={catalog.game.description}
+            facts={[
+              { label: "Plateforme", value: catalog.platform.name },
+              ...(catalog.edition.regionCode
+                ? [{ label: "Région", value: catalog.edition.regionCode }]
+                : []),
+              ...(catalog.edition.releaseDate
+                ? [{ label: "Sortie", value: catalog.edition.releaseDate }]
+                : []),
+              ...(catalog.edition.publisherName
+                ? [{ label: "Éditeur", value: catalog.edition.publisherName }]
+                : []),
+            ]}
+            image={catalog.aboutArtworkUrl ? { uri: catalog.aboutArtworkUrl } : null}
+            title={catalog.game.canonicalTitle}
+          />
         ) : null}
       </ScrollView>
     </View>
@@ -213,7 +262,4 @@ const styles = StyleSheet.create({
   },
   noOffersTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
   noOffersCopy: { ...typography.metadata, color: colors.textSecondary, textAlign: "center" },
-  about: { gap: 8, paddingHorizontal: 24 },
-  aboutTitle: { ...typography.sectionTitle, color: colors.text },
-  aboutCopy: { ...typography.body, color: colors.textSecondary },
 });

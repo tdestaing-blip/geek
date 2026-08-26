@@ -1,4 +1,5 @@
 import { addCopyPhoto, deleteCopyPhoto, type CopyPhotoRead } from "@geek/data";
+import type { CopyPhotoRole } from "@geek/domain";
 
 import { pendingCopyPhotoBytes, type PendingCopyPhoto } from "../lib/copy-photo-media";
 import { supabase } from "../lib/supabase";
@@ -6,6 +7,7 @@ import { supabase } from "../lib/supabase";
 export async function persistPendingCopyPhotos(
   copyId: string,
   photos: readonly PendingCopyPhoto[],
+  photoRole?: CopyPhotoRole,
 ): Promise<boolean> {
   let allSucceeded = true;
   for (const photo of photos) {
@@ -13,6 +15,7 @@ export async function persistPendingCopyPhotos(
       const result = await addCopyPhoto(supabase, {
         copyId,
         photoId: photo.id,
+        ...(photoRole ? { photoRole } : {}),
         bytes: pendingCopyPhotoBytes(photo),
         width: photo.width,
         height: photo.height,

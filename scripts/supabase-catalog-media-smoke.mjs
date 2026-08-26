@@ -9,10 +9,13 @@ import { createClient } from "@supabase/supabase-js";
 register("./typescript-resolver.mjs", import.meta.url);
 
 const {
+  getGamePresentationCover,
   getPrimaryEditionCover,
   getPrimaryEditionCovers,
+  getPrimaryGameArtwork,
   getPrimaryGameCover,
   getPrimaryGameCovers,
+  isCatalogMediaDisplayable,
 } = await import("../packages/data/src/index.ts");
 const { toCatalogMedia } = await import("../packages/data/src/catalog/mapping.ts");
 const { InvalidRowError } = await import("../packages/data/src/result.ts");
@@ -132,13 +135,13 @@ try {
   const gamesInsert = await admin
     .from("games")
     .insert(
-      ["publishable", "restricted", "unknown", "missing"].map((suffix) => ({
+      ["publishable", "noncommercial", "restricted", "unknown", "missing"].map((suffix) => ({
         canonical_title: `Catalog Media ${suffix} ${runId}`,
       })),
     )
     .select("id, canonical_title")
     .order("canonical_title");
-  record("four Game fixtures created", gamesInsert.error === null, errorDetail(gamesInsert));
+  record("five Game fixtures created", gamesInsert.error === null, errorDetail(gamesInsert));
   const games = Object.fromEntries(
     (gamesInsert.data ?? []).map((row) => [row.canonical_title.split(" ")[2], row.id]),
   );
@@ -148,18 +151,22 @@ try {
     .from("editions")
     .insert([
       { game_id: games.publishable, platform_id: platformId, edition_name: "Publishable" },
+      { game_id: games.noncommercial, platform_id: platformId, edition_name: null },
+      { game_id: games.noncommercial, platform_id: platformId, edition_name: "Collector" },
       { game_id: games.restricted, platform_id: platformId, edition_name: "Restricted" },
     ])
-    .select("id, edition_name");
+    .select("id, game_id, edition_name");
   record(
-    "two Edition fixtures created",
+    "four Edition fixtures created",
     editionsInsert.error === null,
     errorDetail(editionsInsert),
   );
   const editions = Object.fromEntries(
-    (editionsInsert.data ?? []).map((row) => [row.edition_name.toLowerCase(), row.id]),
+    (editionsInsert.data ?? []).flatMap((row) =>
+      row.edition_name ? [[row.edition_name.toLowerCase(), row.id]] : [],
+    ),
   );
-  fixtures.editionIds.push(...Object.values(editions));
+  fixtures.editionIds.push(...(editionsInsert.data ?? []).map(({ id }) => id));
 
   const gameCoverInsert = await admin
     .from("catalog_media")
@@ -195,6 +202,32 @@ try {
     )
     .select("id")
     .single();
+  const noncommercialEdition = editionsInsert.data.find(
+    ({ game_id, edition_name }) => game_id === games.noncommercial && edition_name === null,
+  );
+  const noncommercialVariant = editionsInsert.data.find(
+    ({ game_id, edition_name }) => game_id === games.noncommercial && edition_name === "Collector",
+  );
+  const noncommercialInsert = await admin
+    .from("catalog_media")
+    .insert(
+      media({
+        edition_id: noncommercialEdition?.id,
+        rights_status: "noncommercial",
+        is_primary: true,
+        attribution: "Data by MobyGames.com",
+      }),
+    )
+    .select("*")
+    .single();
+  const noncommercialVariantInsert = await admin.from("catalog_media").insert(
+    media({
+      edition_id: noncommercialVariant?.id,
+      rights_status: "noncommercial",
+      is_primary: true,
+      attribution: "Data by MobyGames.com",
+    }),
+  );
   const restrictedInsert = await admin
     .from("catalog_media")
     .insert(media({ game_id: games.restricted, is_primary: false, rights_status: "restricted" }))
@@ -209,6 +242,11 @@ try {
     "licensed media can be primary",
     licensedInsert.error === null,
     errorDetail(licensedInsert),
+  );
+  record(
+    "noncommercial media can be primary without implying commercial rights",
+    noncommercialInsert.error === null && noncommercialVariantInsert.error === null,
+    noncommercialInsert.error?.message ?? noncommercialVariantInsert.error?.message,
   );
   record(
     "restricted and unknown non-primary provenance rows remain allowed",
@@ -292,6 +330,55 @@ try {
     "E. licensed media is readable",
     anonLicensed.data?.length === 1,
     errorDetail(anonLicensed),
+  );
+
+  const anonNoncommercial = await anonymous
+    .from("catalog_media")
+    .select("id")
+    .eq("id", noncommercialInsert.data.id);
+  record(
+    "authorized local noncommercial mode exposes noncommercial media",
+    anonNoncommercial.data?.length === 1,
+    errorDetail(anonNoncommercial),
+  );
+
+  const commercialApi = await getPrimaryEditionCover(anonymous, noncommercialEdition.id, {
+    usageMode: "commercial",
+  });
+  const noncommercialApi = await getPrimaryEditionCover(anonymous, noncommercialEdition.id, {
+    usageMode: "noncommercial",
+  });
+  record(
+    "canonical data policy displays Hobbyist media only in noncommercial mode",
+    commercialApi.outcome === "ok" &&
+      commercialApi.data === null &&
+      noncommercialApi.outcome === "ok" &&
+      noncommercialApi.data?.rightsStatus === "noncommercial" &&
+      isCatalogMediaDisplayable("noncommercial", "noncommercial") &&
+      !isCatalogMediaDisplayable("noncommercial", "commercial"),
+    `${commercialApi.outcome} / ${noncommercialApi.outcome}`,
+  );
+
+  const commercialServerMode = await admin
+    .from("catalog_media_usage_configuration")
+    .update({ usage_mode: "commercial" })
+    .eq("singleton", true);
+  const serverRejected = await anonymous
+    .from("catalog_media")
+    .select("id")
+    .eq("id", noncommercialInsert.data.id);
+  const restoreServerMode = await admin
+    .from("catalog_media_usage_configuration")
+    .update({ usage_mode: "noncommercial" })
+    .eq("singleton", true);
+  record(
+    "server-side commercial mode rejects noncommercial media and local mode restores cleanly",
+    commercialServerMode.error === null &&
+      serverRejected.data?.length === 0 &&
+      restoreServerMode.error === null,
+    commercialServerMode.error?.message ??
+      serverRejected.error?.message ??
+      restoreServerMode.error?.message,
   );
 
   const anonRestricted = await anonymous
@@ -462,6 +549,27 @@ try {
       editionCover.data?.editionId === editions.publishable &&
       editionCover.data.gameId === null,
     editionCover.outcome,
+  );
+
+  const presentationCover = await getGamePresentationCover(authenticated, games.noncommercial, {
+    usageMode: "noncommercial",
+  });
+  record(
+    "Game presentation deterministically prefers a standard Edition front cover",
+    presentationCover.outcome === "ok" &&
+      presentationCover.data?.gameId === games.noncommercial &&
+      presentationCover.data.media.editionId === noncommercialEdition.id &&
+      presentationCover.data.media.attribution === "Data by MobyGames.com",
+    presentationCover.outcome,
+  );
+
+  const gameArtwork = await getPrimaryGameArtwork(anonymous, games.publishable);
+  record(
+    "publishable About artwork is selected independently from package cover",
+    gameArtwork.outcome === "ok" &&
+      gameArtwork.data?.kind === "artwork" &&
+      gameArtwork.data.rightsStatus === "licensed",
+    gameArtwork.outcome,
   );
 
   const missingCover = await getPrimaryGameCover(anonymous, games.missing);

@@ -1,15 +1,17 @@
 import {
   getAlbumDetail,
   getAlbums,
+  getGamePresentationCovers,
   getEditionComponents,
   getEditionIdentifiers,
+  getCopyPhotoGallery,
   getMyCopiesForEdition,
   getPrimaryEditionCovers,
-  getPrimaryGameCovers,
   updateCopyComponentStates,
   updateCopyPrivateDetails,
   type CopyComponentStateInput,
   type CopyPrivateDetailsInput,
+  type GamePresentationMedia,
 } from "@geek/data";
 import type {
   AlbumDetail,
@@ -20,9 +22,11 @@ import type {
 } from "@geek/domain";
 
 import { supabase } from "../lib/supabase";
+import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
 import { selectAlbumRevealTarget, type AlbumRevealSelection } from "./add-copy-flow";
 import { loadCanonicalMarket } from "./canonical-catalog-data";
 import type { CanonicalMarketCatalog } from "./canonical-catalog";
+import { resolveRevealMediaUrl } from "./presentation-media";
 
 const ALBUM_PAGE_SIZE = 50;
 const ALBUM_ENTRY_PAGE_SIZE = 100;
@@ -87,8 +91,10 @@ export async function loadRevealAlbum(albumId: string): Promise<RevealAlbumData 
   );
   const gameIds = album.entries.map((entry) => entry.target.gameId);
   const [editionMedia, gameMedia] = await Promise.all([
-    loadMediaBatches(editionIds, (ids) => getPrimaryEditionCovers(supabase, ids)),
-    loadMediaBatches(gameIds, (ids) => getPrimaryGameCovers(supabase, ids)),
+    loadMediaBatches(editionIds, (ids) =>
+      getPrimaryEditionCovers(supabase, ids, catalogMediaReadOptions),
+    ),
+    loadGamePresentationMediaBatches(gameIds),
   ]);
   const editionArtwork = new Map(
     editionMedia.flatMap((media) =>
@@ -96,7 +102,7 @@ export async function loadRevealAlbum(albumId: string): Promise<RevealAlbumData 
     ),
   );
   const gameArtwork = new Map(
-    gameMedia.flatMap((media) => (media.gameId ? [[media.gameId, media.assetUrl] as const] : [])),
+    gameMedia.map(({ gameId, media }) => [gameId, media.assetUrl] as const),
   );
   return {
     album,
@@ -116,6 +122,38 @@ export async function loadExactEditionOwnership(
 ): Promise<readonly Copy[] | null> {
   const result = await getMyCopiesForEdition(supabase, editionId);
   return result.outcome === "ok" ? result.data : null;
+}
+
+/** Resolves one stable, owner-private reveal image after Copy-photo persistence has finished. */
+export type RevealMedia = {
+  readonly url: string | null;
+  readonly attribution: string | null;
+};
+
+export async function loadRevealMedia(
+  copyId: string,
+  gameId: string,
+  editionId: string,
+): Promise<RevealMedia> {
+  const [photos, editionCover, gameCover] = await Promise.all([
+    getCopyPhotoGallery(supabase, copyId),
+    getPrimaryEditionCovers(supabase, [editionId], catalogMediaReadOptions),
+    getGamePresentationCovers(supabase, [gameId], catalogMediaReadOptions),
+  ]);
+  if (photos.outcome !== "ok" || editionCover.outcome !== "ok" || gameCover.outcome !== "ok") {
+    return { url: null, attribution: null };
+  }
+  const copyPhotoUrl = photos.data[0]?.signedUrl;
+  const catalogMedia = editionCover.data[0] ?? gameCover.data[0]?.media;
+  return {
+    url:
+      resolveRevealMediaUrl({
+        copyPhotoUrl,
+        editionCatalogUrl: editionCover.data[0]?.assetUrl,
+        gameCatalogUrl: gameCover.data[0]?.media.assetUrl,
+      }) ?? null,
+    attribution: copyPhotoUrl ? null : (catalogMedia?.attribution ?? null),
+  };
 }
 
 async function loadPublishedAlbumDetails(): Promise<readonly AlbumDetail[]> {
@@ -168,6 +206,23 @@ async function loadMediaBatches(
   const uniqueIds = [...new Set(ids)];
   for (let offset = 0; offset < uniqueIds.length; offset += 100) {
     const result = await load(uniqueIds.slice(offset, offset + 100));
+    if (result.outcome !== "ok") throw new Error("Album artwork could not be loaded");
+    media.push(...result.data);
+  }
+  return media;
+}
+
+async function loadGamePresentationMediaBatches(
+  ids: readonly string[],
+): Promise<readonly GamePresentationMedia[]> {
+  const media: GamePresentationMedia[] = [];
+  const uniqueIds = [...new Set(ids)];
+  for (let offset = 0; offset < uniqueIds.length; offset += 100) {
+    const result = await getGamePresentationCovers(
+      supabase,
+      uniqueIds.slice(offset, offset + 100),
+      catalogMediaReadOptions,
+    );
     if (result.outcome !== "ok") throw new Error("Album artwork could not be loaded");
     media.push(...result.data);
   }

@@ -77,7 +77,12 @@ try {
     "anonymous callers must not upsert trusted MobyGames sources",
   );
 
-  for (const stage of ["after_edition", "after_identifiers", "after_evidence"]) {
+  for (const stage of [
+    "after_edition",
+    "after_identifiers",
+    "after_evidence",
+    "after_components",
+  ]) {
     const fixture = await createFixture(platform.data.id, stage);
     if (stage === "after_edition") {
       const denied = await anonymous.rpc("persist_mobygames_edition_candidate", {
@@ -102,6 +107,7 @@ try {
     assert.equal(repeated.data.editionId, retry.data.editionId);
     assert.equal(repeated.data.created, false);
     assert.equal(repeated.data.identifiersCreated, 0);
+    assert.equal(repeated.data.componentsCreated, 0);
     assert.equal(repeated.data.evidenceLinksCreated, 0);
     assert.equal(repeated.data.mediaCreated, 0);
   }
@@ -146,7 +152,7 @@ try {
   });
   assert.equal(oldMedia.error, null);
 
-  const failedEnrichment = await persistCandidate(existing, existingEditionId, "after_evidence");
+  const failedEnrichment = await persistCandidate(existing, existingEditionId, "after_components");
   assert.notEqual(failedEnrichment.error, null);
   await assertExistingCandidateRolledBack(existing, existingEditionId);
 
@@ -163,6 +169,7 @@ try {
   assert.equal(repeatedEnrichment.error, null);
   assert.equal(repeatedEnrichment.data.editionId, existingEditionId);
   assert.equal(repeatedEnrichment.data.identifiersCreated, 0);
+  assert.equal(repeatedEnrichment.data.componentsCreated, 0);
   assert.equal(repeatedEnrichment.data.evidenceLinksCreated, 0);
   assert.equal(repeatedEnrichment.data.mediaCreated, 0);
 
@@ -276,14 +283,25 @@ async function createFixture(platformId, label) {
         { sourceRecordId: releaseSourceId, kind: "release", fingerprint: "c".repeat(64) },
         { sourceRecordId: coversSourceId, kind: "cover_group", fingerprint: "d".repeat(64) },
       ],
+      components: [
+        {
+          componentKey: "cartridge",
+          name: "Cartridge",
+          kind: "cartridge",
+          requiredForComplete: true,
+          sortOrder: 0,
+        },
+      ],
       media: [
         {
           kind: "cover_front",
           assetUrl: `https://example.com/${runKey}-${label}.jpg`,
           sourceAssetId: `${runKey}-${label}-media`,
           sourcePageUrl: null,
+          rightsStatus: "noncommercial",
           width: 800,
           height: 600,
+          isPrimary: true,
           attribution: "Data by MobyGames.com",
         },
       ],
@@ -577,6 +595,13 @@ async function assertExistingCandidateRolledBack(fixture, editionId) {
     .eq("edition_id", editionId);
   assert.equal(media.error, null);
   assert.deepEqual(media.data, [{ source_asset_id: `${runKey}-existing-media` }]);
+
+  const components = await service
+    .from("edition_components")
+    .select("id")
+    .eq("edition_id", editionId);
+  assert.equal(components.error, null);
+  assert.equal(components.data.length, 0);
 }
 
 async function assertCompleteCandidate(fixture, editionId, retained = {}) {
@@ -598,6 +623,21 @@ async function assertCompleteCandidate(fixture, editionId, retained = {}) {
     expectedIdentifiers.sort(),
   );
 
+  const components = await service
+    .from("edition_components")
+    .select("component_key, kind, required_for_complete, sort_order")
+    .eq("edition_id", editionId)
+    .order("sort_order");
+  assert.equal(components.error, null);
+  assert.deepEqual(components.data, [
+    {
+      component_key: "cartridge",
+      kind: "cartridge",
+      required_for_complete: true,
+      sort_order: 0,
+    },
+  ]);
+
   const evidence = await service
     .from("edition_source_evidence")
     .select("evidence_fingerprint")
@@ -611,16 +651,25 @@ async function assertCompleteCandidate(fixture, editionId, retained = {}) {
 
   const media = await service
     .from("catalog_media")
-    .select("source_asset_id")
+    .select("source_provider, source_asset_id, rights_status, is_primary, attribution")
     .eq("edition_id", editionId)
     .order("source_asset_id");
   assert.equal(media.error, null);
-  const expectedMedia = [fixture.candidate.media[0].sourceAssetId];
-  if (retained.retainedMedia !== undefined) expectedMedia.push(retained.retainedMedia);
-  assert.deepEqual(
-    media.data.map(({ source_asset_id }) => source_asset_id),
-    expectedMedia.sort(),
+  const inserted = media.data.find(
+    ({ source_provider, source_asset_id }) =>
+      source_provider === "mobygames" &&
+      source_asset_id === fixture.candidate.media[0].sourceAssetId,
   );
+  assert.deepEqual(inserted, {
+    source_provider: "mobygames",
+    source_asset_id: fixture.candidate.media[0].sourceAssetId,
+    rights_status: "noncommercial",
+    is_primary: true,
+    attribution: "Data by MobyGames.com",
+  });
+  if (retained.retainedMedia !== undefined) {
+    assert.ok(media.data.some(({ source_asset_id }) => source_asset_id === retained.retainedMedia));
+  }
 }
 
 async function exactCount(table) {

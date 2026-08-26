@@ -1,14 +1,18 @@
 import type { CatalogMedia } from "@geek/domain";
 import {
+  getGamePresentationCovers,
   getMyCollection,
+  getMyPrimaryCopyPhotos,
   getPrimaryEditionCovers,
-  getPrimaryGameCovers,
   type CollectionEntry,
+  type GamePresentationMedia,
 } from "@geek/data";
 import type { ImageSourcePropType } from "react-native";
 
 import { supabase } from "../lib/supabase";
+import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
 import type { GridItem } from "../ui/game-grid-item";
+import { resolveOwnedCopyMedia } from "./presentation-media";
 
 const COLLECTION_PAGE_SIZE = 100;
 
@@ -16,6 +20,7 @@ export type CanonicalCollectionItem = Omit<GridItem, "copyId" | "editionId" | "i
   readonly copyId: string;
   readonly editionId?: string;
   readonly image?: ImageSourcePropType;
+  readonly mediaAttribution?: string;
 };
 
 export type CanonicalCollection = {
@@ -42,41 +47,89 @@ export async function loadCanonicalCollection(): Promise<CanonicalCollectionLoad
     if (result.data.items.length < COLLECTION_PAGE_SIZE) break;
   }
 
-  const covers = await loadPrimaryCovers(entries);
-  return { outcome: "ok", data: { entries, items: toCollectionItems(entries, covers) } };
+  const [covers, photos] = await Promise.all([
+    loadPrimaryCovers(entries),
+    loadPrimaryPhotos(entries.map(({ copy }) => copy.id)),
+  ]);
+  return { outcome: "ok", data: { entries, items: toCollectionItems(entries, covers, photos) } };
 }
 
 function toCollectionItems(
   entries: readonly CollectionEntry[],
-  covers: ReadonlyMap<string, ImageSourcePropType>,
+  covers: ReadonlyMap<string, CatalogMedia>,
+  photos: ReadonlyMap<string, string>,
 ): readonly CanonicalCollectionItem[] {
-  return entries.map(({ copy, edition, game, platform }) => ({
-    copyId: copy.id,
-    editionId: copy.editionId ?? undefined,
-    gameId: copy.gameId,
-    image: covers.get(edition?.id ?? "") ?? covers.get(game.id),
-    platform: platform?.name ?? "Édition à préciser",
-    regionCode: edition?.regionCode ?? null,
-    title: game.canonicalTitle,
-  }));
+  return entries.map(({ copy, edition, game, platform }) => {
+    const copyPhotoUrl = photos.get(copy.id);
+    const editionMedia = covers.get(edition?.id ?? "");
+    const gameMedia = covers.get(game.id);
+    const catalogMedia = editionMedia ?? gameMedia;
+    return {
+      copyId: copy.id,
+      editionId: copy.editionId ?? undefined,
+      gameId: copy.gameId,
+      image: resolveOwnedCopyMedia({
+        copyPhotoUrl,
+        editionCatalogUrl: editionMedia?.assetUrl,
+        gameCatalogUrl: gameMedia?.assetUrl,
+      }),
+      ...(copyPhotoUrl || !catalogMedia?.attribution
+        ? {}
+        : { mediaAttribution: catalogMedia.attribution }),
+      platform: platform?.name ?? "Édition à préciser",
+      regionCode: edition?.regionCode ?? null,
+      title: game.canonicalTitle,
+    };
+  });
+}
+
+async function loadPrimaryPhotos(copyIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  const photos = new Map<string, string>();
+  for (let offset = 0; offset < copyIds.length; offset += COLLECTION_PAGE_SIZE) {
+    const result = await getMyPrimaryCopyPhotos(
+      supabase,
+      copyIds.slice(offset, offset + COLLECTION_PAGE_SIZE),
+    );
+    if (result.outcome !== "ok") continue;
+    for (const { photo, signedUrl } of result.data) photos.set(photo.copyId, signedUrl);
+  }
+  return photos;
 }
 
 async function loadPrimaryCovers(
   entries: readonly CollectionEntry[],
-): Promise<ReadonlyMap<string, ImageSourcePropType>> {
+): Promise<ReadonlyMap<string, CatalogMedia>> {
   const editionIds = distinct(entries.flatMap(({ edition }) => (edition ? [edition.id] : [])));
   const gameIds = distinct(entries.map(({ game }) => game.id));
   const [editionMedia, gameMedia] = await Promise.all([
-    loadCoverBatches(editionIds, getPrimaryEditionCovers),
-    loadCoverBatches(gameIds, getPrimaryGameCovers),
+    loadCoverBatches(editionIds, (client, ids) =>
+      getPrimaryEditionCovers(client, ids, catalogMediaReadOptions),
+    ),
+    loadGamePresentationCoverBatches(gameIds),
   ]);
 
-  const covers = new Map<string, ImageSourcePropType>();
-  for (const media of [...gameMedia, ...editionMedia]) {
+  const covers = new Map<string, CatalogMedia>();
+  for (const { gameId, media } of gameMedia) covers.set(gameId, media);
+  for (const media of editionMedia) {
     const targetId = media.editionId ?? media.gameId;
-    if (targetId) covers.set(targetId, { uri: media.assetUrl });
+    if (targetId) covers.set(targetId, media);
   }
   return covers;
+}
+
+async function loadGamePresentationCoverBatches(
+  ids: readonly string[],
+): Promise<readonly GamePresentationMedia[]> {
+  const media: GamePresentationMedia[] = [];
+  for (let offset = 0; offset < ids.length; offset += COLLECTION_PAGE_SIZE) {
+    const result = await getGamePresentationCovers(
+      supabase,
+      ids.slice(offset, offset + COLLECTION_PAGE_SIZE),
+      catalogMediaReadOptions,
+    );
+    if (result.outcome === "ok") media.push(...result.data);
+  }
+  return media;
 }
 
 async function loadCoverBatches(
@@ -84,7 +137,7 @@ async function loadCoverBatches(
   load: (
     client: typeof supabase,
     targetIds: readonly string[],
-  ) => ReturnType<typeof getPrimaryGameCovers>,
+  ) => ReturnType<typeof getPrimaryEditionCovers>,
 ): Promise<readonly CatalogMedia[]> {
   const media: CatalogMedia[] = [];
   for (let offset = 0; offset < ids.length; offset += COLLECTION_PAGE_SIZE) {

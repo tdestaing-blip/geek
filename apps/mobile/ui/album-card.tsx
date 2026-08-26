@@ -1,46 +1,58 @@
 import { colors, radii, typography } from "@geek/design-tokens";
+import type { AlbumSummary } from "@geek/domain";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
+import { getAlbumTheme } from "../navigation/album-theme";
 import { getAlbumProgress, type AlbumFixture } from "../navigation/album-fixtures";
 
 export function AlbumCard({
   album,
   onPress,
 }: {
-  readonly album: AlbumFixture;
+  readonly album: AlbumSummary | AlbumFixture;
   readonly onPress?: () => void;
 }) {
-  const { ownedSlots, totalSlots } = getAlbumProgress(album);
-  const progress = ownedSlots / totalSlots;
+  const canonical = "progress" in album;
+  const theme = canonical
+    ? getAlbumTheme(album)
+    : { colors: album.colors, fontFamily: album.fontFamily, logo: album.logo };
+  const progress = canonical ? album.progress : getAlbumProgress(album);
+  const { ownedSlots, totalSlots } = progress;
+  const completionRatio = canonical ? album.progress.completionRatio : ownedSlots / totalSlots;
+  const subtitle = canonical ? album.description : album.subtitle;
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.card}>
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <Svg height="100%" width="100%">
           <Defs>
             <LinearGradient id={`album-${album.id}`} x1="0" x2="1" y1="0" y2="1">
-              <Stop offset="0" stopColor={album.colors[0]} />
-              <Stop offset="1" stopColor={album.colors[1]} />
+              <Stop offset="0" stopColor={theme.colors[0]} />
+              <Stop offset="1" stopColor={theme.colors[1]} />
             </LinearGradient>
           </Defs>
           <Rect fill={`url(#album-${album.id})`} height="100%" width="100%" />
         </Svg>
       </View>
       <View style={styles.copy}>
-        <Text numberOfLines={1} style={[styles.title, { fontFamily: album.fontFamily }]}>
+        <Text numberOfLines={1} style={[styles.title, { fontFamily: theme.fontFamily }]}>
           {album.title}
         </Text>
-        <Text style={styles.subtitle}>{album.subtitle}</Text>
+        {subtitle ? (
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {subtitle}
+          </Text>
+        ) : null}
         <View style={styles.progressRow}>
           <Text style={styles.count}>
-            {ownedSlots}/{totalSlots}
+            {ownedSlots}/{totalSlots} · {Math.round(completionRatio * 100)}%
           </Text>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            <View style={[styles.progressFill, { width: `${completionRatio * 100}%` }]} />
           </View>
         </View>
       </View>
-      <Image resizeMode="contain" source={album.logo} style={styles.logo} />
+      {theme.logo ? <Image resizeMode="contain" source={theme.logo} style={styles.logo} /> : null}
     </Pressable>
   );
 }

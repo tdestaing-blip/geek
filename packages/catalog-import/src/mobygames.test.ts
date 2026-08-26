@@ -463,23 +463,47 @@ test("ambiguous unresolved region is not canonicalized", () => {
   ]);
 });
 
-test("front/back media deduplicates while unsupported scans stay in source payload", () => {
+test("cover media and explicitly evidenced N64 components derive independently", () => {
   const group = coverGroup(["Europe"], null);
   group.covers = [
     cover("Front Cover", "https://cdn.example/front.jpg"),
     cover("Front Cover", "https://cdn.example/front.jpg"),
     cover("Back Cover", "https://cdn.example/back.jpg"),
     cover("Manual", "https://cdn.example/manual.jpg"),
+    cover("Media", "https://cdn.example/cartridge.jpg"),
+    cover("Map", "https://cdn.example/map.jpg"),
   ];
   const plan = planFor([release(["Europe"], null, [])], [group]);
   assert.deepEqual(
     plan.editions[0]?.media.map(({ kind }) => kind),
     ["cover_back", "cover_front"],
   );
+  assert.deepEqual(
+    plan.editions[0]?.components.map(({ componentKey, requiredForComplete }) => ({
+      componentKey,
+      requiredForComplete,
+    })),
+    [
+      { componentKey: "cartridge", requiredForComplete: true },
+      { componentKey: "box", requiredForComplete: true },
+      { componentKey: "manual", requiredForComplete: true },
+    ],
+  );
+  assert.deepEqual(
+    plan.editions[0]?.media.map(({ kind, rightsStatus, isPrimary }) => ({
+      kind,
+      rightsStatus,
+      isPrimary,
+    })),
+    [
+      { kind: "cover_back", rightsStatus: "noncommercial", isPrimary: false },
+      { kind: "cover_front", rightsStatus: "noncommercial", isPrimary: true },
+    ],
+  );
   const storedCovers = plan.sourceRecords.find(({ recordType }) => recordType === "covers");
   assert.equal(
     ((storedCovers?.payload.cover_groups as unknown[])[0] as { covers: unknown[] }).covers.length,
-    4,
+    6,
   );
 });
 

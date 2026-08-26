@@ -38,7 +38,7 @@ import {
 } from "../lib/copy-photo-media";
 import { supabase } from "../lib/supabase";
 import { AdaptiveGlassSurface } from "../ui/adaptive-glass-surface";
-import { CopyComponentCard } from "../ui/copy-component-card";
+import { CopyComponentCard, getCopyComponentLabel } from "../ui/copy-component-card";
 import { CopyPhotoGallery } from "../ui/copy-photo-gallery";
 import { GeekIcon } from "../ui/geek-icon";
 import {
@@ -358,17 +358,14 @@ function AddCopyForm({
           showsHorizontalScrollIndicator={false}
         >
           {components.map((component) => (
-            <Pressable
-              key={component.id}
-              onPress={() => onComponentPress(component.id)}
-              style={styles.componentCard}
-            >
+            <View key={component.id} style={styles.componentCard}>
               <CopyComponentCard
                 image={componentImage(component)}
-                label={component.name}
+                label={getCopyComponentLabel(component.kind, component.name)}
+                onPress={() => onComponentPress(component.id)}
                 state={componentStates[component.id] ?? "unassessed"}
               />
-            </Pressable>
+            </View>
           ))}
         </ScrollView>
       ) : null}

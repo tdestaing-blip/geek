@@ -132,7 +132,7 @@ try {
   const mediaCount = await count("catalog_media");
   record(
     "K. Libretro import creates no CatalogMedia or thumbnail references",
-    batch.media.length === 0 && mediaCount === 0,
+    batch.media.length === 0 && mediaCount === beforeUnsupported.media,
   );
 
   const clientWrite = await anonymous.rpc("import_catalog_batch", {
