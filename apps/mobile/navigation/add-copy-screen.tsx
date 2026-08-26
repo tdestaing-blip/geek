@@ -7,13 +7,12 @@ import {
   type CurrencyCode,
   type EditionComponent,
 } from "@geek/domain";
-import { colors, radii, spacing, typography } from "@geek/design-tokens";
+import { colors, spacing, typography } from "@geek/design-tokens";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
-  Image,
   type ImageSourcePropType,
   Platform,
   Pressable,
@@ -22,6 +21,7 @@ import {
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,9 +30,16 @@ import COMPONENT_BOX from "../assets/game-detail/owned/component-box.png";
 import COMPONENT_CARTRIDGE from "../assets/game-detail/owned/component-cartridge.png";
 import COMPONENT_MANUAL from "../assets/game-detail/owned/component-manual.png";
 import { copyConfirmedHaptic } from "../lib/haptics";
+import {
+  acquireCopyPhotos,
+  chooseCopyPhotoSource,
+  COPY_PHOTO_MAX_COUNT,
+  type PendingCopyPhoto,
+} from "../lib/copy-photo-media";
 import { supabase } from "../lib/supabase";
 import { AdaptiveGlassSurface } from "../ui/adaptive-glass-surface";
 import { CopyComponentCard } from "../ui/copy-component-card";
+import { CopyPhotoGallery } from "../ui/copy-photo-gallery";
 import { GeekIcon } from "../ui/geek-icon";
 import {
   loadAddCopyContext,
@@ -45,6 +52,7 @@ import {
   parseEuroInput,
   type AddCopySubmissionResult,
 } from "./add-copy-flow";
+import { persistPendingCopyPhotos } from "./copy-photo-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AddCopy">;
@@ -75,6 +83,7 @@ function AddCopyContent({ navigation, route }: Props) {
   const [isCompleted, setIsCompleted] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "pending" | "committed">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<readonly PendingCopyPhoto[]>([]);
   const submissionInFlight = useRef(false);
   const coordinator = useRef<ReturnType<typeof createAddCopySubmissionCoordinator> | null>(null);
 
@@ -138,6 +147,7 @@ function AddCopyContent({ navigation, route }: Props) {
             presence ? [{ editionComponentId, presence }] : [],
           ),
         ),
+      persistPhotos: (copyId) => persistPendingCopyPhotos(copyId, pendingPhotos),
       resolveAlbums: () => resolveAlbumReveal(route.params.gameId, route.params.editionId),
     });
     const result = await coordinator.current.submit();
@@ -164,13 +174,16 @@ function AddCopyContent({ navigation, route }: Props) {
         editionId: route.params.editionId,
         entryId: result.albumSelection.target.entry.id,
         enrichmentWarning: result.enrichmentWarning,
+        photoWarning: result.photoWarning,
       });
       return;
     }
     setMessage(
-      result.enrichmentWarning
-        ? "Jeu ajouté, certains détails n’ont pas pu être enregistrés."
-        : "Jeu ajouté à votre collection.",
+      result.photoWarning
+        ? "Jeu ajouté, certaines photos n’ont pas pu être enregistrées."
+        : result.enrichmentWarning
+          ? "Jeu ajouté, certains détails n’ont pas pu être enregistrés."
+          : "Jeu ajouté à votre collection.",
     );
   }
 
@@ -202,6 +215,8 @@ function AddCopyContent({ navigation, route }: Props) {
           context={loadState.context}
           isCompleted={isCompleted}
           message={message}
+          pendingPhotos={pendingPhotos}
+          onAddPhotos={() => void addPendingPhotos()}
           onAcquiredAtChange={setAcquiredAt}
           onComponentPress={(componentId) =>
             setComponentStates((current) => ({
@@ -212,12 +227,32 @@ function AddCopyContent({ navigation, route }: Props) {
           onCompletedChange={setIsCompleted}
           onPriceChange={setPurchasePrice}
           onProvenanceChange={setProvenance}
+          onRemovePhoto={(photoId) =>
+            setPendingPhotos((current) => current.filter((photo) => photo.id !== photoId))
+          }
           provenance={provenance}
           purchasePrice={purchasePrice}
         />
       )}
     </View>
   );
+
+  async function addPendingPhotos() {
+    const remaining = COPY_PHOTO_MAX_COUNT - pendingPhotos.length;
+    if (remaining <= 0) {
+      setMessage("Vous pouvez ajouter jusqu’à 6 photos.");
+      return;
+    }
+    const source = await chooseCopyPhotoSource();
+    if (!source) return;
+    try {
+      const selected = await acquireCopyPhotos(source, remaining);
+      setPendingPhotos((current) => [...current, ...selected].slice(0, COPY_PHOTO_MAX_COUNT));
+      setMessage(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Impossible d’ajouter cette photo.");
+    }
+  }
 }
 
 function AddCopyToolbar({
@@ -263,11 +298,14 @@ function AddCopyForm({
   context,
   isCompleted,
   message,
+  pendingPhotos,
+  onAddPhotos,
   onAcquiredAtChange,
   onComponentPress,
   onCompletedChange,
   onPriceChange,
   onProvenanceChange,
+  onRemovePhoto,
   provenance,
   purchasePrice,
 }: {
@@ -276,15 +314,19 @@ function AddCopyForm({
   readonly context: AddCopyContext;
   readonly isCompleted: boolean;
   readonly message: string | null;
+  readonly pendingPhotos: readonly PendingCopyPhoto[];
+  readonly onAddPhotos: () => void;
   readonly onAcquiredAtChange: (value: string) => void;
   readonly onComponentPress: (componentId: string) => void;
   readonly onCompletedChange: (value: boolean) => void;
   readonly onPriceChange: (value: string) => void;
   readonly onProvenanceChange: (value: string) => void;
+  readonly onRemovePhoto: (photoId: string) => void;
   readonly provenance: string;
   readonly purchasePrice: string;
 }) {
   const { catalog, components, identifiers } = context;
+  const { width } = useWindowDimensions();
   const regionAndLanguages = [
     catalog.edition.regionCode,
     catalog.edition.supportedLanguages.length
@@ -299,19 +341,16 @@ function AddCopyForm({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <View
-        accessibilityLabel="Ajout de photos non disponible dans cette version"
-        style={styles.photoArea}
-      >
-        {catalog.artworkUrl ? (
-          <Image source={{ uri: catalog.artworkUrl }} style={styles.fill} />
-        ) : null}
-        <View style={styles.photoShade} />
-        <View style={styles.photoCopy}>
-          <GeekIcon color={colors.controlSelected} name="image-2-plus" size={32} />
-          <Text style={styles.photoText}>Add photos of your copy</Text>
-        </View>
-      </View>
+      <CopyPhotoGallery
+        accessibilityLabel="Ajouter des photos de votre copie"
+        canAdd={pendingPhotos.length < COPY_PHOTO_MAX_COUNT}
+        fallbackArtwork={catalog.artworkUrl ? { uri: catalog.artworkUrl } : null}
+        onAdd={onAddPhotos}
+        onRemove={onRemovePhoto}
+        photos={pendingPhotos.map((photo) => ({ id: photo.id, uri: photo.uri }))}
+        removable
+        size={Math.min(361, width - spacing.page * 2)}
+      />
       {components.length ? (
         <ScrollView
           contentContainerStyle={styles.components}
@@ -555,19 +594,7 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.45 },
   content: { gap: 24, paddingBottom: 40, paddingTop: spacing.compact },
-  photoArea: {
-    alignItems: "center",
-    alignSelf: "center",
-    aspectRatio: 1,
-    borderRadius: radii.detailCard,
-    justifyContent: "center",
-    overflow: "hidden",
-    width: "92%",
-  },
   fill: { height: "100%", width: "100%" },
-  photoShade: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,.58)" },
-  photoCopy: { alignItems: "center", gap: spacing.compact, position: "absolute" },
-  photoText: { ...typography.body, color: colors.controlSelected },
   components: { gap: spacing.compact, paddingHorizontal: spacing.page },
   componentCard: { width: 110 },
   heading: { gap: spacing.micro, paddingHorizontal: 24 },

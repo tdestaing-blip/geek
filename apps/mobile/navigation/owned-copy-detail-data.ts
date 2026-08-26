@@ -1,7 +1,9 @@
 import {
   getMyCopyDetail,
+  getCopyPhotoGallery,
   getPrimaryEditionCover,
   getPrimaryGameCover,
+  type CopyPhotoRead,
   type MyCopyDetail,
 } from "@geek/data";
 import type { ImageSourcePropType } from "react-native";
@@ -12,6 +14,7 @@ export type CanonicalCopyDetail = {
   readonly detail: MyCopyDetail;
   /** Catalog artwork only. This is never represented as a photo of the owned Copy. */
   readonly catalogArtwork: ImageSourcePropType | null;
+  readonly photos: readonly CopyPhotoRead[];
 };
 
 export type CanonicalCopyDetailResult =
@@ -20,10 +23,14 @@ export type CanonicalCopyDetailResult =
   | { readonly outcome: "error" };
 
 export async function loadCanonicalCopyDetail(copyId: string): Promise<CanonicalCopyDetailResult> {
-  const result = await getMyCopyDetail(supabase, copyId);
+  const [result, photoResult] = await Promise.all([
+    getMyCopyDetail(supabase, copyId),
+    getCopyPhotoGallery(supabase, copyId),
+  ]);
 
   if (result.outcome === "not_found") return result;
   if (result.outcome !== "ok") return { outcome: "error" };
+  if (photoResult.outcome !== "ok") return { outcome: "error" };
 
   let coverResult = result.data.edition
     ? await getPrimaryEditionCover(supabase, result.data.edition.id)
@@ -41,6 +48,7 @@ export async function loadCanonicalCopyDetail(copyId: string): Promise<Canonical
         coverResult.outcome === "ok" && coverResult.data
           ? { uri: coverResult.data.assetUrl }
           : null,
+      photos: photoResult.data,
     },
   };
 }

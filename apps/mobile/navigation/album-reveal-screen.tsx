@@ -249,6 +249,7 @@ function AlbumRevealContent({ navigation, route }: Props) {
       albumData={state.albumData}
       catalog={state.catalog}
       enrichmentWarning={route.params.enrichmentWarning}
+      photoWarning={route.params.photoWarning}
       intro={intro}
       platformIntro={platformIntro}
       onNext={() => openAlbum(state.targetRowIndex)}
@@ -273,6 +274,7 @@ function RevealIntro({
   albumData,
   catalog,
   enrichmentWarning,
+  photoWarning,
   intro,
   platformIntro,
   onNext,
@@ -280,6 +282,7 @@ function RevealIntro({
   readonly albumData: RevealAlbumData;
   readonly catalog: CanonicalMarketCatalog;
   readonly enrichmentWarning: boolean;
+  readonly photoWarning: boolean;
   readonly intro: Animated.Value;
   readonly platformIntro: Animated.Value;
   readonly onNext: () => void;
@@ -332,7 +335,11 @@ function RevealIntro({
             <GeekIcon color={colors.controlSelected} name="gamepad" size={48} />
           )}
         </Animated.View>
-        {enrichmentWarning ? (
+        {photoWarning ? (
+          <Text style={styles.enrichmentWarning}>
+            Jeu ajouté, certaines photos n’ont pas pu être enregistrées.
+          </Text>
+        ) : enrichmentWarning ? (
           <Text style={styles.enrichmentWarning}>
             Jeu ajouté, certains détails n’ont pas pu être enregistrés.
           </Text>

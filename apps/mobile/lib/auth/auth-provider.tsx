@@ -35,6 +35,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const AUTH_RESOLUTION_TIMEOUT_MS = 10_000;
 
 /**
  * Owns the app's Auth state.
@@ -68,7 +69,16 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
 
   const resolve = useCallback(async (): Promise<void> => {
     const generation = ++generationRef.current;
-    const next = await resolveAuthState(supabase);
+    let next: GeekAuthState;
+
+    try {
+      next = await withTimeout(resolveAuthState(supabase), AUTH_RESOLUTION_TIMEOUT_MS);
+    } catch {
+      // A native/network failure must not strand the app in bootstrapping. No
+      // identity was verified, so signed out is the only truthful fallback.
+      console.error("Auth state resolution failed.");
+      next = UNAUTHENTICATED_AUTH_STATE;
+    }
 
     // Discard if the component unmounted or a newer event superseded this run.
     if (!mountedRef.current || generation !== generationRef.current) {
@@ -80,11 +90,9 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
 
   useEffect(() => {
     mountedRef.current = true;
+    const bootstrapGeneration = ++generationRef.current;
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      // Bootstrap ends here: `INITIAL_SESSION` is always emitted once the client
-      // has finished reading persisted storage, so there is no second startup
-      // path that could race with this one.
       if (session === null) {
         generationRef.current += 1;
         setPasswordRecoveryRequested(false);
@@ -120,6 +128,31 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       void resolve();
     });
 
+    // Read AsyncStorage-backed session state explicitly. The Auth subscription
+    // remains authoritative for subsequent changes, but cold-start completion
+    // must not depend on INITIAL_SESSION being delivered.
+    void withTimeout(supabase.auth.getSession(), AUTH_RESOLUTION_TIMEOUT_MS)
+      .then(({ data: sessionData, error }) => {
+        if (!mountedRef.current || bootstrapGeneration !== generationRef.current) return;
+
+        if (error !== null || sessionData.session === null) {
+          setPasswordRecoveryRequested(false);
+          applyState(UNAUTHENTICATED_AUTH_STATE);
+          return;
+        }
+
+        void resolve();
+      })
+      .catch(() => {
+        if (!mountedRef.current || bootstrapGeneration !== generationRef.current) return;
+
+        // Session hydration could not establish a verified identity. Fall back
+        // conservatively and leave the real error available to the Auth client.
+        console.error("Auth session hydration failed.");
+        setPasswordRecoveryRequested(false);
+        applyState(UNAUTHENTICATED_AUTH_STATE);
+      });
+
     return () => {
       mountedRef.current = false;
       // Bump once more so any pending resolution is discarded after teardown.
@@ -135,11 +168,8 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const callbackResolutionPending = useAuthDeepLinks(async (outcome) => {
     if (outcome?.outcome === "session_established") {
       setPasswordRecoveryRequested(outcome.intent === "password_recovery");
+      await resolve();
     }
-
-    // Resolving after callback processing also covers a cold start with no URL:
-    // persisted storage remains the canonical source in both cases.
-    await resolve();
   });
 
   return (
@@ -164,4 +194,19 @@ export function useAuth(): AuthContextValue {
 
 function isResolvedFor(state: GeekAuthState, userId: string): boolean {
   return state.status === "authenticated" && state.user.id === userId;
+}
+
+async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_resolve, reject) => {
+        timeout = setTimeout(() => reject(new Error("Auth operation timed out.")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
 }

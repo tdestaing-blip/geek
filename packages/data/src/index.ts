@@ -54,6 +54,20 @@ export { getMyCollection, getMyCopiesForEdition } from "./collection/collection"
 export type { MyCopyDetail } from "./collection/copy-detail";
 export { getMyCopyDetail } from "./collection/copy-detail";
 
+export type {
+  AddCopyPhotoInput,
+  AddCopyPhotoResult,
+  CopyPhotoRead,
+  DeleteCopyPhotoResult,
+} from "./collection/photos";
+export {
+  addCopyPhoto,
+  COPY_PHOTO_LIMIT,
+  deleteCopyPhoto,
+  getCopyPhotoGallery,
+  getCopyPhotos,
+} from "./collection/photos";
+
 export type { CopyComponentStateInput, CopyPrivateDetailsInput } from "./collection/enrichment";
 export {
   getEditionComponents,

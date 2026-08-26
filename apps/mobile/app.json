@@ -8,6 +8,16 @@
     "newArchEnabled": true,
     "platforms": ["ios", "android"],
     "scheme": "geek",
-    "plugins": ["@react-native-community/datetimepicker"]
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Geek utilise vos photos pour illustrer vos copies physiques.",
+          "cameraPermission": "Geek utilise l’appareil photo pour photographier vos copies physiques.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }
