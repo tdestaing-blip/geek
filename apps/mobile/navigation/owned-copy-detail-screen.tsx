@@ -1,4 +1,4 @@
-import type { CopyComponentAssessment, CopyPrivateDetails, Money } from "@geek/domain";
+import type { CopyPhotoRole, CopyPrivateDetails, Money } from "@geek/domain";
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -38,6 +38,13 @@ import {
   removePersistedCopyPhoto,
   toGalleryItems,
 } from "./copy-photo-data";
+import {
+  getCopyPhotoRoleLabel,
+  getCopyPhotoRolePrompt,
+  OWNED_COPY_PHOTO_ROLES,
+  resolveOwnedCopyPhotoRole,
+  selectCopyPhotosForRole,
+} from "./presentation-media";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Copy">;
@@ -59,6 +66,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<DetailState>({ status: "loading" });
   const [currentPhotoId, setCurrentPhotoId] = useState<string | null>(null);
+  const [selectedPhotoRole, setSelectedPhotoRole] = useState<CopyPhotoRole>("cartridge");
   const [photoMutationPending, setPhotoMutationPending] = useState(false);
 
   const loadDetail = useCallback(() => {
@@ -67,7 +75,10 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
       .then((result) => {
         if (!active) return;
         if (result.outcome === "ok") {
-          setCurrentPhotoId(result.data.photos[0]?.photo.id ?? null);
+          setSelectedPhotoRole("cartridge");
+          setCurrentPhotoId(
+            selectCopyPhotosForRole(result.data.photos, "cartridge")[0]?.photo.id ?? null,
+          );
         }
         setState(
           result.outcome === "ok"
@@ -93,7 +104,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
 
   const data = state.status === "ready" ? state.data : null;
 
-  async function addPhotos() {
+  async function addPhotos(photoRole: CopyPhotoRole = selectedPhotoRole) {
     if (!data || photoMutationPending) return;
     const remaining = COPY_PHOTO_MAX_COUNT - data.photos.length;
     if (remaining <= 0) {
@@ -106,7 +117,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
       setPhotoMutationPending(true);
       const pending = await acquireCopyPhotos(source, remaining);
       if (pending.length === 0) return;
-      const succeeded = await persistPendingCopyPhotos(route.params.copyId, pending);
+      const succeeded = await persistPendingCopyPhotos(route.params.copyId, pending, photoRole);
       const refreshed = await loadCanonicalCopyDetail(route.params.copyId);
       if (refreshed.outcome === "ok") setState({ status: "ready", data: refreshed.data });
       if (!succeeded) Alert.alert("Photos", "Certaines photos n’ont pas pu être enregistrées.");
@@ -127,7 +138,9 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
     const refreshed = await loadCanonicalCopyDetail(route.params.copyId);
     if (refreshed.outcome === "ok") {
       setState({ status: "ready", data: refreshed.data });
-      setCurrentPhotoId(refreshed.data.photos[0]?.photo.id ?? null);
+      setCurrentPhotoId(
+        selectCopyPhotosForRole(refreshed.data.photos, selectedPhotoRole)[0]?.photo.id ?? null,
+      );
     }
     setPhotoMutationPending(false);
     if (!succeeded) Alert.alert("Photos", "Cette photo n’a pas pu être supprimée.");
@@ -135,8 +148,9 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
 
   function showPhotoActions() {
     if (!data) return;
+    const visiblePhotos = selectCopyPhotosForRole(data.photos, selectedPhotoRole);
     const canAdd = data.photos.length < COPY_PHOTO_MAX_COUNT;
-    const canDelete = data.photos.length > 0;
+    const canDelete = visiblePhotos.length > 0;
     const options = [
       ...(canAdd ? ["Ajouter des photos"] : []),
       ...(canDelete ? ["Supprimer la photo affichée"] : []),
@@ -197,8 +211,15 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
       ) : (
         <CanonicalCopyDetailView
           data={state.data}
-          onAddPhotos={() => void addPhotos()}
+          onAddPhotos={(photoRole) => void addPhotos(photoRole)}
           onCurrentPhotoChange={setCurrentPhotoId}
+          onSelectedPhotoRoleChange={(photoRole) => {
+            setSelectedPhotoRole(photoRole);
+            setCurrentPhotoId(
+              selectCopyPhotosForRole(state.data.photos, photoRole)[0]?.photo.id ?? null,
+            );
+          }}
+          selectedPhotoRole={selectedPhotoRole}
         />
       )}
     </View>
@@ -209,10 +230,14 @@ function CanonicalCopyDetailView({
   data,
   onAddPhotos,
   onCurrentPhotoChange,
+  onSelectedPhotoRoleChange,
+  selectedPhotoRole,
 }: {
   readonly data: CanonicalCopyDetail;
-  readonly onAddPhotos: () => void;
+  readonly onAddPhotos: (photoRole: CopyPhotoRole) => void;
   readonly onCurrentPhotoChange: (photoId: string | null) => void;
+  readonly onSelectedPhotoRoleChange: (photoRole: CopyPhotoRole) => void;
+  readonly selectedPhotoRole: CopyPhotoRole;
 }) {
   const { detail, catalogArtwork } = data;
   const { state: authState } = useAuth();
@@ -222,6 +247,7 @@ function CanonicalCopyDetailView({
     authState.status === "authenticated" && authState.user.id === detail.copy.ownerId
       ? (authState.profile.display_name ?? authState.profile.username ?? "Vous")
       : null;
+  const gameFacts = aboutGameFacts(detail);
 
   return (
     <>
@@ -232,11 +258,12 @@ function CanonicalCopyDetailView({
       >
         <CopyHero
           artwork={catalogArtwork}
-          components={detail.components}
           heroSize={heroSize}
           onAddPhotos={onAddPhotos}
           onCurrentPhotoChange={onCurrentPhotoChange}
+          onSelectedPhotoRoleChange={onSelectedPhotoRoleChange}
           photos={data.photos}
+          selectedPhotoRole={selectedPhotoRole}
         />
         <View style={styles.heading}>
           <Text style={styles.gameTitle}>{detail.game.canonicalTitle}</Text>
@@ -245,12 +272,15 @@ function CanonicalCopyDetailView({
         {ownerName ? <OwnerCard name={ownerName} privateDetails={detail.privateDetails} /> : null}
         {detail.edition ? <EditionSection detail={detail} /> : null}
         {detail.privateDetails ? <PrivateDetailsSection details={detail.privateDetails} /> : null}
-        {catalogArtwork && detail.game.description ? (
-          <AboutGameCard
-            description={detail.game.description}
-            image={catalogArtwork}
-            title={detail.game.canonicalTitle}
-          />
+        {catalogArtwork || detail.game.description || gameFacts.length > 0 ? (
+          <>
+            <AboutGameCard
+              description={detail.game.description}
+              facts={gameFacts}
+              image={data.aboutArtwork}
+              title={detail.game.canonicalTitle}
+            />
+          </>
         ) : null}
       </ScrollView>
       <StickyAvailabilityBar
@@ -261,50 +291,84 @@ function CanonicalCopyDetailView({
   );
 }
 
+function aboutGameFacts(
+  detail: CanonicalCopyDetail["detail"],
+): readonly { readonly label: string; readonly value: string }[] {
+  const edition = detail.edition;
+  return [
+    detail.platform ? { label: "Plateforme", value: detail.platform.name } : null,
+    detail.game.originalReleaseDate
+      ? { label: "Sortie originale", value: detail.game.originalReleaseDate }
+      : null,
+    edition?.regionCode ? { label: "Région", value: edition.regionCode } : null,
+    edition?.releaseDate ? { label: "Sortie", value: edition.releaseDate } : null,
+    edition?.publisherName ? { label: "Éditeur", value: edition.publisherName } : null,
+    edition?.editionName ? { label: "Édition", value: edition.editionName } : null,
+  ].filter((fact): fact is { readonly label: string; readonly value: string } => fact !== null);
+}
+
 function CopyHero({
   artwork,
-  components,
   heroSize,
   onAddPhotos,
   onCurrentPhotoChange,
+  onSelectedPhotoRoleChange,
   photos,
+  selectedPhotoRole,
 }: {
   readonly artwork: ImageSourcePropType | null;
-  readonly components: readonly CopyComponentAssessment[];
   readonly heroSize: number;
-  readonly onAddPhotos: () => void;
+  readonly onAddPhotos: (photoRole: CopyPhotoRole) => void;
   readonly onCurrentPhotoChange: (photoId: string | null) => void;
   readonly photos: CanonicalCopyDetail["photos"];
+  readonly onSelectedPhotoRoleChange: (photoRole: CopyPhotoRole) => void;
+  readonly selectedPhotoRole: CopyPhotoRole;
 }) {
+  const activePhotoRole = resolveOwnedCopyPhotoRole(selectedPhotoRole);
+  const visiblePhotos = selectCopyPhotosForRole(photos, activePhotoRole);
+  const componentCardWidth = Math.min(
+    112,
+    (heroSize - spacing.compact * (OWNED_COPY_PHOTO_ROLES.length - 1)) /
+      OWNED_COPY_PHOTO_ROLES.length,
+  );
   return (
     <View style={styles.heroGroup}>
       <CopyPhotoGallery
-        accessibilityLabel="Ajouter des photos de votre copie"
+        key={activePhotoRole}
+        accessibilityLabel={`Ajouter une photo de ${getCopyPhotoRoleLabel(activePhotoRole)}`}
         canAdd={photos.length < COPY_PHOTO_MAX_COUNT}
+        emptyActionLabel={getCopyPhotoRolePrompt(activePhotoRole)}
+        emptyTitle="Objet manquant"
         fallbackArtwork={artwork}
-        onAdd={onAddPhotos}
+        onAdd={() => onAddPhotos(activePhotoRole)}
         onCurrentChange={onCurrentPhotoChange}
-        photos={toGalleryItems(photos)}
+        photos={toGalleryItems(visiblePhotos)}
         size={heroSize}
       />
-      {components.length > 0 ? (
-        <ScrollView
-          contentContainerStyle={styles.componentRow}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {components.map((assessment) => (
-            <View key={assessment.component.id} style={styles.componentCard}>
-              <CopyComponentCard
-                conditionLabel={conditionLabel(assessment)}
-                image={componentImage(assessment.component.kind)}
-                label={assessment.component.name}
-                state={componentState(assessment)}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      ) : null}
+      <ScrollView
+        contentContainerStyle={[styles.componentRow, styles.componentRowCentered]}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        {OWNED_COPY_PHOTO_ROLES.map((photoRole) => (
+          <View key={photoRole} style={[styles.componentCard, { width: componentCardWidth }]}>
+            <CopyComponentCard
+              image={componentImage(photoRole)}
+              label={getCopyPhotoRoleLabel(photoRole)}
+              onPress={() => {
+                if (activePhotoRole !== photoRole) onSelectedPhotoRoleChange(photoRole);
+              }}
+              selected={activePhotoRole === photoRole}
+              mediaState={
+                selectCopyPhotosForRole(photos, photoRole).length > 0
+                  ? "photo-present"
+                  : "photo-missing"
+              }
+              state="unassessed"
+            />
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -379,22 +443,9 @@ function PrivateDetailsSection({ details }: { readonly details: CopyPrivateDetai
   );
 }
 
-function componentState(
-  assessment: CopyComponentAssessment,
-): "missing" | "present" | "unassessed" | "unknown" {
-  if (!assessment.state) return "unassessed";
-  return assessment.state.presence;
-}
-
-function conditionLabel(assessment: CopyComponentAssessment): string | undefined {
-  const grade = assessment.state?.conditionGrade;
-  return grade ? `État ${grade}/5` : undefined;
-}
-
-function componentImage(kind: string): ImageSourcePropType {
-  const normalized = kind.toLocaleLowerCase();
-  if (normalized.includes("manual")) return COMPONENT_MANUAL;
-  if (normalized.includes("box") || normalized.includes("case")) return COMPONENT_BOX;
+function componentImage(photoRole: CopyPhotoRole): ImageSourcePropType {
+  if (photoRole === "manual") return COMPONENT_MANUAL;
+  if (photoRole === "box") return COMPONENT_BOX;
   return COMPONENT_CARTRIDGE;
 }
 
@@ -414,7 +465,8 @@ const styles = StyleSheet.create({
   heroGroup: { gap: spacing.page, paddingHorizontal: spacing.page },
   fill: { height: "100%", width: "100%" },
   componentRow: { gap: spacing.compact },
-  componentCard: { width: 112 },
+  componentRowCentered: { flexGrow: 1, justifyContent: "center" },
+  componentCard: { flexShrink: 0 },
   heading: { gap: spacing.micro, paddingHorizontal: 24 },
   gameTitle: { color: colors.text, ...typography.screenTitle },
   platform: { color: colors.text, ...typography.body },

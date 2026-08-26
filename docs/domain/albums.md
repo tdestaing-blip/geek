@@ -85,8 +85,11 @@ is stored or synchronized.
   summaries, caller state, and aggregate network signals.
 
 Both derive caller identity from authentication and accept no user ID. Album
-entries retain canonical Game/Edition IDs; existing batched CatalogMedia APIs
-remain the single cover/media source, so Album storage duplicates no media.
+entries retain canonical Game/Edition IDs, and Album storage duplicates no
+media. Presentation uses batched rights-safe CatalogMedia. It may use the
+caller's private primary Copy photo only for a slot satisfied by exactly one
+caller-owned Copy; missing or ambiguous multi-Copy slots use catalog media or a
+placeholder.
 
 Adding or enriching a Quick Copy, correcting an Edition, transferring ownership,
 changing visibility or availability, opening or closing a Listing, changing a

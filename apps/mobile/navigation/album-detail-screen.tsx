@@ -1,7 +1,9 @@
 import { colors, spacing, typography } from "@geek/design-tokens";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -13,27 +15,70 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
-import SNES_LOGO from "../assets/game-detail/owned/album-mark.png";
 import { AdaptiveGlassSurface } from "../ui/adaptive-glass-surface";
-import { GameGridItem, type GameGridItemContent } from "../ui/game-grid-item";
+import { GameGridItem } from "../ui/game-grid-item";
 import { GeekIcon } from "../ui/geek-icon";
 import { SegmentedControl } from "../ui/segmented-control";
-import { SNES_ESSENTIAL_ENTRIES, getAlbumFixture } from "./album-fixtures";
+import { getAlbumTheme } from "./album-theme";
+import { loadCanonicalAlbumDetail, type CanonicalAlbumDetail } from "./collection-surfaces-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AlbumDetail">;
 type Filter = "owned" | "missing" | "wanted";
+type LoadState =
+  | { readonly status: "loading" }
+  | { readonly status: "error" }
+  | { readonly status: "ready"; readonly data: CanonicalAlbumDetail };
 
 export function AlbumDetailScreen({ navigation, route }: Props) {
-  const album = getAlbumFixture(route.params.albumId);
   const [filter, setFilter] = useState<Filter>("owned");
+  const [state, setState] = useState<LoadState>({ status: "loading" });
   const { width } = useWindowDimensions();
   const tileWidth = (width - spacing.page * 2 - spacing.compact) / 2;
-  const counts = {
-    owned: SNES_ESSENTIAL_ENTRIES.filter(({ owned }) => owned).length,
-    missing: SNES_ESSENTIAL_ENTRIES.filter(({ owned, wanted }) => !owned && !wanted).length,
-    wanted: SNES_ESSENTIAL_ENTRIES.filter(({ owned, wanted }) => wanted && !owned).length,
-  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadCanonicalAlbumDetail(route.params.albumId)
+        .then((result) => {
+          if (!active) return;
+          setState(
+            result.outcome === "ok" ? { status: "ready", data: result.data } : { status: "error" },
+          );
+        })
+        .catch(() => {
+          if (active) setState({ status: "error" });
+        });
+      return () => {
+        active = false;
+      };
+    }, [route.params.albumId]),
+  );
+
+  if (state.status !== "ready") {
+    return (
+      <SafeAreaView edges={["top"]} style={styles.statePage}>
+        <View style={styles.stateToolbar}>
+          <Pressable accessibilityLabel="Retour" onPress={navigation.goBack}>
+            <AdaptiveGlassSurface style={styles.toolbarButton}>
+              <GeekIcon name="chevron-left" />
+            </AdaptiveGlassSurface>
+          </Pressable>
+        </View>
+        <View style={styles.stateBody}>
+          {state.status === "loading" ? (
+            <ActivityIndicator color={colors.text} />
+          ) : (
+            <Text style={styles.stateText}>Impossible de charger cet album.</Text>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const { album, items } = state.data;
+  const theme = getAlbumTheme(album);
+  const counts = album.progress;
 
   return (
     <View style={styles.page}>
@@ -43,8 +88,8 @@ export function AlbumDetailScreen({ navigation, route }: Props) {
             <Svg height="100%" width="100%">
               <Defs>
                 <LinearGradient id="detail" x1="0" x2="1" y1="0" y2="1">
-                  <Stop offset="0" stopColor={album.colors[0]} />
-                  <Stop offset="1" stopColor={album.colors[1]} />
+                  <Stop offset="0" stopColor={theme.colors[0]} />
+                  <Stop offset="1" stopColor={theme.colors[1]} />
                 </LinearGradient>
               </Defs>
               <Rect fill="url(#detail)" height="100%" width="100%" />
@@ -70,14 +115,18 @@ export function AlbumDetailScreen({ navigation, route }: Props) {
                   <GeekIcon name="more-horizontal" />
                 </AdaptiveGlassSurface>
               </Pressable>
-              <View pointerEvents="none" style={styles.heroLogoWrap}>
-                <Image resizeMode="contain" source={SNES_LOGO} style={styles.heroLogo} />
-              </View>
+              {theme.logo ? (
+                <View pointerEvents="none" style={styles.heroLogoWrap}>
+                  <Image resizeMode="contain" source={theme.logo} style={styles.heroLogo} />
+                </View>
+              ) : null}
             </View>
             <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>Essentials</Text>
+              <Text style={[styles.heroTitle, { fontFamily: theme.fontFamily }]}>
+                {album.title}
+              </Text>
               <Text style={styles.heroSubtitle}>
-                {counts.owned}/{SNES_ESSENTIAL_ENTRIES.length} jeux
+                {counts.ownedSlots}/{counts.totalSlots} jeux
               </Text>
             </View>
           </SafeAreaView>
@@ -86,38 +135,33 @@ export function AlbumDetailScreen({ navigation, route }: Props) {
           <SegmentedControl
             onSelect={setFilter}
             options={[
-              { id: "owned", label: `Possédés ${counts.owned}` },
-              { id: "missing", label: `Manquants ${counts.missing}` },
-              { id: "wanted", label: `Recherchés ${counts.wanted}` },
+              { id: "owned", label: `Possédés ${counts.ownedSlots}` },
+              { id: "missing", label: `Manquants ${counts.missingSlots}` },
+              { id: "wanted", label: `Recherchés ${counts.wantedSlots}` },
             ]}
             selected={filter}
           />
           <View style={styles.grid}>
-            {SNES_ESSENTIAL_ENTRIES.map((entry, index) => {
-              const position = index + 1;
-              const item: GameGridItemContent = {
-                image: entry.image,
-                title: entry.title,
-                platform: "SNES",
-                components: entry.components,
-                opportunities: entry.networkCount,
-                overlay: entry.price ? "sale" : undefined,
-              };
-
-              return (
-                <GameGridItem
-                  imageOpacity={entry.owned ? 1 : 0.2}
-                  isWishlist={false}
-                  item={item}
-                  key={entry.id}
-                  platformLabel="Super Nintendo"
-                  showOpportunity={entry.networkCount !== undefined}
-                  slotNumber={entry.owned ? undefined : String(position).padStart(2, "0")}
-                  wanted={entry.wanted}
-                  width={tileWidth}
-                />
-              );
-            })}
+            {items.map((item) => (
+              <GameGridItem
+                imageOpacity={item.owned ? 1 : 0.2}
+                isWishlist={false}
+                item={item}
+                key={item.entryId}
+                onPress={() =>
+                  item.editionId
+                    ? navigation.navigate("Market", {
+                        gameId: item.gameId,
+                        editionId: item.editionId,
+                      })
+                    : navigation.navigate("Game", { gameId: item.gameId })
+                }
+                showOpportunity
+                slotNumber={item.owned ? undefined : String(item.position).padStart(2, "0")}
+                wanted={item.wanted}
+                width={tileWidth}
+              />
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -127,6 +171,10 @@ export function AlbumDetailScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
+  statePage: { backgroundColor: colors.background, flex: 1 },
+  stateToolbar: { paddingHorizontal: spacing.page, paddingTop: spacing.micro },
+  stateBody: { alignItems: "center", flex: 1, justifyContent: "center", padding: spacing.page },
+  stateText: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
   content: { paddingBottom: 32 },
   hero: { height: 202, overflow: "hidden" },
   safeHero: { flex: 1, justifyContent: "space-between" },

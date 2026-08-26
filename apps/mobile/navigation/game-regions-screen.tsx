@@ -1,6 +1,7 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,6 +10,7 @@ import { GeekIcon } from "../ui/geek-icon";
 import { getCatalogRegionPresentation, getEditionVariantLabel } from "./canonical-catalog";
 import { loadCanonicalGameRegions, type CanonicalGameRegions } from "./canonical-catalog-data";
 import type { GameRegionVariant } from "./canonical-catalog";
+import { findActiveWishlistIntent, toggleWishlistIntent } from "./collection-surfaces-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GameRegions">;
@@ -16,6 +18,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "GameRegions">;
 export function GameRegionsScreen({ navigation, route }: Props) {
   const [catalog, setCatalog] = useState<CanonicalGameRegions | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [wishlistIntentId, setWishlistIntentId] = useState<string | null | undefined>(undefined);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +38,18 @@ export function GameRegionsScreen({ navigation, route }: Props) {
     };
   }, [route.params.gameId, route.params.platformId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void findActiveWishlistIntent(route.params.gameId).then((intentId) => {
+        if (active) setWishlistIntentId(intentId);
+      });
+      return () => {
+        active = false;
+      };
+    }, [route.params.gameId]),
+  );
+
   const stateMessage =
     state === "loading"
       ? "Chargement des éditions…"
@@ -47,6 +63,29 @@ export function GameRegionsScreen({ navigation, route }: Props) {
         onPress={navigation.goBack}
         title={catalog?.game.canonicalTitle ?? "Éditions"}
       />
+      <Pressable
+        accessibilityRole="button"
+        disabled={wishlistIntentId === undefined || wishlistBusy}
+        onPress={() => {
+          const previous = wishlistIntentId;
+          setWishlistBusy(true);
+          setWishlistIntentId(previous ? null : "pending");
+          void toggleWishlistIntent({
+            gameId: route.params.gameId,
+            ...(previous ? { intentId: previous } : {}),
+          })
+            .then(() => findActiveWishlistIntent(route.params.gameId))
+            .then(setWishlistIntentId)
+            .catch(() => setWishlistIntentId(previous))
+            .finally(() => setWishlistBusy(false));
+        }}
+        style={({ pressed }) => [styles.wishlistAction, pressed && styles.pressed]}
+      >
+        <GeekIcon name={wishlistIntentId ? "checkbox" : "bell-ring"} size={18} />
+        <Text style={styles.wishlistActionText}>
+          {wishlistIntentId ? "Jeu dans la Wishlist" : "Ajouter le jeu à la Wishlist"}
+        </Text>
+      </Pressable>
       <FlatList
         contentContainerStyle={styles.content}
         data={state === "ready" ? (catalog?.variants ?? []) : []}
@@ -101,6 +140,20 @@ function GameRegionRow({
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
   content: { flexGrow: 1, paddingBottom: 32, paddingTop: spacing.compact },
+  wishlistAction: {
+    alignItems: "center",
+    borderColor: colors.divider,
+    borderRadius: radii.capsule,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.compact,
+    justifyContent: "center",
+    marginHorizontal: spacing.page,
+    marginVertical: spacing.compact,
+    minHeight: 44,
+    paddingHorizontal: spacing.page,
+  },
+  wishlistActionText: { ...typography.body, color: colors.text, fontWeight: "600" },
   row: {
     alignItems: "center",
     flexDirection: "row",

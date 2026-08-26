@@ -64,9 +64,19 @@ export type MobyGamesMedia = {
   readonly assetUrl: string;
   readonly sourceAssetId: string;
   readonly sourcePageUrl: string | null;
+  readonly rightsStatus: "noncommercial";
   readonly width: number | null;
   readonly height: number | null;
+  readonly isPrimary: boolean;
   readonly attribution: "Data by MobyGames.com";
+};
+
+export type MobyGamesEditionComponent = {
+  readonly componentKey: "box" | "cartridge" | "manual";
+  readonly name: "Box" | "Cartridge" | "Manual";
+  readonly kind: "box" | "cartridge" | "manual";
+  readonly requiredForComplete: true;
+  readonly sortOrder: 0 | 1 | 2;
 };
 
 export type MobyGamesEditionCandidate = {
@@ -78,6 +88,7 @@ export type MobyGamesEditionCandidate = {
   readonly identifiers: readonly MobyGamesIdentifier[];
   readonly evidence: readonly MobyGamesEvidence[];
   readonly media: readonly MobyGamesMedia[];
+  readonly components: readonly MobyGamesEditionComponent[];
   readonly releaseDates: readonly string[];
   readonly groupingReasons: readonly string[];
   readonly ambiguities: readonly string[];
@@ -250,6 +261,7 @@ export function deriveMobyGamesImportPlan(input: {
     });
     const media = mediaFromGroup(group);
     candidate.media.push(...media);
+    candidate.components.push(...componentsFromGroup(group, platformId));
     if (
       variant !== null &&
       candidate.variant === variant &&
@@ -360,6 +372,7 @@ type MutableCandidate = {
   readonly identifiers: MobyGamesIdentifier[];
   readonly evidence: MobyGamesEvidence[];
   readonly media: MobyGamesMedia[];
+  readonly components: MobyGamesEditionComponent[];
   readonly groupingReasons: string[];
   hasSafelyAssociatedPhysicalPackageEvidence: boolean;
 };
@@ -578,6 +591,7 @@ function mutableCandidate(
     identifiers: [],
     evidence: [],
     media: [],
+    components: [],
     groupingReasons: [...groupingReasons],
     hasSafelyAssociatedPhysicalPackageEvidence: false,
   };
@@ -621,7 +635,8 @@ function finalizeCandidate(candidate: MutableCandidate): MobyGamesEditionCandida
     publisherName: publishers.length === 1 ? (publishers[0] ?? null) : null,
     identifiers,
     evidence: deduplicateEvidence(candidate.evidence),
-    media: deduplicateMedia(candidate.media),
+    media: markPrimaryFrontCover(deduplicateMedia(candidate.media)),
+    components: deduplicateComponents(candidate.components),
     releaseDates,
     groupingReasons: distinct(candidate.groupingReasons).sort(),
     ambiguities,
@@ -673,12 +688,65 @@ function mediaFromGroup(group: Record<string, unknown>): MobyGamesMedia[] {
         assetUrl,
         sourceAssetId: fingerprint(assetUrl),
         sourcePageUrl: null,
+        rightsStatus: "noncommercial" as const,
         width: optionalPositiveInteger(cover["width"]),
         height: optionalPositiveInteger(cover["height"]),
+        isPrimary: false,
         attribution: "Data by MobyGames.com" as const,
       },
     ];
   });
+}
+
+/**
+ * Derives only physical contents explicitly evidenced by the associated source
+ * cover group. MobyGames calls cartridge/disc scans `Media`; that label is
+ * narrowed to cartridge only for the reviewed Nintendo 64 platform mapping.
+ */
+function componentsFromGroup(
+  group: Record<string, unknown>,
+  platformId: number,
+): MobyGamesEditionComponent[] {
+  const scanTypes = new Set(
+    arrayOfRecords(group["covers"]).flatMap((cover) => {
+      const scanOf = optionalString(cover["scan_of"]);
+      return scanOf === null ? [] : [scanOf];
+    }),
+  );
+  const components: MobyGamesEditionComponent[] = [];
+  if (platformId === 9 && scanTypes.has("Media")) {
+    components.push({
+      componentKey: "cartridge",
+      name: "Cartridge",
+      kind: "cartridge",
+      requiredForComplete: true,
+      sortOrder: 0,
+    });
+  }
+  if (
+    scanTypes.has("Front Cover") ||
+    scanTypes.has("Back Cover") ||
+    scanTypes.has("Spine/Sides") ||
+    scanTypes.has("Spine")
+  ) {
+    components.push({
+      componentKey: "box",
+      name: "Box",
+      kind: "box",
+      requiredForComplete: true,
+      sortOrder: 1,
+    });
+  }
+  if (scanTypes.has("Manual")) {
+    components.push({
+      componentKey: "manual",
+      name: "Manual",
+      kind: "manual",
+      requiredForComplete: true,
+      sortOrder: 2,
+    });
+  }
+  return components;
 }
 
 function variantLabel(value: string | null): string | null {
@@ -770,6 +838,25 @@ function deduplicateMedia(values: readonly MobyGamesMedia[]): MobyGamesMedia[] {
       "en",
     ),
   );
+}
+
+function deduplicateComponents(
+  values: readonly MobyGamesEditionComponent[],
+): MobyGamesEditionComponent[] {
+  const map = new Map(values.map((value) => [value.componentKey, value]));
+  return [...map.values()].sort(
+    (left, right) =>
+      left.sortOrder - right.sortOrder || left.componentKey.localeCompare(right.componentKey, "en"),
+  );
+}
+
+/** Selects one stable front scan for an Edition; back scans can never become presentation media. */
+function markPrimaryFrontCover(values: readonly MobyGamesMedia[]): MobyGamesMedia[] {
+  const primarySourceAssetId = values.find(({ kind }) => kind === "cover_front")?.sourceAssetId;
+  return values.map((value) => ({
+    ...value,
+    isPrimary: value.kind === "cover_front" && value.sourceAssetId === primarySourceAssetId,
+  }));
 }
 
 function distinct(values: readonly string[]): string[] {

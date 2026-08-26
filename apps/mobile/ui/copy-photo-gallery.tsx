@@ -23,6 +23,8 @@ const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 60 };
 export function CopyPhotoGallery({
   accessibilityLabel,
   canAdd = true,
+  emptyActionLabel = "Add photos of your copy",
+  emptyTitle,
   fallbackArtwork,
   onAdd,
   onCurrentChange,
@@ -33,6 +35,8 @@ export function CopyPhotoGallery({
 }: {
   readonly accessibilityLabel: string;
   readonly canAdd?: boolean;
+  readonly emptyActionLabel?: string;
+  readonly emptyTitle?: string;
   readonly fallbackArtwork: ImageSourcePropType | null;
   readonly onAdd: () => void;
   readonly onCurrentChange?: (photoId: string | null) => void;
@@ -64,7 +68,8 @@ export function CopyPhotoGallery({
         <View style={styles.photoShade} />
         <View style={styles.emptyCopy}>
           <GeekIcon color={colors.controlSelected} name="image-2-plus" size={32} />
-          <Text style={styles.emptyText}>Add photos of your copy</Text>
+          {emptyTitle ? <Text style={styles.emptyTitle}>{emptyTitle}</Text> : null}
+          <Text style={styles.emptyText}>{emptyActionLabel}</Text>
         </View>
       </Pressable>
     );
@@ -139,6 +144,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: "43%",
   },
+  emptyTitle: { ...typography.sectionTitle, color: colors.controlSelected },
   emptyText: { ...typography.body, color: colors.controlSelected },
   floatingAction: {
     alignItems: "center",

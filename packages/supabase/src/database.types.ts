@@ -364,6 +364,24 @@ export type Database = {
           },
         ];
       };
+      catalog_media_usage_configuration: {
+        Row: {
+          singleton: boolean;
+          updated_at: string;
+          usage_mode: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          updated_at?: string;
+          usage_mode?: string;
+        };
+        Update: {
+          singleton?: boolean;
+          updated_at?: string;
+          usage_mode?: string;
+        };
+        Relationships: [];
+      };
       catalog_source_records: {
         Row: {
           checksum: string;
@@ -701,9 +719,11 @@ export type Database = {
           byte_size: number;
           copy_id: string;
           created_at: string;
+          edition_component_id: string | null;
           height: number;
           id: string;
           mime_type: string;
+          photo_role: string | null;
           sort_order: number;
           storage_path: string;
           width: number;
@@ -712,9 +732,11 @@ export type Database = {
           byte_size: number;
           copy_id: string;
           created_at?: string;
+          edition_component_id?: string | null;
           height: number;
           id: string;
           mime_type: string;
+          photo_role?: string | null;
           sort_order?: number;
           storage_path: string;
           width: number;
@@ -723,9 +745,11 @@ export type Database = {
           byte_size?: number;
           copy_id?: string;
           created_at?: string;
+          edition_component_id?: string | null;
           height?: number;
           id?: string;
           mime_type?: string;
+          photo_role?: string | null;
           sort_order?: number;
           storage_path?: string;
           width?: number;
@@ -736,6 +760,13 @@ export type Database = {
             columns: ["copy_id"];
             isOneToOne: false;
             referencedRelation: "copies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "copy_photos_edition_component_id_fkey";
+            columns: ["edition_component_id"];
+            isOneToOne: false;
+            referencedRelation: "edition_components";
             referencedColumns: ["id"];
           },
         ];
@@ -1571,6 +1602,10 @@ export type Database = {
       cancel_trade_offer: {
         Args: { target_trade_offer_id: string };
         Returns: undefined;
+      };
+      catalog_media_is_displayable: {
+        Args: { rights_status_value: string };
+        Returns: boolean;
       };
       confirm_trade_completion: {
         Args: { target_trade_offer_id: string };

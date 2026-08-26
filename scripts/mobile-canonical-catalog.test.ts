@@ -37,6 +37,7 @@ test("Game + Platform projection groups canonical Editions into one row", () => 
       platformSlug: platform.slug,
       editionCount: 6,
       artworkUrl: null,
+      mediaAttribution: null,
     },
   ]);
 });
@@ -74,7 +75,8 @@ test("missing canonical inputs never produce a fixture fallback", () => {
 test("only provided publishable CatalogMedia can become projected artwork", () => {
   const cover = catalogCover();
   assert.equal(
-    buildGamePlatformResults([game], editions, [platform], [cover])[0]?.artworkUrl,
+    buildGamePlatformResults([game], editions, [platform], [{ gameId: game.id, media: cover }])[0]
+      ?.artworkUrl,
     cover.assetUrl,
   );
   assert.equal(buildGamePlatformResults([game], editions, [platform], [])[0]?.artworkUrl, null);

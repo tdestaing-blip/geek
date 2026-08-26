@@ -1,4 +1,5 @@
 import { colors, spacing } from "@geek/design-tokens";
+import type { AlbumSummary } from "@geek/domain";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -29,8 +30,12 @@ import { CollectionHeader } from "../ui/collection-header";
 import { AlbumCard } from "../ui/album-card";
 import { GameGridItem, type GridItem } from "../ui/game-grid-item";
 import { CollectionSegmentedControl, type CollectionSegment } from "../ui/segmented-control";
-import { WISHLIST_MARKET_TARGETS } from "./marketplace-fixtures";
-import { ALBUMS } from "./album-fixtures";
+import {
+  loadCanonicalAlbums,
+  loadCanonicalWishlist,
+  toggleWishlistIntent,
+  type CanonicalWishlistItem,
+} from "./collection-surfaces-data";
 import { loadCanonicalCollection, type CanonicalCollectionItem } from "./ownership-data";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
@@ -109,18 +114,15 @@ export const MY_GAMES: readonly GridItem[] = [
   },
 ];
 
-const WISHLIST = WISHLIST_MARKET_TARGETS;
-
 export function MyCollectionScreen({ navigation }: MyCollectionProps) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <CollectionView
       onOpenCopy={(copyId) => rootNavigation?.navigate("Copy", { copyId })}
       onOpenGame={(gameId, editionId) =>
-        rootNavigation?.navigate("Market", {
-          gameId,
-          editionId,
-        })
+        editionId
+          ? rootNavigation?.navigate("Market", { gameId, editionId })
+          : rootNavigation?.navigate("Game", { gameId })
       }
       onOpenAlbum={(albumId) => rootNavigation?.navigate("AlbumDetail", { albumId })}
     />
@@ -136,10 +138,9 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
     <CollectionView
       onOpenCopy={(copyId) => navigation.navigate("Copy", { copyId })}
       onOpenGame={(gameId, editionId) =>
-        navigation.navigate("Market", {
-          gameId,
-          editionId,
-        })
+        editionId
+          ? navigation.navigate("Market", { gameId, editionId })
+          : navigation.navigate("Game", { gameId })
       }
       onOpenAlbum={(albumId) => navigation.navigate("AlbumDetail", { albumId })}
     />
@@ -152,12 +153,13 @@ function CollectionView({
   onOpenAlbum,
 }: {
   readonly onOpenCopy: (copyId: string) => void;
-  readonly onOpenGame: (gameId: string, editionId: string) => void;
+  readonly onOpenGame: (gameId: string, editionId?: string) => void;
   readonly onOpenAlbum: (albumId: string) => void;
 }) {
   const [segment, setSegment] = useState<CollectionSegment>("games");
   const [albumMode, setAlbumMode] = useState(false);
   const collection = useCanonicalCollection();
+  const wishlist = useCanonicalWishlist();
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -172,6 +174,9 @@ function CollectionView({
           ownedItems={collection.items}
           ownershipStatus={collection.status}
           segment={segment}
+          wishlistItems={wishlist.items}
+          wishlistStatus={wishlist.status}
+          onRemoveWishlist={wishlist.remove}
         />
       )}
     </SafeAreaView>
@@ -185,18 +190,15 @@ function AlbumsList({
   readonly onAlbumModeChange: (value: boolean) => void;
   readonly onOpenAlbum: (albumId: string) => void;
 }) {
+  const albums = useCanonicalAlbums();
   return (
     <FlatList
       contentContainerStyle={styles.albumContent}
-      data={ALBUMS}
+      data={albums.items}
       keyExtractor={({ id }) => id}
       ListHeaderComponent={<CollectionHeader albumMode onAlbumModeChange={onAlbumModeChange} />}
-      renderItem={({ item }) => (
-        <AlbumCard
-          album={item}
-          onPress={item.id === "snes-essentials" ? () => onOpenAlbum(item.id) : undefined}
-        />
-      )}
+      ListEmptyComponent={<CollectionSurfaceState kind="albums" status={albums.status} />}
+      renderItem={({ item }) => <AlbumCard album={item} onPress={() => onOpenAlbum(item.id)} />}
       showsVerticalScrollIndicator={false}
     />
   );
@@ -206,22 +208,28 @@ function CollectionGrid({
   onAlbumModeChange,
   onOpenCopy,
   onOpenGame,
+  onRemoveWishlist,
   onSelectSegment,
   ownedItems,
   ownershipStatus,
   segment,
+  wishlistItems,
+  wishlistStatus,
 }: {
   readonly onAlbumModeChange: (value: boolean) => void;
   readonly onOpenCopy: (copyId: string) => void;
-  readonly onOpenGame: (gameId: string, editionId: string) => void;
+  readonly onOpenGame: (gameId: string, editionId?: string) => void;
+  readonly onRemoveWishlist: (item: CanonicalWishlistItem) => void;
   readonly onSelectSegment: (segment: CollectionSegment) => void;
   readonly ownedItems: readonly CanonicalCollectionItem[];
   readonly ownershipStatus: "error" | "loading" | "ready";
   readonly segment: CollectionSegment;
+  readonly wishlistItems: readonly CanonicalWishlistItem[];
+  readonly wishlistStatus: SurfaceStatus;
 }) {
   const { width: screenWidth } = useWindowDimensions();
-  const items: readonly (CanonicalCollectionItem | GridItem)[] =
-    segment === "games" ? ownedItems : WISHLIST;
+  const items: readonly (CanonicalCollectionItem | CanonicalWishlistItem)[] =
+    segment === "games" ? ownedItems : wishlistItems;
   const tileWidth = (screenWidth - spacing.page * 2 - spacing.compact) / 2;
 
   return (
@@ -230,12 +238,13 @@ function CollectionGrid({
       columnWrapperStyle={styles.gridRow}
       contentContainerStyle={styles.content}
       data={items}
-      keyExtractor={(item) => (segment === "games" && item.copyId ? item.copyId : item.gameId)}
+      keyExtractor={(item) => ("intentId" in item ? item.intentId : item.copyId)}
       ListHeaderComponent={
         <View style={styles.topContent}>
           <CollectionHeader albumMode={false} onAlbumModeChange={onAlbumModeChange} />
           <CollectionSegmentedControl
             ownedCount={ownedItems.length}
+            wishlistCount={wishlistItems.length}
             selected={segment}
             onSelect={onSelectSegment}
           />
@@ -243,18 +252,22 @@ function CollectionGrid({
       }
       numColumns={2}
       ListEmptyComponent={
-        segment === "games" ? <CollectionOwnershipState status={ownershipStatus} /> : null
+        <CollectionSurfaceState
+          kind={segment === "games" ? "collection" : "wishlist"}
+          status={segment === "games" ? ownershipStatus : wishlistStatus}
+        />
       }
       renderItem={({ item }) => (
         <GameGridItem
           isWishlist={segment === "wishlist"}
           item={item}
+          owned={"owned" in item ? item.owned : false}
+          wanted={"intentId" in item}
+          onWantedPress={"intentId" in item ? () => onRemoveWishlist(item) : undefined}
           onPress={() =>
             segment === "games" && item.copyId
               ? onOpenCopy(item.copyId)
-              : item.editionId
-                ? onOpenGame(item.gameId, item.editionId)
-                : undefined
+              : onOpenGame(item.gameId, item.editionId)
           }
           width={tileWidth}
         />
@@ -298,7 +311,15 @@ function useCanonicalCollection(): {
   return state;
 }
 
-function CollectionOwnershipState({ status }: { readonly status: "error" | "loading" | "ready" }) {
+type SurfaceStatus = "error" | "loading" | "ready";
+
+function CollectionSurfaceState({
+  kind,
+  status,
+}: {
+  readonly kind: "albums" | "collection" | "wishlist";
+  readonly status: SurfaceStatus;
+}) {
   if (status === "loading") {
     return (
       <View style={styles.collectionState}>
@@ -311,11 +332,111 @@ function CollectionOwnershipState({ status }: { readonly status: "error" | "load
     <View style={styles.collectionState}>
       <Text style={styles.collectionStateText}>
         {status === "error"
-          ? "Impossible de charger votre collection."
-          : "Votre collection est vide."}
+          ? `Impossible de charger ${kind === "albums" ? "les albums" : kind === "wishlist" ? "votre Wishlist" : "votre collection"}.`
+          : kind === "albums"
+            ? "Aucun album publié pour le moment."
+            : kind === "wishlist"
+              ? "Votre Wishlist est vide."
+              : "Votre collection est vide."}
       </Text>
     </View>
   );
+}
+
+function useCanonicalWishlist(): {
+  readonly items: readonly CanonicalWishlistItem[];
+  readonly status: SurfaceStatus;
+  readonly remove: (item: CanonicalWishlistItem) => void;
+} {
+  const [state, setState] = useState<{
+    readonly items: readonly CanonicalWishlistItem[];
+    readonly status: SurfaceStatus;
+  }>({ items: [], status: "loading" });
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadCanonicalWishlist()
+        .then((result) => {
+          if (!active) return;
+          setState(
+            result.outcome === "ok"
+              ? { items: result.data, status: "ready" }
+              : { items: [], status: "error" },
+          );
+        })
+        .catch(() => {
+          if (active) setState({ items: [], status: "error" });
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const remove = useCallback((item: CanonicalWishlistItem) => {
+    setState((current) => ({
+      ...current,
+      items: current.items.filter(({ intentId }) => intentId !== item.intentId),
+    }));
+    void toggleWishlistIntent({
+      gameId: item.gameId,
+      ...(item.editionId ? { editionId: item.editionId } : {}),
+      intentId: item.intentId,
+    })
+      .then((removed) => {
+        if (removed) return;
+        void loadCanonicalWishlist().then((result) => {
+          setState(
+            result.outcome === "ok"
+              ? { items: result.data, status: "ready" }
+              : { items: [], status: "error" },
+          );
+        });
+      })
+      .catch(() => {
+        void loadCanonicalWishlist().then((result) => {
+          setState(
+            result.outcome === "ok"
+              ? { items: result.data, status: "ready" }
+              : { items: [], status: "error" },
+          );
+        });
+      });
+  }, []);
+
+  return { ...state, remove };
+}
+
+function useCanonicalAlbums(): {
+  readonly items: readonly AlbumSummary[];
+  readonly status: SurfaceStatus;
+} {
+  const [state, setState] = useState<{
+    readonly items: readonly AlbumSummary[];
+    readonly status: SurfaceStatus;
+  }>({ items: [], status: "loading" });
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void loadCanonicalAlbums()
+        .then((result) => {
+          if (!active) return;
+          setState(
+            result.outcome === "ok"
+              ? { items: result.data, status: "ready" }
+              : { items: [], status: "error" },
+          );
+        })
+        .catch(() => {
+          if (active) setState({ items: [], status: "error" });
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+  return state;
 }
 
 const styles = StyleSheet.create({

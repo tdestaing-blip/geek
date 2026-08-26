@@ -5,7 +5,8 @@ export type CatalogMedia = CatalogMediaDetails & CatalogMediaTarget;
 export type CatalogMediaKind = "cover_front" | "cover_back" | "artwork" | "logo";
 
 /** Whether Geek may expose an asset through its normal product surfaces. */
-export type CatalogMediaRightsStatus = "reusable" | "licensed" | "restricted" | "unknown";
+export type CatalogMediaRightsStatus =
+  "reusable" | "licensed" | "noncommercial" | "restricted" | "unknown";
 
 type CatalogMediaTarget =
   | { readonly gameId: string; readonly editionId: null }
@@ -34,6 +35,7 @@ const CATALOG_MEDIA_KINDS: readonly string[] = ["cover_front", "cover_back", "ar
 const CATALOG_MEDIA_RIGHTS_STATUSES: readonly string[] = [
   "reusable",
   "licensed",
+  "noncommercial",
   "restricted",
   "unknown",
 ];

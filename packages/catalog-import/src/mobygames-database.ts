@@ -22,6 +22,7 @@ export type MobyGamesImportResult = {
   readonly editionsReused: number;
   readonly ambiguousCandidatesSkipped: number;
   readonly identifiersCreated: number;
+  readonly componentsCreated: number;
   readonly mediaCreated: number;
   readonly evidenceLinksCreated: number;
   readonly candidateReconciliations: readonly MobyGamesCandidateReconciliation[];
@@ -60,6 +61,7 @@ type PersistedCandidate = {
   readonly editionId: string;
   readonly created: boolean;
   readonly identifiersCreated: number;
+  readonly componentsCreated: number;
   readonly evidenceLinksCreated: number;
   readonly mediaCreated: number;
 };
@@ -90,6 +92,7 @@ export async function writeMobyGamesImportPlan(
   let editionsReused = 0;
   let ambiguousCandidatesSkipped = 0;
   let identifiersCreated = 0;
+  let componentsCreated = 0;
   let mediaCreated = 0;
   let evidenceLinksCreated = 0;
   const candidateReconciliations: MobyGamesCandidateReconciliation[] = [];
@@ -132,6 +135,7 @@ export async function writeMobyGamesImportPlan(
     if (persisted.created) editionsCreated += 1;
     else editionsReused += 1;
     identifiersCreated += persisted.identifiersCreated;
+    componentsCreated += persisted.componentsCreated;
     evidenceLinksCreated += persisted.evidenceLinksCreated;
     mediaCreated += persisted.mediaCreated;
   }
@@ -152,6 +156,7 @@ export async function writeMobyGamesImportPlan(
       editionsReused,
       ambiguousCandidatesSkipped,
       identifiersCreated,
+      componentsCreated,
       mediaCreated,
       evidenceLinksCreated,
       candidateReconciliations,
@@ -168,6 +173,7 @@ export async function writeMobyGamesImportPlan(
     editionsReused,
     ambiguousCandidatesSkipped,
     identifiersCreated,
+    componentsCreated,
     mediaCreated,
     evidenceLinksCreated,
     candidateReconciliations,
@@ -427,13 +433,24 @@ async function persistCandidate(
         authority,
       })),
       evidence,
+      components: candidate.components.map(
+        ({ componentKey, name, kind, requiredForComplete, sortOrder }) => ({
+          componentKey,
+          name,
+          kind,
+          requiredForComplete,
+          sortOrder,
+        }),
+      ),
       media: candidate.media.map((media) => ({
         kind: media.kind,
         assetUrl: media.assetUrl,
         sourceAssetId: media.sourceAssetId,
         sourcePageUrl: media.sourcePageUrl,
+        rightsStatus: media.rightsStatus,
         width: media.width,
         height: media.height,
+        isPrimary: media.isPrimary,
         attribution: media.attribution,
       })),
     },
@@ -448,6 +465,7 @@ async function persistCandidate(
     typeof result.data.editionId !== "string" ||
     typeof result.data.created !== "boolean" ||
     !Number.isInteger(result.data.identifiersCreated) ||
+    !Number.isInteger(result.data.componentsCreated) ||
     !Number.isInteger(result.data.evidenceLinksCreated) ||
     !Number.isInteger(result.data.mediaCreated)
   ) {
@@ -457,6 +475,7 @@ async function persistCandidate(
     editionId: result.data.editionId,
     created: result.data.created,
     identifiersCreated: result.data.identifiersCreated as number,
+    componentsCreated: result.data.componentsCreated as number,
     evidenceLinksCreated: result.data.evidenceLinksCreated as number,
     mediaCreated: result.data.mediaCreated as number,
   };

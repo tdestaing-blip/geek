@@ -37,6 +37,7 @@ export type {
 } from "./types.ts";
 export type {
   MobyGamesClientOptions,
+  MobyGamesEditionComponent,
   MobyGamesEditionCandidate,
   MobyGamesEvidence,
   MobyGamesIdentifier,

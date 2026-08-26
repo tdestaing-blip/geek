@@ -1,10 +1,20 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Button, Text, View } from "react-native";
+import { getGame, getGamePresentationCover, getPrimaryGameArtwork } from "@geek/data";
+import { colors, spacing, typography } from "@geek/design-tokens";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Button, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../lib/auth/auth-provider";
+import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
+import { supabase } from "../lib/supabase";
+import { AboutGameCard } from "../ui/about-game-card";
+import { DetailToolbar } from "../ui/detail-toolbar";
+import { GeekIcon } from "../ui/geek-icon";
+import { findActiveWishlistIntent, toggleWishlistIntent } from "./collection-surfaces-data";
 import type { RootStackParamList } from "./types";
 
-const FIXTURE_EDITION_ID = "00000000-0000-0000-0000-000000000002";
 const FIXTURE_COPY_ID = "00000000-0000-0000-0000-000000000003";
 
 type GameScreenProps = NativeStackScreenProps<RootStackParamList, "Game">;
@@ -83,18 +93,139 @@ export function ProfileScreen() {
   );
 }
 
-export function GameScreen({ navigation, route }: GameScreenProps) {
+export function GameScreen(props: GameScreenProps) {
   return (
-    <View>
-      <Text>Game</Text>
-      <Text>{route.params.gameId}</Text>
-      <Button
-        title="Open Edition fixture"
-        onPress={() => navigation.navigate("Edition", { editionId: FIXTURE_EDITION_ID })}
+    <SafeAreaProvider>
+      <GameDetailContent {...props} />
+    </SafeAreaProvider>
+  );
+}
+
+function GameDetailContent({ navigation, route }: GameScreenProps) {
+  const insets = useSafeAreaInsets();
+  const [game, setGame] = useState<
+    | { readonly status: "loading" }
+    | {
+        readonly status: "ready";
+        readonly title: string;
+        readonly description: string | null;
+        readonly coverUrl: string | null;
+        readonly aboutUrl: string | null;
+      }
+    | { readonly status: "error" }
+  >({ status: "loading" });
+  const [intentId, setIntentId] = useState<string | null | undefined>(undefined);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void Promise.all([
+        getGame(supabase, route.params.gameId),
+        getGamePresentationCover(supabase, route.params.gameId, catalogMediaReadOptions),
+        getPrimaryGameArtwork(supabase, route.params.gameId, catalogMediaReadOptions),
+        findActiveWishlistIntent(route.params.gameId),
+      ]).then(
+        ([gameResult, cover, artwork, wishlistId]) => {
+          if (!active) return;
+          const coverMedia = cover.outcome === "ok" ? cover.data?.media : null;
+          setGame(
+            gameResult.outcome === "ok"
+              ? {
+                  status: "ready",
+                  title: gameResult.data.canonicalTitle,
+                  description: gameResult.data.description,
+                  coverUrl: coverMedia?.assetUrl ?? null,
+                  aboutUrl:
+                    artwork.outcome === "ok"
+                      ? (artwork.data?.assetUrl ?? coverMedia?.assetUrl ?? null)
+                      : (coverMedia?.assetUrl ?? null),
+                }
+              : { status: "error" },
+          );
+          setIntentId(wishlistId);
+        },
+        () => {
+          if (active) setGame({ status: "error" });
+        },
+      );
+      return () => {
+        active = false;
+      };
+    }, [route.params.gameId]),
+  );
+
+  return (
+    <View style={[gameStyles.page, { paddingTop: insets.top }]}>
+      <DetailToolbar
+        leadingIcon="chevron-left"
+        title={game.status === "ready" ? game.title : "Jeu"}
+        onClose={navigation.goBack}
+        onMore={() => undefined}
       />
+      {game.status === "loading" ? (
+        <View style={gameStyles.centered}>
+          <ActivityIndicator color={colors.text} />
+        </View>
+      ) : game.status === "error" ? (
+        <View style={gameStyles.centered}>
+          <Text>Ce jeu est introuvable.</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={gameStyles.content}>
+          <View style={gameStyles.hero}>
+            {game.coverUrl ? (
+              <Image resizeMode="contain" source={{ uri: game.coverUrl }} style={gameStyles.fill} />
+            ) : (
+              <GeekIcon color={colors.textSecondary} name="gamepad" size={56} />
+            )}
+          </View>
+          <Text style={gameStyles.title}>{game.title}</Text>
+          <Button
+            disabled={intentId === undefined || wishlistBusy}
+            title={intentId ? "Retirer de la Wishlist" : "Ajouter à la Wishlist"}
+            onPress={() => {
+              const previous = intentId;
+              setWishlistBusy(true);
+              setIntentId(previous ? null : "pending");
+              void toggleWishlistIntent({
+                gameId: route.params.gameId,
+                ...(previous ? { intentId: previous } : {}),
+              })
+                .then(() => findActiveWishlistIntent(route.params.gameId))
+                .then(setIntentId)
+                .catch(() => setIntentId(previous))
+                .finally(() => setWishlistBusy(false));
+            }}
+          />
+          {game.aboutUrl || game.description ? (
+            <AboutGameCard
+              description={game.description}
+              image={game.aboutUrl ? { uri: game.aboutUrl } : null}
+              title={game.title}
+            />
+          ) : null}
+        </ScrollView>
+      )}
     </View>
   );
 }
+
+const gameStyles = StyleSheet.create({
+  page: { backgroundColor: colors.background, flex: 1 },
+  content: { gap: spacing.page, paddingBottom: 40 },
+  centered: { alignItems: "center", flex: 1, justifyContent: "center" },
+  hero: {
+    alignItems: "center",
+    aspectRatio: 1.45,
+    backgroundColor: colors.surfaceSubtle,
+    justifyContent: "center",
+    marginHorizontal: spacing.page,
+    overflow: "hidden",
+  },
+  fill: { height: "100%", width: "100%" },
+  title: { ...typography.screenTitle, color: colors.text, paddingHorizontal: spacing.page },
+});
 
 export function EditionScreen({ navigation, route }: EditionScreenProps) {
   return (

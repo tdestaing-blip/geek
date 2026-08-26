@@ -19,22 +19,28 @@ const service = createClient(status.API_URL, status.SERVICE_ROLE_KEY, {
 const anonymous = createClient(status.API_URL, status.ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+const SMOKE_GAME_ID = 990003550;
+const COLLISION_GAME_ID = 990009001;
+const COLLISION_TITLE = `MobyGames reconciliation collision ${COLLISION_GAME_ID}`;
+const SMOKE_USER_EMAIL = "mobygames-import-smoke@example.com";
 
+await cleanupSmokeFixtures();
 const platform = await service
-  .from("platforms")
-  .insert({ slug: "nintendo-64", name: "Nintendo 64", manufacturer: "Nintendo" })
-  .select("id")
+  .from("platform_provider_mappings")
+  .select("platform_id")
+  .eq("provider", "mobygames")
+  .eq("external_id", "9")
   .single();
 assert.equal(platform.error, null);
 
 const plan = deriveMobyGamesImportPlan({
   game: {
-    game_id: 3550,
-    title: "The Legend of Zelda: Majora's Mask",
+    game_id: SMOKE_GAME_ID,
+    title: "MobyGames importer smoke game",
     description: "<p>Catalog description.</p>",
   },
   gamePlatform: {
-    game_id: 3550,
+    game_id: SMOKE_GAME_ID,
     platform_id: 9,
     platform_name: "Nintendo 64",
     releases: [
@@ -72,6 +78,7 @@ const plan = deriveMobyGamesImportPlan({
             height: 600,
           },
           { scan_of: "Manual", image: "https://cdn.example/majora-manual.jpg" },
+          { scan_of: "Media", image: "https://cdn.example/majora-cartridge.jpg" },
         ],
       },
     ],
@@ -83,6 +90,7 @@ const first = await writeMobyGamesImportPlan(service, plan);
 assert.equal(first.editionsCreated, 1);
 assert.equal(first.ambiguousCandidatesSkipped, 1);
 assert.equal(first.identifiersCreated, 1);
+assert.equal(first.componentsCreated, 3);
 assert.equal(first.evidenceLinksCreated, 2);
 assert.equal(first.mediaCreated, 2);
 assert.deepEqual(first.candidateReconciliations.map(({ status }) => status).sort(), [
@@ -99,7 +107,7 @@ assert.equal(editionsAfterFirst.data[0].region_code, "EU");
 const editionId = editionsAfterFirst.data[0].id;
 
 const user = await service.auth.admin.createUser({
-  email: `mobygames-smoke-${Date.now()}@example.com`,
+  email: SMOKE_USER_EMAIL,
   password: "Local-smoke-password-123!",
   email_confirm: true,
 });
@@ -123,6 +131,7 @@ assert.equal(second.editionsCreated, 0);
 assert.equal(second.editionsReused, 1);
 assert.equal(second.ambiguousCandidatesSkipped, 1);
 assert.equal(second.identifiersCreated, 0);
+assert.equal(second.componentsCreated, 0);
 assert.equal(second.evidenceLinksCreated, 0);
 assert.equal(second.mediaCreated, 0);
 assert.deepEqual(second.candidateReconciliations.map(({ status }) => status).sort(), [
@@ -148,12 +157,13 @@ const mappings = await service
   .eq("provider", "mobygames")
   .eq("external_id", "9");
 assert.equal(mappings.error, null);
-assert.deepEqual(mappings.data, [{ platform_id: platform.data.id }]);
+assert.deepEqual(mappings.data, [{ platform_id: platform.data.platform_id }]);
 
 const sourceRows = await service
   .from("catalog_source_records")
   .select("id, record_type, source_key, provider_external_id, checksum, revision")
   .eq("provider", "mobygames")
+  .in("source_key", [String(SMOKE_GAME_ID), "9", `${SMOKE_GAME_ID}:9`])
   .order("record_type");
 assert.equal(sourceRows.error, null);
 assert.equal(sourceRows.data.length, 4);
@@ -165,12 +175,12 @@ assert.ok(sourceRows.data.every(({ revision }) => revision === 1));
 
 const enrichedPlan = deriveMobyGamesImportPlan({
   game: {
-    game_id: 3550,
-    title: "The Legend of Zelda: Majora's Mask",
+    game_id: SMOKE_GAME_ID,
+    title: "MobyGames importer smoke game",
     description: "<p>Catalog description.</p>",
   },
   gamePlatform: {
-    game_id: 3550,
+    game_id: SMOKE_GAME_ID,
     platform_id: 9,
     platform_name: "Nintendo 64",
     releases: [
@@ -199,6 +209,7 @@ const enriched = await writeMobyGamesImportPlan(service, enrichedPlan);
 assert.equal(enriched.editionsCreated, 0);
 assert.equal(enriched.editionsReused, 1);
 assert.equal(enriched.identifiersCreated, 1);
+assert.equal(enriched.componentsCreated, 0);
 assert.equal(enriched.evidenceLinksCreated, 1);
 assert.equal(
   enriched.candidateReconciliations.filter(({ status }) => status === "MATCHED_BY_SOURCE_EVIDENCE")
@@ -225,9 +236,9 @@ assert.deepEqual(
 const gameSource = sourceRows.data.find(({ record_type }) => record_type === "game");
 const unchanged = await service.rpc("upsert_mobygames_catalog_source_record", {
   record_type_name: "game",
-  source_key_value: "3550",
-  provider_external_id_value: "3550",
-  payload_value: { game_id: 3550 },
+  source_key_value: String(SMOKE_GAME_ID),
+  provider_external_id_value: String(SMOKE_GAME_ID),
+  payload_value: { game_id: SMOKE_GAME_ID },
   checksum_value: gameSource.checksum,
   fetched_at_value: "2026-08-24T13:00:00.000Z",
   evidence_children_value: [],
@@ -236,9 +247,9 @@ assert.equal(unchanged.error, null);
 assert.equal(unchanged.data.revision, 1);
 const changed = await service.rpc("upsert_mobygames_catalog_source_record", {
   record_type_name: "game",
-  source_key_value: "3550",
-  provider_external_id_value: "3550",
-  payload_value: { game_id: 3550, title: "Changed" },
+  source_key_value: String(SMOKE_GAME_ID),
+  provider_external_id_value: String(SMOKE_GAME_ID),
+  payload_value: { game_id: SMOKE_GAME_ID, title: "Changed" },
   checksum_value: "a".repeat(64),
   fetched_at_value: "2026-08-24T14:00:00.000Z",
   evidence_children_value: [],
@@ -264,18 +275,39 @@ assert.equal(evidence.error, null);
 assert.equal(evidence.data.length, 2);
 const media = await service
   .from("catalog_media")
-  .select("kind, rights_status")
+  .select("kind, rights_status, is_primary, attribution")
   .eq("edition_id", editionId)
   .order("kind");
 assert.equal(media.error, null);
 assert.deepEqual(media.data, [
-  { kind: "cover_back", rights_status: "restricted" },
-  { kind: "cover_front", rights_status: "restricted" },
+  {
+    kind: "cover_back",
+    rights_status: "noncommercial",
+    is_primary: false,
+    attribution: "Data by MobyGames.com",
+  },
+  {
+    kind: "cover_front",
+    rights_status: "noncommercial",
+    is_primary: true,
+    attribution: "Data by MobyGames.com",
+  },
+]);
+const components = await service
+  .from("edition_components")
+  .select("component_key, kind, required_for_complete, sort_order")
+  .eq("edition_id", editionId)
+  .order("sort_order");
+assert.equal(components.error, null);
+assert.deepEqual(components.data, [
+  { component_key: "cartridge", kind: "cartridge", required_for_complete: true, sort_order: 0 },
+  { component_key: "box", kind: "box", required_for_complete: true, sort_order: 1 },
+  { component_key: "manual", kind: "manual", required_for_complete: true, sort_order: 2 },
 ]);
 
 const collisionGame = await service
   .from("games")
-  .insert({ canonical_title: "MobyGames reconciliation collision" })
+  .insert({ canonical_title: COLLISION_TITLE })
   .select("id")
   .single();
 assert.equal(collisionGame.error, null);
@@ -291,9 +323,9 @@ const collisionEdition = await service
   .single();
 assert.equal(collisionEdition.error, null);
 const collisionPlan = deriveMobyGamesImportPlan({
-  game: { game_id: 9001, title: "MobyGames reconciliation collision" },
+  game: { game_id: COLLISION_GAME_ID, title: COLLISION_TITLE },
   gamePlatform: {
-    game_id: 9001,
+    game_id: COLLISION_GAME_ID,
     platform_id: 9,
     platform_name: "Nintendo 64",
     releases: [
@@ -351,5 +383,53 @@ assert.equal(collisionMedia.data.length, 0);
 const rawRead = await anonymous.from("catalog_source_records").select("id");
 assert.notEqual(rawRead.error, null);
 
-await service.auth.admin.deleteUser(user.data.user.id);
+await cleanupSmokeFixtures();
 process.stdout.write("MobyGames catalog source/import smoke: PASS\n");
+
+async function cleanupSmokeFixtures() {
+  const users = await service.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  assert.equal(users.error, null);
+  const smokeUser = users.data.users.find(({ email }) => email === SMOKE_USER_EMAIL);
+  if (smokeUser !== undefined) {
+    const deletedUser = await service.auth.admin.deleteUser(smokeUser.id);
+    assert.equal(deletedUser.error, null);
+  }
+
+  for (const gameExternalId of [SMOKE_GAME_ID, COLLISION_GAME_ID]) {
+    const runs = await service
+      .from("catalog_import_runs")
+      .delete()
+      .eq("provider", "mobygames")
+      .contains("summary", { gameExternalId: String(gameExternalId) });
+    assert.equal(runs.error, null);
+
+    const mappings = await service
+      .from("game_provider_mappings")
+      .select("game_id")
+      .eq("provider", "mobygames")
+      .eq("external_id", String(gameExternalId));
+    assert.equal(mappings.error, null);
+    const gameIds = mappings.data.map(({ game_id }) => game_id);
+    if (gameIds.length > 0) {
+      const editions = await service.from("editions").delete().in("game_id", gameIds);
+      assert.equal(editions.error, null);
+      const games = await service.from("games").delete().in("id", gameIds);
+      assert.equal(games.error, null);
+    }
+
+    const gameSource = await service
+      .from("catalog_source_records")
+      .delete()
+      .eq("provider", "mobygames")
+      .eq("record_type", "game")
+      .eq("source_key", String(gameExternalId));
+    assert.equal(gameSource.error, null);
+    const platformSources = await service
+      .from("catalog_source_records")
+      .delete()
+      .eq("provider", "mobygames")
+      .in("record_type", ["game_platform", "covers"])
+      .eq("source_key", `${gameExternalId}:9`);
+    assert.equal(platformSources.error, null);
+  }
+}

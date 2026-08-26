@@ -1,3 +1,4 @@
+import type { GamePresentationMedia } from "@geek/data";
 import type { CatalogMedia, Edition, Game, Platform } from "@geek/domain";
 
 export type GamePlatformSearchResult = {
@@ -8,6 +9,7 @@ export type GamePlatformSearchResult = {
   readonly platformSlug: string;
   readonly editionCount: number;
   readonly artworkUrl: string | null;
+  readonly mediaAttribution: string | null;
 };
 
 export type GameRegionVariant = {
@@ -19,6 +21,7 @@ export type GameRegionVariant = {
   readonly regionCode: string | null;
   readonly editionName: string | null;
   readonly artworkUrl: string | null;
+  readonly mediaAttribution: string | null;
 };
 
 export type CanonicalMarketCatalog = {
@@ -26,21 +29,19 @@ export type CanonicalMarketCatalog = {
   readonly edition: Edition;
   readonly platform: Platform;
   readonly artworkUrl: string | null;
+  readonly aboutArtworkUrl: string | null;
+  readonly mediaAttributions: readonly string[];
 };
 
 export function buildGamePlatformResults(
   games: readonly Game[],
   editions: readonly Edition[],
   platforms: readonly Platform[],
-  covers: readonly CatalogMedia[],
+  covers: readonly GamePresentationMedia[],
 ): readonly GamePlatformSearchResult[] {
   const gameById = new Map(games.map((game) => [game.id, game]));
   const platformById = new Map(platforms.map((platform) => [platform.id, platform]));
-  const coverByGameId = new Map(
-    covers.flatMap((cover) =>
-      cover.gameId === null ? [] : [[cover.gameId, cover.assetUrl] as const],
-    ),
-  );
+  const coverByGameId = new Map(covers.map(({ gameId, media }) => [gameId, media.assetUrl]));
   const grouped = new Map<string, Set<string>>();
 
   for (const edition of editions) {
@@ -67,6 +68,8 @@ export function buildGamePlatformResults(
         platformSlug: platform.slug,
         editionCount: editionIds.size,
         artworkUrl: coverByGameId.get(gameId) ?? null,
+        mediaAttribution:
+          covers.find((cover) => cover.gameId === gameId)?.media.attribution ?? null,
       },
     ];
   });
@@ -96,6 +99,10 @@ export function buildGameRegionVariants(
       regionCode: edition.regionCode,
       editionName: edition.editionName,
       artworkUrl: coverByEditionId.get(edition.id) ?? gameCover?.assetUrl ?? null,
+      mediaAttribution:
+        editionCovers.find((cover) => cover.editionId === edition.id)?.attribution ??
+        gameCover?.attribution ??
+        null,
     }));
 }
 
@@ -105,13 +112,20 @@ export function resolveCanonicalMarket(
   platform: Platform,
   editionCover: CatalogMedia | null,
   gameCover: CatalogMedia | null,
+  gameArtwork: CatalogMedia | null = null,
 ): CanonicalMarketCatalog | null {
   if (edition.gameId !== game.id || edition.platformId !== platform.id) return null;
+  const selectedCover = editionCover ?? gameCover;
+  const selectedAbout = gameArtwork ?? gameCover;
   return {
     game,
     edition,
     platform,
-    artworkUrl: editionCover?.assetUrl ?? gameCover?.assetUrl ?? null,
+    artworkUrl: selectedCover?.assetUrl ?? null,
+    aboutArtworkUrl: selectedAbout?.assetUrl ?? null,
+    mediaAttributions: [selectedCover?.attribution, selectedAbout?.attribution].filter(
+      (value): value is string => Boolean(value),
+    ),
   };
 }
 

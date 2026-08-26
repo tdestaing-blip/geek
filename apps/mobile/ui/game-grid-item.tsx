@@ -30,6 +30,8 @@ export function GameGridItem({
   isWishlist,
   imageOpacity = 1,
   onPress,
+  onWantedPress,
+  owned = false,
   platformLabel,
   showOpportunity = false,
   slotNumber,
@@ -40,6 +42,8 @@ export function GameGridItem({
   readonly isWishlist: boolean;
   readonly imageOpacity?: number;
   readonly onPress?: () => void;
+  readonly onWantedPress?: () => void;
+  readonly owned?: boolean;
   readonly platformLabel?: string;
   readonly showOpportunity?: boolean;
   readonly slotNumber?: string;
@@ -72,14 +76,35 @@ export function GameGridItem({
           </View>
         ) : null}
         {item.overlay ? <ImageOverlay kind={item.overlay} price={item.salePrice} /> : null}
-        {wanted ? <ImageOverlay kind="bell" /> : null}
+        {wanted ? (
+          onWantedPress ? (
+            <Pressable
+              accessibilityLabel={`Retirer ${item.title} de la Wishlist`}
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                onWantedPress();
+              }}
+              style={[styles.overlay, styles.bellOverlay]}
+            >
+              <GeekIcon name="bell" size={14} />
+            </Pressable>
+          ) : (
+            <ImageOverlay kind="bell" />
+          )
+        ) : null}
+        {owned ? (
+          <View pointerEvents="none" style={[styles.overlay, styles.ownedOverlay]}>
+            <GeekIcon name="checkbox" size={14} />
+          </View>
+        ) : null}
       </View>
       <View style={styles.metadata}>
         <View style={styles.titleRow}>
           <Text numberOfLines={1} style={styles.title}>
             {item.title}
           </Text>
-          {isWishlist || showOpportunity ? (
+          {showOpportunity ? (
             <OpportunityPill count={item.opportunities ?? 0} />
           ) : (
             <View style={styles.components}>
@@ -220,6 +245,13 @@ const styles = StyleSheet.create({
     borderRadius: radii.capsule,
     justifyContent: "center",
     left: spacing.micro,
+    width: 20,
+  },
+  ownedOverlay: {
+    backgroundColor: colors.overlay,
+    borderRadius: radii.capsule,
+    justifyContent: "center",
+    right: spacing.micro,
     width: 20,
   },
   overlayText: { color: colors.text, ...typography.metadata },

@@ -143,6 +143,7 @@ function summarizeCandidate(
     weakIdentifiers: candidate.identifiers.filter(({ identityRole }) => identityRole === "weak"),
     releaseDates: candidate.releaseDates,
     groupingReasons: candidate.groupingReasons,
+    components: candidate.components.map(({ componentKey }) => componentKey),
     media: candidate.media.map(({ kind, sourceAssetId }) => ({ kind, sourceAssetId })),
     deterministic: candidate.canonicalizable,
     ambiguities: candidate.ambiguities,
