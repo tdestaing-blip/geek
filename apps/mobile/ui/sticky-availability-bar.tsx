@@ -1,17 +1,25 @@
-import type { CopyAvailability } from "@geek/domain";
+import { canCreateDirectListing } from "@geek/domain";
+import type { CopyAvailability, OwnedCopyCommercialState } from "@geek/domain";
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
+import { getStickyAvailabilityPresentation } from "./sticky-availability-presentation";
 export function StickyAvailabilityBar({
   availability = "private",
+  commercialState,
   hasCopyPhoto,
+  onCreateListing,
 }: {
   readonly availability?: CopyAvailability;
+  readonly commercialState: OwnedCopyCommercialState;
   readonly hasCopyPhoto: boolean;
+  readonly onCreateListing: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const canCreateListing = hasCopyPhoto && canCreateDirectListing(availability, commercialState);
+  const presentation = getStickyAvailabilityPresentation(availability, commercialState);
   return (
     <View style={styles.root}>
       {!hasCopyPhoto ? (
@@ -27,29 +35,26 @@ export function StickyAvailabilityBar({
         style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
         <View>
-          <Text style={styles.statusLabel}>Status</Text>
-          <Text style={styles.status}>{AVAILABILITY_LABELS[availability]}</Text>
+          <Text style={commercialState.kind === "listing" ? styles.priceLabel : styles.statusLabel}>
+            {presentation.label}
+          </Text>
+          <Text style={commercialState.kind === "listing" ? styles.price : styles.status}>
+            {presentation.value}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !hasCopyPhoto }}
-          disabled={!hasCopyPhoto}
-          onPress={() => undefined}
-          style={[styles.action, !hasCopyPhoto && styles.actionDisabled]}
+          accessibilityState={{ disabled: !canCreateListing }}
+          disabled={!canCreateListing}
+          onPress={onCreateListing}
+          style={[styles.action, !canCreateListing && styles.actionDisabled]}
         >
-          <Text style={styles.actionText}>Rendre disponible</Text>
+          <Text style={styles.actionText}>{presentation.action}</Text>
         </Pressable>
       </AdaptiveGlassSurface>
     </View>
   );
 }
-
-const AVAILABILITY_LABELS: Record<CopyAvailability, string> = {
-  private: "Privé",
-  open_to_trade: "Ouvert à l’échange",
-  for_sale: "En vente",
-  in_auction: "Aux enchères",
-};
 
 const styles = StyleSheet.create({
   root: { bottom: 0, left: 0, position: "absolute", right: 0 },
@@ -72,6 +77,8 @@ const styles = StyleSheet.create({
   },
   statusLabel: { color: colors.textSecondary, ...typography.body },
   status: { color: colors.text, ...typography.body },
+  priceLabel: { color: colors.text, fontSize: 15, fontWeight: "400", opacity: 0.5 },
+  price: { color: colors.text, fontSize: 24, fontWeight: "600", lineHeight: 29 },
   action: {
     backgroundColor: colors.text,
     borderRadius: radii.capsule,

@@ -34,6 +34,8 @@ import {
   type PresentationMedia,
 } from "./presentation-media";
 import { isWishlistTargetOwned, selectUnambiguousCopyId } from "./collection-surface-rules";
+import { loadOptionalCopyTilePresentations } from "./copy-tile-data";
+import { selectAlbumCopyTilePresentation } from "./copy-tile-presentation";
 
 const PAGE_SIZE = 100;
 
@@ -190,14 +192,17 @@ export async function loadCanonicalAlbumDetail(
       return copyId ? [copyId] : [];
     }),
   );
-  const [editionMedia, gameMedia, photos] = await Promise.all([
+  const [editionMedia, gameMedia, photos, tilePresentations] = await Promise.all([
     loadMediaBatches(editionIds, (ids) =>
       getPrimaryEditionCovers(supabase, ids, catalogMediaReadOptions),
     ),
     loadGamePresentationMediaBatches(gameIds),
     loadPrimaryPhotoBatches(unambiguousCopyIds),
+    loadOptionalCopyTilePresentations(unambiguousCopyIds),
   ]);
-  if (!editionMedia || !gameMedia || !photos) return { outcome: "error" };
+  if (!editionMedia || !gameMedia || !photos) {
+    return { outcome: "error" };
+  }
 
   const editionArtwork = mediaByTarget(editionMedia, "edition");
   const gameArtwork = gamePresentationMediaByTarget(gameMedia);
@@ -207,6 +212,10 @@ export async function loadCanonicalAlbumDetail(
     .map((entry): CanonicalAlbumEntryItem => {
       const matches = matchesByEntry.get(entry.id) ?? [];
       const copyId = selectUnambiguousCopyId(matches.map(({ copy }) => copy.id));
+      const tilePresentation = selectAlbumCopyTilePresentation(
+        matches.map(({ copy }) => copy.id),
+        tilePresentations,
+      );
       const copyPhotoUrl = copyId ? photos.get(copyId) : undefined;
       const catalogMedia =
         (entry.target.editionId ? editionArtwork.get(entry.target.editionId) : undefined) ??
@@ -230,6 +239,10 @@ export async function loadCanonicalAlbumDetail(
         wanted: entry.state.wanted,
         position: entry.position,
         opportunities: entry.network.activeListingCount,
+        ...(tilePresentation?.salePrice
+          ? { overlay: "sale" as const, salePrice: tilePresentation.salePrice }
+          : {}),
+        photoRoles: tilePresentation?.photoRoles ?? [],
         ...(matches.length === 1 && copyPhotoUrl
           ? {}
           : catalogMedia?.attribution

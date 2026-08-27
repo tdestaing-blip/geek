@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "../lib/auth/auth-provider";
 import { AboutGameCard } from "../ui/about-game-card";
 import { CopyComponentCard, getCopyComponentLabel } from "../ui/copy-component-card";
 import { DetailToolbar } from "../ui/detail-toolbar";
@@ -33,6 +34,7 @@ export function PublicCopyDetailScreen(props: Props) {
 
 function PublicCopyContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { state: authState } = useAuth();
   const { width } = useWindowDimensions();
   const heroSize = width - spacing.page * 2;
   const [data, setData] = useState<PublicCopyViewData | null>(null);
@@ -153,7 +155,10 @@ function PublicCopyContent({ navigation, route }: Props) {
           title={detail.game.canonicalTitle}
         />
       </ScrollView>
-      <StickyCommercialBar opportunity={detail.opportunity} />
+      <StickyCommercialBar
+        opportunity={detail.opportunity}
+        ownerView={authState.status === "authenticated" && authState.user.id === detail.owner.id}
+      />
     </View>
   );
 }

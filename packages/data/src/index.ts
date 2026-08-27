@@ -71,6 +71,7 @@ export type {
   AddCopyPhotoInput,
   AddCopyPhotoResult,
   CopyPhotoRead,
+  CopyPhotoRoleSummary,
   DeleteCopyPhotoResult,
 } from "./collection/photos";
 export {
@@ -79,6 +80,7 @@ export {
   deleteCopyPhoto,
   getCopyPhotoGallery,
   getCopyPhotos,
+  getMyCopyPhotoRoles,
   getMyPrimaryCopyPhotos,
 } from "./collection/photos";
 
@@ -108,6 +110,13 @@ export {
   getEditionMarketOpportunities,
   getPublicCopyDetail,
 } from "./marketplace/opportunities";
+
+export type { CreateListingInput, CreateListingResult } from "./marketplace/listings";
+export {
+  createListing,
+  getMyActiveListingsForCopies,
+  getMyCopyCommercialState,
+} from "./marketplace/listings";
 
 export {
   getListingMatchesForWishlist,

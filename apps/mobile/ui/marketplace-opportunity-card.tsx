@@ -1,8 +1,9 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
-import type { EditionMarketOpportunity, Money } from "@geek/domain";
+import type { EditionMarketOpportunity } from "@geek/domain";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GeekIcon } from "./geek-icon";
+import { formatMoney } from "./format-money";
 
 export function MarketplaceOpportunityCard({
   artworkUrl,
@@ -85,14 +86,6 @@ function getOpportunitySignal(opportunity: EditionMarketOpportunity) {
       <Text style={[styles.signal, styles.tradeSignal]}>Vous recherchez vos jeux</Text>
     </>
   );
-}
-
-export function formatMoney(money: Money): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: money.currency,
-    maximumFractionDigits: money.amountMinor % 100 === 0 ? 0 : 2,
-  }).format(money.amountMinor / 100);
 }
 
 export function formatCountdown(endsAt: string): string {

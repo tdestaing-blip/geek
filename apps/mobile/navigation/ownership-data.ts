@@ -12,6 +12,8 @@ import type { ImageSourcePropType } from "react-native";
 import { supabase } from "../lib/supabase";
 import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
 import type { GridItem } from "../ui/game-grid-item";
+import { loadOptionalCopyTilePresentations } from "./copy-tile-data";
+import type { CopyTilePresentation } from "./copy-tile-presentation";
 import { resolveOwnedCopyMedia } from "./presentation-media";
 
 const COLLECTION_PAGE_SIZE = 100;
@@ -47,23 +49,32 @@ export async function loadCanonicalCollection(): Promise<CanonicalCollectionLoad
     if (result.data.items.length < COLLECTION_PAGE_SIZE) break;
   }
 
-  const [covers, photos] = await Promise.all([
+  const [covers, photos, tilePresentations] = await Promise.all([
     loadPrimaryCovers(entries),
     loadPrimaryPhotos(entries.map(({ copy }) => copy.id)),
+    loadOptionalCopyTilePresentations(entries.map(({ copy }) => copy.id)),
   ]);
-  return { outcome: "ok", data: { entries, items: toCollectionItems(entries, covers, photos) } };
+  return {
+    outcome: "ok",
+    data: {
+      entries,
+      items: toCollectionItems(entries, covers, photos, tilePresentations),
+    },
+  };
 }
 
 function toCollectionItems(
   entries: readonly CollectionEntry[],
   covers: ReadonlyMap<string, CatalogMedia>,
   photos: ReadonlyMap<string, string>,
+  tilePresentations: ReadonlyMap<string, CopyTilePresentation>,
 ): readonly CanonicalCollectionItem[] {
   return entries.map(({ copy, edition, game, platform }) => {
     const copyPhotoUrl = photos.get(copy.id);
     const editionMedia = covers.get(edition?.id ?? "");
     const gameMedia = covers.get(game.id);
     const catalogMedia = editionMedia ?? gameMedia;
+    const tilePresentation = tilePresentations.get(copy.id);
     return {
       copyId: copy.id,
       editionId: copy.editionId ?? undefined,
@@ -79,6 +90,10 @@ function toCollectionItems(
       platform: platform?.name ?? "Édition à préciser",
       regionCode: edition?.regionCode ?? null,
       title: game.canonicalTitle,
+      ...(tilePresentation?.salePrice
+        ? { overlay: "sale" as const, salePrice: tilePresentation.salePrice }
+        : {}),
+      photoRoles: tilePresentation?.photoRoles ?? [],
     };
   });
 }

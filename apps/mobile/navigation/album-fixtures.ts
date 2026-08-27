@@ -104,7 +104,7 @@ export type AlbumEntryFixture = {
   readonly wanted: boolean;
   readonly networkCount?: number;
   readonly price?: string;
-  readonly components?: readonly ("gamepad" | "box")[];
+  readonly photoRoles?: readonly ("cartridge" | "box" | "manual")[];
 };
 
 export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
@@ -115,7 +115,7 @@ export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
     owned: true,
     wanted: false,
     price: "34€",
-    components: ["gamepad", "box"],
+    photoRoles: ["cartridge", "box"],
   },
   {
     id: "zelda",
@@ -123,7 +123,7 @@ export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
     image: ZELDA,
     owned: true,
     wanted: false,
-    components: ["gamepad", "box"],
+    photoRoles: ["cartridge", "box"],
   },
   {
     id: "chrono",
@@ -131,7 +131,7 @@ export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
     image: CHRONO_TRIGGER,
     owned: true,
     wanted: false,
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     id: "all-stars",
@@ -147,7 +147,7 @@ export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
     image: SUPER_METROID,
     owned: true,
     wanted: false,
-    components: ["gamepad", "box"],
+    photoRoles: ["cartridge", "box"],
   },
   {
     id: "nba",
@@ -155,7 +155,7 @@ export const SNES_ESSENTIAL_ENTRIES: readonly AlbumEntryFixture[] = [
     image: NBA_LIVE_95,
     owned: true,
     wanted: false,
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     id: "castlevania",
