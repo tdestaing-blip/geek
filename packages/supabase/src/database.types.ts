@@ -1618,6 +1618,30 @@ export type Database = {
           trade_offer_id: string;
         }[];
       };
+      create_auction: {
+        Args: {
+          request_auction_id: string;
+          requested_starting_amount_minor: number;
+          target_copy_id: string;
+        };
+        Returns: {
+          auction_id: string;
+          bid_count: number;
+          copy_id: string;
+          created_at: string;
+          currency: string;
+          current_amount_minor: number;
+          ends_at: string;
+          local_pickup: boolean;
+          min_increment_minor: number;
+          seller_id: string;
+          shipping_available: boolean;
+          starting_amount_minor: number;
+          starts_at: string;
+          status: string;
+          updated_at: string;
+        }[];
+      };
       create_trade_offer: {
         Args: {
           cash_amount_minor?: number;

@@ -16,6 +16,7 @@ navigation.navigate("Market", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("MarketOffers", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("AddCopy", { gameId: "game-id", editionId: "edition-id" });
 navigation.navigate("CreateListing", { copyId: "copy-id" });
+navigation.navigate("CreateAuction", { copyId: "copy-id" });
 navigation.navigate("AlbumReveal", {
   albumId: "album-id",
   entryId: "entry-id",
@@ -50,6 +51,8 @@ navigation.navigate("MarketOffers", { editionId: "edition-id" });
 navigation.navigate("AddCopy", { gameId: "game-id" });
 // @ts-expect-error Create Listing requires exact Copy identity.
 navigation.navigate("CreateListing");
+// @ts-expect-error Create Auction requires exact Copy identity.
+navigation.navigate("CreateAuction");
 // @ts-expect-error Album reveal must identify its exact canonical entry and new Copy.
 navigation.navigate("AlbumReveal", { albumId: "album-id", entryId: "entry-id" });
 // @ts-expect-error Copy identity is required.

@@ -24,6 +24,20 @@ Local pickup and shipping are independent capabilities. A scheduled or won
 Auction must support at least one. Buyer geography does not belong on Auction,
 and exact seller coordinates must never be copied into it.
 
+### Create Auction V1 policy
+
+The first seller creation experience intentionally exposes only the starting
+amount. For this V1 policy, the atomic creation boundary fixes the currency to
+EUR, the minimum increment to 100 minor units (€1.00), and fulfillment to local
+pickup. These are product defaults for V1 rather than universal Auction rules.
+
+The same trusted boundary derives `starts_at` from database transaction time,
+sets `ends_at` to exactly seven days later, and creates the Auction directly as
+`scheduled`. Mobile clients cannot supply or override the seller, increment, or
+authoritative timestamps. A caller-generated stable Auction UUID makes a
+network retry resolve to the same canonical Auction without shifting its time
+window.
+
 ## Lifecycle and temporal phase
 
 Persisted statuses are:

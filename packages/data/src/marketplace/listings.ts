@@ -5,6 +5,7 @@ import type { GeekSupabaseClient, Tables } from "@geek/supabase";
 import { resolveCaller } from "../caller";
 import type { OwnedEntityResult, OwnedResult } from "../result";
 import { databaseFailure, InvalidRowError, mapRows } from "../result";
+import { AUCTION_SELECT, toAuction } from "./auctions";
 
 const LISTING_SELECT = `
   id, copy_id, seller_id, asking_amount_minor, asking_currency,
@@ -163,7 +164,11 @@ export async function getMyCopyCommercialState(
       .select(LISTING_SELECT)
       .eq("copy_id", copyId)
       .in("status", ["active", "reserved"]),
-    client.from("auctions").select("id").eq("copy_id", copyId).in("status", ["scheduled", "won"]),
+    client
+      .from("auctions")
+      .select(AUCTION_SELECT)
+      .eq("copy_id", copyId)
+      .in("status", ["scheduled", "won"]),
     client
       .from("trade_offer_copies")
       .select("trade_offer_id, trade_offers!inner(status)")
@@ -181,7 +186,10 @@ export async function getMyCopyCommercialState(
         kind: "listing" as const,
         listing: toListing(listing),
       })),
-      ...auctions.data.map((auction) => ({ kind: "auction" as const, auctionId: auction.id })),
+      ...auctions.data.map((auction) => ({
+        kind: "auction" as const,
+        auction: toAuction(auction),
+      })),
       ...tradeMemberships.data.map((membership) => ({
         kind: "accepted_trade" as const,
         tradeOfferId: membership.trade_offer_id,

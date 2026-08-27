@@ -123,6 +123,9 @@ export {
   getMyCopyCommercialState,
 } from "./marketplace/listings";
 
+export type { CreateAuctionInput, CreateAuctionResult } from "./marketplace/auctions";
+export { createAuction } from "./marketplace/auctions";
+
 export {
   getListingMatchesForWishlist,
   getMyReciprocalTradeMatches,
