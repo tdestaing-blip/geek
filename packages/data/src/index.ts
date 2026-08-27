@@ -123,8 +123,13 @@ export {
   getMyCopyCommercialState,
 } from "./marketplace/listings";
 
-export type { CreateAuctionInput, CreateAuctionResult } from "./marketplace/auctions";
-export { createAuction } from "./marketplace/auctions";
+export type {
+  CreateAuctionInput,
+  CreateAuctionResult,
+  PlaceAuctionBidInput,
+  PlaceAuctionBidResult,
+} from "./marketplace/auctions";
+export { createAuction, getAuctionForBidding, placeAuctionBid } from "./marketplace/auctions";
 
 export {
   getListingMatchesForWishlist,

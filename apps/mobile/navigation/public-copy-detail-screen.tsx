@@ -80,6 +80,7 @@ function PublicCopyContent({ navigation, route }: Props) {
 
   const { catalog, detail } = data;
   const region = getCatalogRegionPresentation(catalog.edition.regionCode);
+  const auctionId = detail.opportunity?.type === "auction" ? detail.opportunity.auctionId : null;
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
       <DetailToolbar
@@ -156,6 +157,9 @@ function PublicCopyContent({ navigation, route }: Props) {
         />
       </ScrollView>
       <StickyCommercialBar
+        onBid={
+          auctionId === null ? undefined : () => navigation.navigate("PlaceBid", { auctionId })
+        }
         opportunity={detail.opportunity}
         ownerView={authState.status === "authenticated" && authState.user.id === detail.owner.id}
       />

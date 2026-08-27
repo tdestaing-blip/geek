@@ -9,9 +9,11 @@ import { GeekIcon } from "./geek-icon";
 import { formatMoney } from "./format-money";
 
 export function StickyCommercialBar({
+  onBid,
   opportunity,
   ownerView = false,
 }: {
+  readonly onBid?: () => void;
   readonly opportunity: PublicCopyDetail["opportunity"];
   readonly ownerView?: boolean;
 }) {
@@ -58,7 +60,11 @@ export function StickyCommercialBar({
             </Pressable>
           ) : null}
           {!ownerView ? (
-            <Pressable style={styles.primary}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={auction ? onBid : undefined}
+              style={styles.primary}
+            >
               <Text style={styles.primaryText}>
                 {trade ? "Proposer un échange" : auction ? "Enchérir" : `Acheter ${value}`}
               </Text>

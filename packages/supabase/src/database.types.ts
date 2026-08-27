@@ -1996,14 +1996,24 @@ export type Database = {
         Returns: Json;
       };
       place_auction_bid: {
-        Args: { bid_amount_minor: number; target_auction_id: string };
+        Args: {
+          bid_amount_minor: number;
+          request_bid_id: string;
+          target_auction_id: string;
+        };
         Returns: {
           accepted_amount_minor: number;
           auction_id: string;
           bid_count: number;
           bid_id: string;
           created_at: string;
+          currency: string;
           current_amount_minor: number;
+          ends_at: string;
+          min_increment_minor: number;
+          minimum_bid_minor: number;
+          result_code: string;
+          status: string;
         }[];
       };
       search_catalog: {

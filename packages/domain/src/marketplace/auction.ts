@@ -33,6 +33,22 @@ export type Auction = {
   readonly updatedAt: string;
 };
 
+export type AuctionBidState = {
+  readonly auctionId: string;
+  readonly currentPrice: Money;
+  readonly bidCount: number;
+  readonly minIncrement: Money;
+  readonly minimumBid: Money;
+  readonly endsAt: string;
+  readonly status: AuctionStatus;
+};
+
+export type AcceptedAuctionBid = AuctionBidState & {
+  readonly bidId: string;
+  readonly acceptedAmount: Money;
+  readonly createdAt: string;
+};
+
 export function parseAuctionStatus(value: string): AuctionStatus | null {
   switch (value) {
     case "draft":
@@ -63,5 +79,20 @@ export function canCreateAuction(
   return (
     commercialState.kind === "none" &&
     (availability === "private" || availability === "open_to_trade")
+  );
+}
+
+/** Calculates the next legal bid for presentation; the database remains authoritative. */
+export function getAuctionMinimumBid(auction: Auction): Money | null {
+  if (auction.bidCount === 0) return auction.startingPrice;
+  if (
+    auction.currentPrice === null ||
+    auction.currentPrice.currency !== auction.minIncrement.currency
+  ) {
+    return null;
+  }
+  return createMoney(
+    auction.currentPrice.amountMinor + auction.minIncrement.amountMinor,
+    auction.currentPrice.currency,
   );
 }

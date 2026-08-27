@@ -91,13 +91,19 @@ export {
   parseListingStatus,
 } from "./marketplace/listing";
 
-export type { Auction, AuctionStatus } from "./marketplace/auction";
+export type {
+  AcceptedAuctionBid,
+  Auction,
+  AuctionBidState,
+  AuctionStatus,
+} from "./marketplace/auction";
 export {
   AUCTION_STATUSES,
   canCreateAuction,
   CREATE_AUCTION_V1_DURATION_DAYS,
   CREATE_AUCTION_V1_MIN_INCREMENT_MINOR,
   createAuctionStartingPrice,
+  getAuctionMinimumBid,
   parseAuctionStatus,
 } from "./marketplace/auction";
 
