@@ -1,5 +1,6 @@
 import {
   getGamePresentationCover,
+  getMyCopyCommercialState,
   getMyCopyDetail,
   getCopyPhotoGallery,
   getPrimaryEditionCover,
@@ -8,6 +9,7 @@ import {
   type MyCopyDetail,
 } from "@geek/data";
 import type { ImageSourcePropType } from "react-native";
+import type { OwnedCopyCommercialState } from "@geek/domain";
 
 import { supabase } from "../lib/supabase";
 import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
@@ -21,6 +23,7 @@ export type CanonicalCopyDetail = {
   readonly aboutArtwork: ImageSourcePropType | null;
   readonly mediaAttributions: readonly string[];
   readonly photos: readonly CopyPhotoRead[];
+  readonly commercialState: OwnedCopyCommercialState;
 };
 
 export type CanonicalCopyDetailResult =
@@ -29,14 +32,16 @@ export type CanonicalCopyDetailResult =
   | { readonly outcome: "error" };
 
 export async function loadCanonicalCopyDetail(copyId: string): Promise<CanonicalCopyDetailResult> {
-  const [result, photoResult] = await Promise.all([
+  const [result, photoResult, commercialResult] = await Promise.all([
     getMyCopyDetail(supabase, copyId),
     getCopyPhotoGallery(supabase, copyId),
+    getMyCopyCommercialState(supabase, copyId),
   ]);
 
   if (result.outcome === "not_found") return result;
   if (result.outcome !== "ok") return { outcome: "error" };
   if (photoResult.outcome !== "ok") return { outcome: "error" };
+  if (commercialResult.outcome !== "ok") return { outcome: "error" };
 
   const [editionCover, gameCover, gameArtwork] = await Promise.all([
     result.data.edition
@@ -66,6 +71,7 @@ export async function loadCanonicalCopyDetail(copyId: string): Promise<Canonical
         (value): value is string => Boolean(value),
       ),
       photos: photoResult.data,
+      commercialState: commercialResult.data,
     },
   };
 }

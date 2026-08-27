@@ -82,6 +82,14 @@ export type {
   ReciprocalTradeOpportunity,
 } from "./marketplace/opportunities";
 
+export type { Listing, ListingStatus, OwnedCopyCommercialState } from "./marketplace/listing";
+export {
+  canCreateDirectListing,
+  createListingAskingPrice,
+  LISTING_STATUSES,
+  parseListingStatus,
+} from "./marketplace/listing";
+
 export type {
   Album,
   AlbumDetail,

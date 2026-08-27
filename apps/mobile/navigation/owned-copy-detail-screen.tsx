@@ -220,6 +220,9 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
             );
           }}
           selectedPhotoRole={selectedPhotoRole}
+          onCreateListing={() =>
+            navigation.navigate("CreateListing", { copyId: route.params.copyId })
+          }
         />
       )}
     </View>
@@ -232,12 +235,14 @@ function CanonicalCopyDetailView({
   onCurrentPhotoChange,
   onSelectedPhotoRoleChange,
   selectedPhotoRole,
+  onCreateListing,
 }: {
   readonly data: CanonicalCopyDetail;
   readonly onAddPhotos: (photoRole: CopyPhotoRole) => void;
   readonly onCurrentPhotoChange: (photoId: string | null) => void;
   readonly onSelectedPhotoRoleChange: (photoRole: CopyPhotoRole) => void;
   readonly selectedPhotoRole: CopyPhotoRole;
+  readonly onCreateListing: () => void;
 }) {
   const { detail, catalogArtwork } = data;
   const { state: authState } = useAuth();
@@ -285,7 +290,9 @@ function CanonicalCopyDetailView({
       </ScrollView>
       <StickyAvailabilityBar
         availability={detail.copy.availability}
+        commercialState={data.commercialState}
         hasCopyPhoto={data.photos.length > 0}
+        onCreateListing={onCreateListing}
       />
     </>
   );

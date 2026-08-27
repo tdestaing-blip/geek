@@ -27,6 +27,7 @@
     "db:smoke:catalog-media": "node --experimental-strip-types scripts/supabase-catalog-media-smoke.mjs",
     "db:smoke:copy-photos": "node --experimental-strip-types scripts/supabase-copy-photos-smoke.mjs",
     "db:smoke:market-opportunities": "node --experimental-strip-types scripts/supabase-market-opportunities-smoke.mjs",
+    "db:smoke:create-listing": "node --experimental-strip-types scripts/supabase-create-listing-smoke.mjs",
     "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",

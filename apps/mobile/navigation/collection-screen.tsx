@@ -52,8 +52,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Asterix",
     image: MY_ASTERIX,
     platform: "SNES",
-    components: ["gamepad", "box"],
-    overlay: "sale",
+    photoRoles: ["cartridge", "box"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000102",
@@ -61,7 +60,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Super Mario World",
     image: MY_MARIO_WORLD_COVER,
     platform: "SNES",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
     overlay: "photo",
   },
   {
@@ -70,7 +69,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Chrono Trigger",
     image: MY_CHRONO_TRIGGER,
     platform: "SNES",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000104",
@@ -78,7 +77,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Super Metroid",
     image: MY_SUPER_METROID,
     platform: "SNES",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000105",
@@ -86,7 +85,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Super Mario World",
     image: MY_MARIO_WORLD,
     platform: "SNES",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000106",
@@ -94,7 +93,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Super Mario Kart",
     image: MY_MARIO_KART,
     platform: "SNES",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000107",
@@ -102,7 +101,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Goldeneye",
     image: MY_GOLDENEYE,
     platform: "N64",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
   {
     copyId: "10000000-0000-0000-0000-000000000108",
@@ -110,7 +109,7 @@ export const MY_GAMES: readonly GridItem[] = [
     title: "Perfect Dark",
     image: MY_PERFECT_DARK,
     platform: "N64",
-    components: ["gamepad"],
+    photoRoles: ["cartridge"],
   },
 ];
 

@@ -7,6 +7,7 @@ import { resolveNavigationBranch } from "./auth-branch";
 import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
 import { AlbumDetailScreen } from "./album-detail-screen";
 import { AddCopyScreen } from "./add-copy-screen";
+import { CreateListingScreen } from "./create-listing-screen";
 import { AlbumRevealScreen } from "./album-reveal-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
@@ -131,6 +132,11 @@ export function NavigationRoot() {
               component={AddCopyScreen}
               options={addCopySheetOptions}
             />
+            <RootStack.Screen
+              name="CreateListing"
+              component={CreateListingScreen}
+              options={createListingSheetOptions}
+            />
           </>
         ) : null}
       </RootStack.Navigator>
@@ -155,6 +161,14 @@ const addCopySheetOptions = {
   headerShown: false,
   presentation: "formSheet" as const,
   sheetAllowedDetents: [1] as number[],
+  sheetInitialDetentIndex: 0,
+};
+
+const createListingSheetOptions = {
+  gestureEnabled: true,
+  headerShown: false,
+  presentation: "formSheet" as const,
+  sheetAllowedDetents: [0.58] as number[],
   sheetInitialDetentIndex: 0,
 };
 

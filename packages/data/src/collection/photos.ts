@@ -1,4 +1,9 @@
-import { parseCopyPhotoRole, type CopyPhoto, type CopyPhotoRole } from "@geek/domain";
+import {
+  COPY_PHOTO_ROLES,
+  parseCopyPhotoRole,
+  type CopyPhoto,
+  type CopyPhotoRole,
+} from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import { resolveCaller } from "../caller";
@@ -15,6 +20,11 @@ export type CopyPhotoRead = {
   readonly photo: CopyPhoto;
   /** Short-lived authenticated URL. Never persisted as Copy-photo metadata. */
   readonly signedUrl: string;
+};
+
+export type CopyPhotoRoleSummary = {
+  readonly copyId: string;
+  readonly photoRoles: readonly CopyPhotoRole[];
 };
 
 export type AddCopyPhotoInput = {
@@ -135,6 +145,46 @@ export async function getMyPrimaryCopyPhotos(
       return { photo, signedUrl };
     }),
   );
+}
+
+/**
+ * Reads owner-private photo-role presence for a bounded Copy set in one query.
+ * Generic photos deliberately contribute no role and no private storage path is returned.
+ */
+export async function getMyCopyPhotoRoles(
+  client: GeekSupabaseClient,
+  copyIds: readonly string[],
+): Promise<OwnedResult<readonly CopyPhotoRoleSummary[]>> {
+  const caller = await resolveCaller(client);
+  if (caller.outcome !== "ok") return caller;
+  const ids = [...new Set(copyIds)];
+  if (ids.length > 100) throw new RangeError("Copy photo-role reads support at most 100 ids");
+  if (ids.length === 0) return { outcome: "ok", data: [] };
+
+  const selected = await client
+    .from("copy_photos")
+    .select("copy_id, photo_role")
+    .in("copy_id", ids)
+    .order("copy_id", { ascending: true });
+  if (selected.error !== null) return databaseFailure(selected.error);
+
+  return mapRows(() => {
+    const rolesByCopyId = new Map<string, Set<CopyPhotoRole>>();
+    for (const row of selected.data) {
+      if (row.photo_role === null) continue;
+      const photoRole = parseCopyPhotoRole(row.photo_role);
+      if (photoRole === null) {
+        throw new InvalidRowError("copy_photos.photo_role", `unsupported ${row.photo_role}`);
+      }
+      const roles = rolesByCopyId.get(row.copy_id) ?? new Set<CopyPhotoRole>();
+      roles.add(photoRole);
+      rolesByCopyId.set(row.copy_id, roles);
+    }
+    return ids.map((copyId) => ({
+      copyId,
+      photoRoles: COPY_PHOTO_ROLES.filter((role) => rolesByCopyId.get(copyId)?.has(role)),
+    }));
+  });
 }
 
 /** Uploads one normalized JPEG, then persists its canonical private metadata. */

@@ -16,6 +16,7 @@ export type GeekIconName =
   | "diamond-gem"
   | "folder-plus"
   | "fire"
+  | "file-text"
   | "gamepad"
   | "image-2-plus"
   | "image-plus"
@@ -75,6 +76,8 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
   "folder-plus":
     '<svg viewBox="0 0 18 18"><path fill="currentColor" d="M3 2h5v2H3v-2Zm0 12h8v2H3v-2Zm12-10h2v6h-2V4ZM1 4h2v10H1V4Zm7 0h7v2H8V4Zm9 10v2h-4v-2h4Zm-3-3h2v2h2v2h-2v2h-2v-2h-2v-2h2v-2Z"/></svg>',
   fire: '<svg viewBox="0 0 12 13.3333"><path fill="currentColor" d="M4 0h1.333v2.667H4V0ZM2.667 2.667H4V4H2.667V2.667ZM1.333 4h1.334v1.333H1.333V4Zm5.334 1.333H8v1.334H6.667V5.333ZM8 4h1.333v1.333H8V4Zm1.333 1.333h1.334v1.334H9.333V5.333Zm1.334 1.334H12v4h-1.333v-4ZM0 5.333h1.333v5.334H0V5.333Zm5.333-2.666h1.334v2.666H5.333V2.667Zm4 8h1.334V12H9.333v-1.333ZM2.667 12h6.666v1.333H2.667V12Zm-1.334-1.333h1.334V12H1.333v-1.333ZM4 9.333h4V12H4V9.333ZM5.333 8h1.334v2H5.333V8Z"/></svg>',
+  "file-text":
+    '<svg viewBox="0 0 10.6667 13.3333"><path fill="currentColor" d="M1.33333 1.33333H0V12H1.33333V1.33333ZM8 0H1.33333V1.33333H8V0ZM10.6667 2.66667H9.33333V12H10.6667V2.66667ZM9.33333 12H1.33333V13.3333H9.33333V12ZM8 1.33333H9.33333V2.66667H8V1.33333ZM5.33333 1.33333H6.66667V5.33333H5.33333V1.33333Z"/><path fill="currentColor" d="M5.33333 4H9.33333V5.33333H5.33333V4ZM2.66667 9.33333H8V10.6667H2.66667V9.33333ZM2.66667 6.66667H8V8H2.66667V6.66667ZM2.66667 4H4V5.33333H2.66667V4Z"/></svg>',
   gamepad:
     '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M4 4h16v2H4zm0 14h16v2H4zM2 6h2v12H2zm18 0h2v12h-2zM8 9h2v6H8z"/><path d="M6 11h6v2H6zm8-2h2v2h-2zm2 4h2v2h-2z"/></g></svg>',
   "map-pin":

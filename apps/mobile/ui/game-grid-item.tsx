@@ -1,4 +1,5 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
+import type { CopyPhotoRole } from "@geek/domain";
 import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
 
 import FRANCE_ICON from "../assets/collection/v2/icon-france.png";
@@ -9,7 +10,7 @@ export type GameGridItemContent = {
   readonly title: string;
   readonly platform: string;
   readonly regionCode?: string | null;
-  readonly components?: readonly ("gamepad" | "box")[];
+  readonly photoRoles?: readonly CopyPhotoRole[];
   readonly overlay?: "sale" | "photo" | "bell";
   readonly opportunities?: number;
   readonly salePrice?: string;
@@ -104,19 +105,10 @@ export function GameGridItem({
           <Text numberOfLines={1} style={styles.title}>
             {item.title}
           </Text>
-          {showOpportunity ? (
-            <OpportunityPill count={item.opportunities ?? 0} />
-          ) : (
-            <View style={styles.components}>
-              {item.components?.map((component) => (
-                <GeekIcon
-                  key={component}
-                  name={component === "gamepad" ? "collection" : "box"}
-                  size={16}
-                />
-              ))}
-            </View>
-          )}
+          <View style={styles.signals}>
+            <PhotoRoleIcons photoRoles={item.photoRoles ?? []} />
+            {showOpportunity ? <OpportunityPill count={item.opportunities ?? 0} /> : null}
+          </View>
         </View>
         <View style={styles.platformRow}>
           {item.regionCode === undefined || item.regionCode === "FR" ? (
@@ -144,13 +136,31 @@ function ImageOverlay({
     );
   }
 
+  if (kind === "sale" && !price) return null;
+
   return (
     <View style={[styles.overlay, kind === "photo" ? styles.photoOverlay : styles.saleOverlay]}>
       <GeekIcon name={kind === "photo" ? "image-plus" : "shopping-cart"} size={14} />
-      <Text style={styles.overlayText}>{kind === "photo" ? "Photo needed" : (price ?? "34€")}</Text>
+      <Text style={styles.overlayText}>{kind === "photo" ? "Photo needed" : price}</Text>
     </View>
   );
 }
+
+function PhotoRoleIcons({ photoRoles }: { readonly photoRoles: readonly CopyPhotoRole[] }) {
+  return (
+    <View style={styles.photoRoles}>
+      {photoRoles.map((photoRole) => (
+        <GeekIcon key={photoRole} name={PHOTO_ROLE_ICONS[photoRole]} size={16} />
+      ))}
+    </View>
+  );
+}
+
+const PHOTO_ROLE_ICONS = {
+  cartridge: "gamepad",
+  box: "box",
+  manual: "file-text",
+} as const;
 
 function OpportunityPill({ count }: { readonly count: number }) {
   const active = count > 0;
@@ -215,7 +225,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     ...typography.itemTitle,
   },
-  components: { flexDirection: "row", gap: spacing.micro },
+  signals: { alignItems: "center", flexDirection: "row", gap: spacing.micro },
+  photoRoles: { flexDirection: "row", gap: spacing.micro },
   platformRow: { alignItems: "center", flexDirection: "row", gap: spacing.micro },
   flag: { height: 14, width: 14 },
   platform: { color: colors.textSecondary, ...typography.metadata },

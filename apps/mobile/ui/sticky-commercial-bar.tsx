@@ -1,15 +1,18 @@
 import { colors, typography } from "@geek/design-tokens";
-import type { Money, PublicCopyDetail } from "@geek/domain";
+import type { PublicCopyDetail } from "@geek/domain";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
 import { GeekIcon } from "./geek-icon";
+import { formatMoney } from "./format-money";
 
 export function StickyCommercialBar({
   opportunity,
+  ownerView = false,
 }: {
   readonly opportunity: PublicCopyDetail["opportunity"];
+  readonly ownerView?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   if (!opportunity) return null;
@@ -44,28 +47,26 @@ export function StickyCommercialBar({
           </View>
         )}
         <View style={styles.actions}>
-          {!auction && !trade ? (
+          {ownerView ? (
+            <View style={styles.ownerState}>
+              <Text style={styles.buttonText}>Votre annonce</Text>
+            </View>
+          ) : !auction && !trade ? (
             <Pressable style={styles.secondary}>
               <Text style={styles.buttonText}>Faire une offre</Text>
             </Pressable>
           ) : null}
-          <Pressable style={styles.primary}>
-            <Text style={styles.primaryText}>
-              {trade ? "Proposer un échange" : auction ? "Enchérir" : `Acheter ${value}`}
-            </Text>
-          </Pressable>
+          {!ownerView ? (
+            <Pressable style={styles.primary}>
+              <Text style={styles.primaryText}>
+                {trade ? "Proposer un échange" : auction ? "Enchérir" : `Acheter ${value}`}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </AdaptiveGlassSurface>
     </View>
   );
-}
-
-function formatMoney(money: Money): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: money.currency,
-    maximumFractionDigits: money.amountMinor % 100 === 0 ? 0 : 2,
-  }).format(money.amountMinor / 100);
 }
 
 function formatCountdown(endsAt: string): string {
@@ -103,6 +104,14 @@ const styles = StyleSheet.create({
   tradeLabel: { ...typography.body, fontWeight: "600" },
   actions: { flexDirection: "row", gap: 8 },
   secondary: {
+    backgroundColor: colors.controlSelected,
+    borderColor: colors.divider,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  ownerState: {
     backgroundColor: colors.controlSelected,
     borderColor: colors.divider,
     borderRadius: 999,
