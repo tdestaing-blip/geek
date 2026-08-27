@@ -8,6 +8,7 @@ import { CollectionScreen, MyCollectionScreen } from "./collection-screen";
 import { AlbumDetailScreen } from "./album-detail-screen";
 import { AddCopyScreen } from "./add-copy-screen";
 import { CreateListingScreen } from "./create-listing-screen";
+import { CreateAuctionScreen } from "./create-auction-screen";
 import { AlbumRevealScreen } from "./album-reveal-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
@@ -137,6 +138,11 @@ export function NavigationRoot() {
               component={CreateListingScreen}
               options={createListingSheetOptions}
             />
+            <RootStack.Screen
+              name="CreateAuction"
+              component={CreateAuctionScreen}
+              options={createAuctionSheetOptions}
+            />
           </>
         ) : null}
       </RootStack.Navigator>
@@ -169,6 +175,14 @@ const createListingSheetOptions = {
   headerShown: false,
   presentation: "formSheet" as const,
   sheetAllowedDetents: [0.58] as number[],
+  sheetInitialDetentIndex: 0,
+};
+
+const createAuctionSheetOptions = {
+  gestureEnabled: true,
+  headerShown: false,
+  presentation: "formSheet" as const,
+  sheetAllowedDetents: [0.62] as number[],
   sheetInitialDetentIndex: 0,
 };
 

@@ -1,5 +1,6 @@
 import type { CopyAvailability } from "../ownership/copy";
 import { createMoney, type CurrencyCode, type Money } from "../values";
+import type { Auction } from "./auction";
 
 export const LISTING_STATUSES = [
   "draft",
@@ -29,7 +30,7 @@ export type Listing = {
 export type OwnedCopyCommercialState =
   | { readonly kind: "none" }
   | { readonly kind: "listing"; readonly listing: Listing }
-  | { readonly kind: "auction"; readonly auctionId: string }
+  | { readonly kind: "auction"; readonly auction: Auction }
   | { readonly kind: "accepted_trade"; readonly tradeOfferId: string };
 
 export function parseListingStatus(value: string): ListingStatus | null {

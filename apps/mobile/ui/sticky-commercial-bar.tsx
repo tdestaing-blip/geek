@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
+import { formatAuctionCountdown } from "./auction-countdown";
 import { GeekIcon } from "./geek-icon";
 import { formatMoney } from "./format-money";
 
@@ -28,7 +29,7 @@ export function StickyCommercialBar({
           <Text style={styles.signalText}>{opportunity.bidCount} enchères</Text>
           <View style={styles.signalRight}>
             <GeekIcon name="radio" size={14} />
-            <Text style={styles.signalText}>Fin dans {formatCountdown(opportunity.endsAt)}</Text>
+            <Text style={styles.signalText}>{formatAuctionCountdown(opportunity.endsAt)}</Text>
           </View>
         </View>
       ) : null}
@@ -67,14 +68,6 @@ export function StickyCommercialBar({
       </AdaptiveGlassSurface>
     </View>
   );
-}
-
-function formatCountdown(endsAt: string): string {
-  const remaining = Math.max(0, Date.parse(endsAt) - Date.now());
-  const minutes = Math.floor(remaining / 60_000);
-  const days = Math.floor(minutes / (24 * 60));
-  const hours = Math.floor((minutes % (24 * 60)) / 60);
-  return `${days}j : ${String(hours).padStart(2, "0")}h`;
 }
 
 const styles = StyleSheet.create({

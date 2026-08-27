@@ -222,6 +222,31 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
     ]);
   }
 
+  function showCommercialCreationOptions() {
+    const openListing = () => navigation.navigate("CreateListing", { copyId: route.params.copyId });
+    const openAuction = () => navigation.navigate("CreateAuction", { copyId: route.params.copyId });
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          cancelButtonIndex: 2,
+          options: ["Vente directe", "Enchère", "Annuler"],
+        },
+        (index) => {
+          if (index === 0) openListing();
+          if (index === 1) openAuction();
+        },
+      );
+      return;
+    }
+
+    Alert.alert("Rendre disponible", undefined, [
+      { text: "Vente directe", onPress: openListing },
+      { text: "Enchère", onPress: openAuction },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  }
+
   function confirmListingCancellation(listingId: string) {
     if (listingCancellationPending) return;
     Alert.alert("Annuler la vente ?", "Ce jeu ne sera plus disponible à la vente.", [
@@ -291,9 +316,7 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
           selectedPhotoRole={selectedPhotoRole}
           listingCancellationPending={listingCancellationPending}
           onCancelListing={confirmListingCancellation}
-          onCreateListing={() =>
-            navigation.navigate("CreateListing", { copyId: route.params.copyId })
-          }
+          onCreateCommercial={showCommercialCreationOptions}
         />
       )}
     </View>
@@ -308,7 +331,7 @@ function CanonicalCopyDetailView({
   selectedPhotoRole,
   listingCancellationPending,
   onCancelListing,
-  onCreateListing,
+  onCreateCommercial,
 }: {
   readonly data: CanonicalCopyDetail;
   readonly onAddPhotos: (photoRole: CopyPhotoRole) => void;
@@ -317,7 +340,7 @@ function CanonicalCopyDetailView({
   readonly selectedPhotoRole: CopyPhotoRole;
   readonly listingCancellationPending: boolean;
   readonly onCancelListing: (listingId: string) => void;
-  readonly onCreateListing: () => void;
+  readonly onCreateCommercial: () => void;
 }) {
   const { detail, catalogArtwork } = data;
   const { state: authState } = useAuth();
@@ -373,7 +396,7 @@ function CanonicalCopyDetailView({
             onCancelListing(data.commercialState.listing.id);
           }
         }}
-        onCreateListing={onCreateListing}
+        onCreateCommercial={onCreateCommercial}
       />
     </>
   );

@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GeekIcon } from "./geek-icon";
 import { formatMoney } from "./format-money";
+import { formatAuctionCountdown } from "./auction-countdown";
 
 export function MarketplaceOpportunityCard({
   artworkUrl,
@@ -75,7 +76,7 @@ function getOpportunitySignal(opportunity: EditionMarketOpportunity) {
       <>
         <GeekIcon color={colors.accent} name="radio" size={13} />
         <Text style={styles.signal}>
-          {opportunity.bidCount} enchères · {formatCountdown(opportunity.endsAt)}
+          {opportunity.bidCount} enchères · {formatAuctionCountdown(opportunity.endsAt)}
         </Text>
       </>
     );
@@ -86,15 +87,6 @@ function getOpportunitySignal(opportunity: EditionMarketOpportunity) {
       <Text style={[styles.signal, styles.tradeSignal]}>Vous recherchez vos jeux</Text>
     </>
   );
-}
-
-export function formatCountdown(endsAt: string): string {
-  const remaining = Math.max(0, Date.parse(endsAt) - Date.now());
-  const minutes = Math.floor(remaining / 60_000);
-  const days = Math.floor(minutes / (24 * 60));
-  const hours = Math.floor((minutes % (24 * 60)) / 60);
-  const minutePart = minutes % 60;
-  return `Fin dans ${days}j : ${String(hours).padStart(2, "0")}h : ${String(minutePart).padStart(2, "0")}m`;
 }
 
 const styles = StyleSheet.create({

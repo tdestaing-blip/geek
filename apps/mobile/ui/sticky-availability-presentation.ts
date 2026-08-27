@@ -1,11 +1,13 @@
 import type { CopyAvailability, OwnedCopyCommercialState } from "@geek/domain";
 
 import { formatMoney } from "./format-money";
+import { formatAuctionCountdown } from "./auction-countdown";
 
 export type StickyAvailabilityPresentation = {
   readonly label: string;
   readonly value: string;
   readonly action: string;
+  readonly signal?: { readonly leading: string; readonly trailing: string };
 };
 
 export function getStickyAvailabilityPresentation(
@@ -19,15 +21,20 @@ export function getStickyAvailabilityPresentation(
       action: "Annuler la vente",
     };
   }
+  if (commercialState.kind === "auction") {
+    const { auction } = commercialState;
+    const bidLabel = auction.bidCount === 1 ? "1 enchère" : `${auction.bidCount} enchères`;
+    return {
+      label: auction.currentPrice ? "Mise actuelle" : "Mise de départ",
+      value: formatMoney(auction.currentPrice ?? auction.startingPrice),
+      action: "Aux enchères",
+      signal: { leading: bidLabel, trailing: formatAuctionCountdown(auction.endsAt) },
+    };
+  }
   return {
     label: "Status",
     value: AVAILABILITY_LABELS[availability],
-    action:
-      commercialState.kind === "auction"
-        ? "Aux enchères"
-        : commercialState.kind === "accepted_trade"
-          ? "Réservée"
-          : "Rendre disponible",
+    action: commercialState.kind === "accepted_trade" ? "Réservée" : "Rendre disponible",
   };
 }
 
