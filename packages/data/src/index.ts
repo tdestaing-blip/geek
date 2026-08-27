@@ -111,8 +111,13 @@ export {
   getPublicCopyDetail,
 } from "./marketplace/opportunities";
 
-export type { CreateListingInput, CreateListingResult } from "./marketplace/listings";
+export type {
+  CancelListingResult,
+  CreateListingInput,
+  CreateListingResult,
+} from "./marketplace/listings";
 export {
+  cancelListing,
   createListing,
   getMyActiveListingsForCopies,
   getMyCopyCommercialState,

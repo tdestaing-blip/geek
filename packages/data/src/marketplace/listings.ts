@@ -18,6 +18,9 @@ export type CreateListingInput = {
 
 export type CreateListingResult = OwnedResult<Listing> | { readonly outcome: "invalid_input" };
 
+export type CancelListingResult =
+  OwnedEntityResult<Listing> | { readonly outcome: "not_cancellable"; readonly data: Listing };
+
 /** Reads the caller's active direct-sale Listings for a bounded Copy set. */
 export async function getMyActiveListingsForCopies(
   client: GeekSupabaseClient,
@@ -93,6 +96,48 @@ export async function createListing(
 
   if (inserted.error !== null) return databaseFailure(inserted.error);
   return mapRows(() => toListing(inserted.data));
+}
+
+/**
+ * Withdraws the caller's active direct-sale Listing without deleting its history.
+ *
+ * The caller id is resolved from the canonical session. The conditional status
+ * update makes concurrent cancellation safe, while the existing database
+ * lifecycle triggers remain responsible for releasing the Copy commitment and
+ * restoring availability.
+ */
+export async function cancelListing(
+  client: GeekSupabaseClient,
+  listingId: string,
+): Promise<CancelListingResult> {
+  const caller = await resolveCaller(client);
+  if (caller.outcome !== "ok") return caller;
+
+  const currentResult = await selectCallerListing(client, listingId, caller.userId);
+  if (currentResult.outcome !== "ok") return currentResult;
+
+  const current = currentResult.data;
+  if (current.status === "reserved") return { outcome: "not_cancellable", data: current };
+  if (current.status !== "active") return currentResult;
+
+  const updated = await client
+    .from("listings")
+    .update({ status: "withdrawn" })
+    .eq("id", listingId)
+    .eq("seller_id", caller.userId)
+    .eq("status", "active")
+    .select(LISTING_SELECT)
+    .maybeSingle();
+
+  if (updated.error !== null) return databaseFailure(updated.error);
+  const updatedListing = updated.data;
+  if (updatedListing !== null) return mapRows(() => toListing(updatedListing));
+
+  const concurrentResult = await selectCallerListing(client, listingId, caller.userId);
+  if (concurrentResult.outcome !== "ok") return concurrentResult;
+  return concurrentResult.data.status === "reserved"
+    ? { outcome: "not_cancellable", data: concurrentResult.data }
+    : concurrentResult;
 }
 
 /** Reads the caller-visible commitment which currently reserves an owned Copy. */
@@ -196,4 +241,22 @@ function toListing(row: ListingRow): Listing {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+async function selectCallerListing(
+  client: GeekSupabaseClient,
+  listingId: string,
+  callerId: string,
+): Promise<OwnedEntityResult<Listing>> {
+  const selected = await client
+    .from("listings")
+    .select(LISTING_SELECT)
+    .eq("id", listingId)
+    .eq("seller_id", callerId)
+    .maybeSingle();
+
+  if (selected.error !== null) return databaseFailure(selected.error);
+  const selectedListing = selected.data;
+  if (selectedListing === null) return { outcome: "not_found" };
+  return mapRows(() => toListing(selectedListing));
 }

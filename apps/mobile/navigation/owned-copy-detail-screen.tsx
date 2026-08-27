@@ -1,8 +1,9 @@
+import { cancelListing } from "@geek/data";
 import type { CopyPhotoRole, CopyPrivateDetails, Money } from "@geek/domain";
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -21,6 +22,7 @@ import COMPONENT_BOX from "../assets/game-detail/owned/component-box.png";
 import COMPONENT_CARTRIDGE from "../assets/game-detail/owned/component-cartridge.png";
 import COMPONENT_MANUAL from "../assets/game-detail/owned/component-manual.png";
 import { useAuth } from "../lib/auth/auth-provider";
+import { supabase } from "../lib/supabase";
 import {
   acquireCopyPhotos,
   chooseCopyPhotoSource,
@@ -33,6 +35,7 @@ import { DetailToolbar } from "../ui/detail-toolbar";
 import { MetadataField } from "../ui/metadata-field";
 import { StickyAvailabilityBar } from "../ui/sticky-availability-bar";
 import { loadCanonicalCopyDetail, type CanonicalCopyDetail } from "./owned-copy-detail-data";
+import { createListingCancellationCoordinator } from "./cancel-listing-flow";
 import {
   persistPendingCopyPhotos,
   removePersistedCopyPhoto,
@@ -68,6 +71,33 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
   const [currentPhotoId, setCurrentPhotoId] = useState<string | null>(null);
   const [selectedPhotoRole, setSelectedPhotoRole] = useState<CopyPhotoRole>("cartridge");
   const [photoMutationPending, setPhotoMutationPending] = useState(false);
+  const [listingCancellationPending, setListingCancellationPending] = useState(false);
+  const mounted = useRef(true);
+  const cancellationCoordinator = useRef(
+    createListingCancellationCoordinator({
+      cancel: async (listingId) => {
+        const cancellation = await cancelListing(supabase, listingId);
+        if (cancellation.outcome === "not_found") {
+          const current = await loadCanonicalCopyDetail(route.params.copyId);
+          return (
+            current.outcome === "ok" &&
+            !(
+              current.data.commercialState.kind === "listing" &&
+              current.data.commercialState.listing.id === listingId
+            )
+          );
+        }
+        return cancellation.outcome === "ok" && cancellation.data.status !== "active";
+      },
+    }),
+  );
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const loadDetail = useCallback(() => {
     let active = true;
@@ -192,6 +222,45 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
     ]);
   }
 
+  function confirmListingCancellation(listingId: string) {
+    if (listingCancellationPending) return;
+    Alert.alert("Annuler la vente ?", "Ce jeu ne sera plus disponible à la vente.", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Retirer de la vente",
+        style: "destructive",
+        onPress: () => void submitListingCancellation(listingId),
+      },
+    ]);
+  }
+
+  async function submitListingCancellation(listingId: string) {
+    if (listingCancellationPending) return;
+    setListingCancellationPending(true);
+    const result = await cancellationCoordinator.current.submit(listingId);
+    if (!mounted.current || result.outcome === "ignored") return;
+    if (result.outcome === "failed") {
+      setListingCancellationPending(false);
+      Alert.alert(
+        "Vente non annulée",
+        "La vente est toujours active. Vérifiez son état et réessayez.",
+      );
+      return;
+    }
+
+    const refreshed = await loadCanonicalCopyDetail(route.params.copyId);
+    if (!mounted.current) return;
+    setListingCancellationPending(false);
+    setState(
+      refreshed.outcome === "ok"
+        ? { status: "ready", data: refreshed.data }
+        : {
+            status: "error",
+            message: "La vente a été annulée, mais la copie n’a pas pu être actualisée.",
+          },
+    );
+  }
+
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <DetailToolbar
@@ -220,6 +289,8 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
             );
           }}
           selectedPhotoRole={selectedPhotoRole}
+          listingCancellationPending={listingCancellationPending}
+          onCancelListing={confirmListingCancellation}
           onCreateListing={() =>
             navigation.navigate("CreateListing", { copyId: route.params.copyId })
           }
@@ -235,6 +306,8 @@ function CanonicalCopyDetailView({
   onCurrentPhotoChange,
   onSelectedPhotoRoleChange,
   selectedPhotoRole,
+  listingCancellationPending,
+  onCancelListing,
   onCreateListing,
 }: {
   readonly data: CanonicalCopyDetail;
@@ -242,6 +315,8 @@ function CanonicalCopyDetailView({
   readonly onCurrentPhotoChange: (photoId: string | null) => void;
   readonly onSelectedPhotoRoleChange: (photoRole: CopyPhotoRole) => void;
   readonly selectedPhotoRole: CopyPhotoRole;
+  readonly listingCancellationPending: boolean;
+  readonly onCancelListing: (listingId: string) => void;
   readonly onCreateListing: () => void;
 }) {
   const { detail, catalogArtwork } = data;
@@ -292,6 +367,12 @@ function CanonicalCopyDetailView({
         availability={detail.copy.availability}
         commercialState={data.commercialState}
         hasCopyPhoto={data.photos.length > 0}
+        listingCancellationPending={listingCancellationPending}
+        onCancelListing={() => {
+          if (data.commercialState.kind === "listing") {
+            onCancelListing(data.commercialState.listing.id);
+          }
+        }}
         onCreateListing={onCreateListing}
       />
     </>

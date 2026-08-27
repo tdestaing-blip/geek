@@ -65,3 +65,8 @@ export function canCreateDirectListing(
     (availability === "private" || availability === "open_to_trade")
   );
 }
+
+/** Only an active direct-sale Listing can enter the seller cancellation transition. */
+export function canCancelDirectListing(listing: Listing): boolean {
+  return listing.status === "active";
+}
