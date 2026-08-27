@@ -1,7 +1,7 @@
-import { canCreateDirectListing } from "@geek/domain";
+import { canCancelDirectListing, canCreateDirectListing } from "@geek/domain";
 import type { CopyAvailability, OwnedCopyCommercialState } from "@geek/domain";
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
@@ -10,15 +10,22 @@ export function StickyAvailabilityBar({
   availability = "private",
   commercialState,
   hasCopyPhoto,
+  listingCancellationPending = false,
+  onCancelListing,
   onCreateListing,
 }: {
   readonly availability?: CopyAvailability;
   readonly commercialState: OwnedCopyCommercialState;
   readonly hasCopyPhoto: boolean;
+  readonly listingCancellationPending?: boolean;
+  readonly onCancelListing: () => void;
   readonly onCreateListing: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const canCreateListing = hasCopyPhoto && canCreateDirectListing(availability, commercialState);
+  const canCancelListing =
+    commercialState.kind === "listing" && canCancelDirectListing(commercialState.listing);
+  const actionEnabled = !listingCancellationPending && (canCreateListing || canCancelListing);
   const presentation = getStickyAvailabilityPresentation(availability, commercialState);
   return (
     <View style={styles.root}>
@@ -43,13 +50,27 @@ export function StickyAvailabilityBar({
           </Text>
         </View>
         <Pressable
+          accessibilityLabel={presentation.action}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !canCreateListing }}
-          disabled={!canCreateListing}
-          onPress={onCreateListing}
-          style={[styles.action, !canCreateListing && styles.actionDisabled]}
+          accessibilityState={{ busy: listingCancellationPending, disabled: !actionEnabled }}
+          disabled={!actionEnabled}
+          onPress={canCancelListing ? onCancelListing : onCreateListing}
+          style={[styles.action, !actionEnabled && styles.actionDisabled]}
         >
-          <Text style={styles.actionText}>{presentation.action}</Text>
+          <View>
+            <Text
+              style={[styles.actionText, listingCancellationPending && styles.pendingActionText]}
+            >
+              {presentation.action}
+            </Text>
+            {listingCancellationPending ? (
+              <ActivityIndicator
+                color={colors.controlSelected}
+                size="small"
+                style={styles.spinner}
+              />
+            ) : null}
+          </View>
         </Pressable>
       </AdaptiveGlassSurface>
     </View>
@@ -86,4 +107,6 @@ const styles = StyleSheet.create({
   },
   actionDisabled: { backgroundColor: colors.disabledAction, opacity: 0.78 },
   actionText: { color: colors.controlSelected, ...typography.body },
+  pendingActionText: { opacity: 0 },
+  spinner: { bottom: 0, left: 0, position: "absolute", right: 0, top: 0 },
 });

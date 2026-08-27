@@ -84,6 +84,7 @@ export type {
 
 export type { Listing, ListingStatus, OwnedCopyCommercialState } from "./marketplace/listing";
 export {
+  canCancelDirectListing,
   canCreateDirectListing,
   createListingAskingPrice,
   LISTING_STATUSES,
