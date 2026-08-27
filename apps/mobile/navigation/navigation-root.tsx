@@ -9,6 +9,7 @@ import { AlbumDetailScreen } from "./album-detail-screen";
 import { AddCopyScreen } from "./add-copy-screen";
 import { CreateListingScreen } from "./create-listing-screen";
 import { CreateAuctionScreen } from "./create-auction-screen";
+import { PlaceBidScreen } from "./place-bid-screen";
 import { AlbumRevealScreen } from "./album-reveal-screen";
 import { OwnedCopyDetailScreen } from "./owned-copy-detail-screen";
 import { MarketplaceScreen } from "./marketplace-screen";
@@ -143,6 +144,11 @@ export function NavigationRoot() {
               component={CreateAuctionScreen}
               options={createAuctionSheetOptions}
             />
+            <RootStack.Screen
+              name="PlaceBid"
+              component={PlaceBidScreen}
+              options={placeBidSheetOptions}
+            />
           </>
         ) : null}
       </RootStack.Navigator>
@@ -183,6 +189,14 @@ const createAuctionSheetOptions = {
   headerShown: false,
   presentation: "formSheet" as const,
   sheetAllowedDetents: [0.62] as number[],
+  sheetInitialDetentIndex: 0,
+};
+
+const placeBidSheetOptions = {
+  gestureEnabled: true,
+  headerShown: false,
+  presentation: "formSheet" as const,
+  sheetAllowedDetents: [0.52] as number[],
   sheetInitialDetentIndex: 0,
 };
 

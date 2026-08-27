@@ -30,6 +30,7 @@
     "db:smoke:create-listing": "node --experimental-strip-types scripts/supabase-create-listing-smoke.mjs",
     "db:smoke:cancel-listing": "node --experimental-strip-types scripts/supabase-cancel-listing-smoke.mjs",
     "db:smoke:create-auction": "node --experimental-strip-types scripts/supabase-create-auction-smoke.mjs",
+    "db:smoke:place-bid": "node --experimental-strip-types scripts/supabase-place-bid-smoke.mjs",
     "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",
