@@ -1,8 +1,10 @@
 import type {
   AcceptedAuctionBid,
   Auction,
+  AuctionBidHistoryEntry,
   AuctionBidState,
   AuctionLiveState,
+  AuctionParticipation,
   AuctionResult,
   Money,
 } from "@geek/domain";
@@ -13,6 +15,7 @@ import {
   parseAuctionCallerOutcome,
   parseAuctionStatus,
   parseCurrencyCode,
+  parseResolvedAuctionParticipationOutcome,
 } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
@@ -172,6 +175,34 @@ export async function getAuctionLiveState(
     };
   }
   return mapRows(() => toAuctionLiveState(row));
+}
+
+/** Reads live and bounded recent resolved Auctions in which the caller placed a Bid. */
+export async function getMyAuctionParticipations(
+  client: GeekSupabaseClient,
+): Promise<OwnedResult<readonly AuctionParticipation[]>> {
+  const caller = await resolveCaller(client);
+  if (caller.outcome !== "ok") return caller;
+
+  const result = await client.rpc("get_my_auction_participations");
+  if (result.error !== null) return databaseFailure(result.error);
+  return mapRows(() => result.data.map(toAuctionParticipation));
+}
+
+/** Reads the bounded public-identity history authorized for one Auction. */
+export async function getAuctionBidHistory(
+  client: GeekSupabaseClient,
+  auctionId: string,
+): Promise<EntityResult<readonly AuctionBidHistoryEntry[]>> {
+  if (!isUuid(auctionId)) {
+    return { outcome: "invalid_data", field: "auctions.id", message: "Invalid Auction id" };
+  }
+
+  const result = await client.rpc("get_auction_bid_history", {
+    target_auction_id: auctionId,
+  });
+  if (result.error !== null) return databaseFailure(result.error);
+  return mapRows(() => result.data.map(toAuctionBidHistoryEntry));
 }
 
 /** Places one retry-safe bid using a caller-generated stable Bid UUID. */
@@ -374,6 +405,9 @@ function toAuctionResult(row: {
   readonly ends_at: string;
   readonly final_amount_minor: number | null;
   readonly status: string;
+  readonly winner_public_avatar_path: string | null;
+  readonly winner_public_display_name: string | null;
+  readonly winner_public_profile_id: string | null;
 }): AuctionResult {
   const currency = parseCurrencyCode(row.currency);
   const callerOutcome = parseAuctionCallerOutcome(row.caller_outcome);
@@ -405,6 +439,17 @@ function toAuctionResult(row: {
   if (!Number.isFinite(Date.parse(row.ends_at))) {
     throw new InvalidRowError("get_auction_result.ends_at", `invalid timestamp "${row.ends_at}"`);
   }
+  const winnerFields = [
+    row.winner_public_profile_id,
+    row.winner_public_display_name,
+    row.winner_public_avatar_path,
+  ];
+  if (row.status === "ended" && winnerFields.some((value) => value !== null)) {
+    throw new InvalidRowError("get_auction_result.winner", "ended Auction cannot expose a winner");
+  }
+  if (row.status === "won" && row.winner_public_profile_id === null) {
+    throw new InvalidRowError("get_auction_result.winner", "won Auction requires a public winner");
+  }
   return {
     auctionId: row.auction_id,
     status: row.status,
@@ -412,6 +457,133 @@ function toAuctionResult(row: {
     bidCount: row.bid_count,
     endsAt: row.ends_at,
     callerOutcome,
+    winner:
+      row.winner_public_profile_id === null
+        ? null
+        : {
+            id: row.winner_public_profile_id,
+            displayName: row.winner_public_display_name,
+            avatarPath: row.winner_public_avatar_path,
+          },
+  };
+}
+
+function toAuctionParticipation(row: {
+  readonly auction_id: string;
+  readonly bid_count: number;
+  readonly caller_bid_state: string | null;
+  readonly caller_outcome: string | null;
+  readonly copy_id: string;
+  readonly cover_asset_url: string | null;
+  readonly currency: string;
+  readonly current_amount_minor: number;
+  readonly edition_id: string;
+  readonly ends_at: string;
+  readonly game_id: string;
+  readonly game_title: string;
+  readonly platform_name: string;
+  readonly participation_phase: string;
+  readonly region_code: string | null;
+}): AuctionParticipation {
+  const currency = parseCurrencyCode(row.currency);
+  const currentPrice = currency === null ? null : createMoney(row.current_amount_minor, currency);
+  if (currentPrice === null || currentPrice.amountMinor < 0) {
+    throw new InvalidRowError(
+      "get_my_auction_participations.current_amount_minor",
+      "invalid canonical Money",
+    );
+  }
+  if (!Number.isSafeInteger(row.bid_count) || row.bid_count < 1) {
+    throw new InvalidRowError(
+      "get_my_auction_participations.bid_count",
+      "expected a positive count",
+    );
+  }
+  if (!Number.isFinite(Date.parse(row.ends_at))) {
+    throw new InvalidRowError("get_my_auction_participations.ends_at", "invalid timestamp");
+  }
+  const display = {
+    auctionId: row.auction_id,
+    copyId: row.copy_id,
+    gameId: row.game_id,
+    editionId: row.edition_id,
+    gameTitle: row.game_title,
+    platformName: row.platform_name,
+    regionCode: row.region_code,
+    coverAssetUrl: row.cover_asset_url,
+    currentPrice,
+    bidCount: row.bid_count,
+    endsAt: row.ends_at,
+  };
+
+  if (row.participation_phase === "live") {
+    if (
+      (row.caller_bid_state !== "leading" && row.caller_bid_state !== "outbid") ||
+      row.caller_outcome !== null
+    ) {
+      throw new InvalidRowError(
+        "get_my_auction_participations.live_state",
+        "live participation requires leading/outbid state only",
+      );
+    }
+    return { ...display, phase: "live", callerBidState: row.caller_bid_state };
+  }
+
+  if (
+    row.participation_phase === "resolving" &&
+    row.caller_bid_state === null &&
+    row.caller_outcome === null
+  ) {
+    return { ...display, phase: "resolving" };
+  }
+
+  const callerOutcome =
+    row.caller_outcome === null
+      ? null
+      : parseResolvedAuctionParticipationOutcome(row.caller_outcome);
+  if (
+    row.participation_phase !== "resolved" ||
+    row.caller_bid_state !== null ||
+    callerOutcome === null
+  ) {
+    throw new InvalidRowError(
+      "get_my_auction_participations.resolved_state",
+      "resolved participation requires won/lost/ended outcome only",
+    );
+  }
+  return { ...display, phase: "resolved", callerOutcome };
+}
+
+function toAuctionBidHistoryEntry(row: {
+  readonly accepted_at: string;
+  readonly amount_minor: number;
+  readonly currency: string;
+  readonly is_caller: boolean;
+  readonly is_leading: boolean;
+  readonly is_winning: boolean;
+  readonly public_avatar_path: string | null;
+  readonly public_display_name: string | null;
+  readonly public_profile_id: string;
+}): AuctionBidHistoryEntry {
+  const currency = parseCurrencyCode(row.currency);
+  const amount = currency === null ? null : createMoney(row.amount_minor, currency);
+  if (amount === null || amount.amountMinor < 0) {
+    throw new InvalidRowError("get_auction_bid_history.amount_minor", "invalid canonical Money");
+  }
+  if (!Number.isFinite(Date.parse(row.accepted_at))) {
+    throw new InvalidRowError("get_auction_bid_history.accepted_at", "invalid timestamp");
+  }
+  return {
+    amount,
+    acceptedAt: row.accepted_at,
+    bidder: {
+      id: row.public_profile_id,
+      displayName: row.public_display_name,
+      avatarPath: row.public_avatar_path,
+    },
+    isCaller: row.is_caller,
+    isLeading: row.is_leading,
+    isWinning: row.is_winning,
   };
 }
 

@@ -336,6 +336,10 @@ export function resolveCollectorFixture(userId: string): PublicCopyFixture["owne
   );
 }
 
+export function findCollectorFixture(userId: string): PublicCopyFixture["owner"] | null {
+  return COLLECTORS.find(({ id }) => id === userId) ?? null;
+}
+
 export function resolveActiveMarketOpportunitiesForOwner(userId: string) {
   const seenCopyIds = new Set<string>();
 

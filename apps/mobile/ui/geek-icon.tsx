@@ -23,6 +23,7 @@ export type GeekIconName =
   | "plus"
   | "more-horizontal"
   | "map-pin"
+  | "megaphone"
   | "profile"
   | "settings"
   | "settings-2"
@@ -82,6 +83,8 @@ const GLYPHS: Readonly<Record<GeekIconName, string>> = {
     '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M4 4h16v2H4zm0 14h16v2H4zM2 6h2v12H2zm18 0h2v12h-2zM8 9h2v6H8z"/><path d="M6 11h6v2H6zm8-2h2v2h-2zm2 4h2v2h-2z"/></g></svg>',
   "map-pin":
     '<svg viewBox="0 0 18 18"><path fill="currentColor" d="M5.25 1.5h7.5V3h-7.5V1.5ZM3.75 3h1.5v1.5h-1.5V3Zm10.5 0h-1.5v1.5h1.5V3Zm-9 9.75h1.5v1.5h-1.5v-1.5Zm1.5 1.5h1.5v1.5h-1.5v-1.5Zm4.5-1.5h1.5v1.5h-1.5v-1.5Zm-1.5 1.5h1.5v1.5h-1.5v-1.5Zm-1.5 1.5h1.5v1.5h-1.5v-1.5Zm-4.5-5.25h1.5v2.25h-1.5V10.5Zm9 0h1.5v2.25h-1.5V10.5Zm-10.5-6h1.5v6h-1.5v-6Zm13.5 0h-1.5v6h1.5v-6ZM7.5 4.5h3V6h-3V4.5ZM6 6h1.5v3H6V6Zm1.5 3h3v1.5h-3V9ZM10.5 6H12v3h-1.5V6Z"/></svg>',
+  megaphone:
+    '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2.667 4h8v1.333h-8V4ZM1.333 5.333h1.334v4H1.333v-4Zm1.334 4h8v1.334h-8V9.333ZM13.333 1.333h1.334v12h-1.334v-12ZM12 12h1.333v1.333H12V12Zm-1.333-1.333H12V12h-1.333v-1.333Zm0-8H12V4h-1.333V2.667ZM12 1.333h1.333v1.334H12V1.333ZM5.333 5.333h1.334v4H5.333v-4ZM4 10.667h1.333v2.666H4v-2.666Zm1.333 2.666H8v1.334H5.333v-1.334Zm1.334-2.666H8v2.666H6.667v-2.666Z"/></svg>',
   star: '<svg viewBox="0 0 18 18"><path fill="#FFCC00" d="M3.75 15H6v1.5H2.25V12h1.5v3Zm12 1.5H12V15h2.25v-3h1.5v4.5ZM7.5 15H6v-1.5h1.5V15Zm4.5 0h-1.5v-1.5H12V15Zm-1.5-1.5h-3V12h3v1.5ZM5.25 12h-1.5V9.75h1.5V12Zm9 0h-1.5V9.75h1.5V12ZM3.75 9.75h-1.5v-1.5h1.5v1.5Zm12 0h-1.5v-1.5h1.5v1.5Zm-9-3h-4.5v1.5H.75v-3h6v1.5Zm10.5 1.5h-1.5v-1.5h-4.5v-1.5h6v3Zm-9-3h-1.5v-3h1.5v3Zm3 0h-1.5v-3h1.5v3Zm-1.5-3h-1.5V.75h1.5v1.5Z"/></svg>',
   "chevrons-horizontal":
     '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 15v2H8v-2h2Zm6 2h-2v-2h2v2Zm-8-2H6v-2h2v2Zm10 0h-2v-2h2v2ZM6 13H4v-2h2v2Zm14 0h-2v-2h2v2ZM8 11H6V9h2v2Zm10 0h-2V9h2v2Zm-8-2H8V7h2v2Zm6 0h-2V7h2v2Z"/></svg>',

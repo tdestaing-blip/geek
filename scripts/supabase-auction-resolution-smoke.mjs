@@ -468,14 +468,15 @@ try {
   );
   const safeResultText = JSON.stringify({ sellerResult, winnerResult, loserResult });
   record(
-    "ordinary and anonymous callers are denied and result exposes no participant identity",
+    "ordinary and anonymous callers are denied and result exposes only public winner identity",
     ordinaryResult.outcome === "not_found" &&
       anonymousResult.error !== null &&
       !safeResultText.includes(sellerId) &&
       !safeResultText.includes(buyerAId) &&
-      !safeResultText.includes(buyerBId) &&
+      safeResultText.includes(buyerBId) &&
       !safeResultText.includes(ordinaryId) &&
-      !safeResultText.includes("winning_bid_id"),
+      !safeResultText.includes("winning_bid_id") &&
+      !safeResultText.includes("bidder_id"),
   );
   const loserRawBids = await buyerA
     .from("auction_bids")
@@ -496,6 +497,7 @@ try {
     getPublicCopyDetail(anonymous, wonCopy.id),
   ]);
   const winnerCopyText = JSON.stringify(winnerCopy);
+  const loserCopyText = JSON.stringify(loserCopy);
   record(
     "won Auction seller and winner retain the same safe Public Copy projection",
     sellerCopy.outcome === "ok" &&
@@ -505,8 +507,11 @@ try {
       !winnerCopyText.includes(`secret-location-${runId}`),
   );
   record(
-    "losing bidder, ordinary viewer, and anonymous viewer cannot read private won Copy",
-    loserCopy.outcome === "not_found" &&
+    "losing bidder retains the same safe Copy while unrelated and anonymous viewers remain denied",
+    loserCopy.outcome === "ok" &&
+      !loserCopyText.includes(`secret-note-${runId}`) &&
+      !loserCopyText.includes(`secret-provenance-${runId}`) &&
+      !loserCopyText.includes(`secret-location-${runId}`) &&
       ordinaryCopy.outcome === "not_found" &&
       anonymousCopy.outcome === "not_found",
     JSON.stringify({

@@ -79,8 +79,10 @@ current amount plus the minimum increment. Proxy bidding, automatic bid
 amounts, and anti-sniping extensions are not implemented.
 
 Authenticated users may read only their own raw Bid rows. Anonymous users
-cannot read raw Bids, and public Auction data never exposes bidder identity.
-Public presentation uses only `current_amount_minor` and `bid_count`.
+cannot read raw Bids. Cross-user history is available only through the bounded
+safe Auction history projection, which exposes accepted Money/timestamp and the
+bidder's deliberately public Profile identity. It never exposes raw Bid IDs or
+private/auth Profile fields.
 
 ## Private reserve
 
@@ -116,10 +118,16 @@ from `auth.uid()` and exposes only status, final aggregate amount, bid count,
 end time, and the caller-relative outcome. Resolved Auction history is not
 globally readable.
 
-A winner may continue to read the existing marketplace-safe Public Copy
-projection for the won Copy. Losing bidders and unrelated viewers gain no such
-access. This exception never exposes private Copy photos or details, precise
-location, auth metadata, or private Wishlist preferences.
+The seller and every accepted bidder may continue to read the existing
+marketplace-safe Public Copy projection after an Auction resolves. This gives a
+winner or losing bidder historical continuity without broadening access for an
+unrelated caller. The exception never exposes private Copy photos or details,
+precise location, auth metadata, or private Wishlist preferences.
+
+Resolution determines a winner but does not transfer Copy ownership. A won
+result may expose the winner's deliberately public Profile id, display name,
+and avatar separately from the unchanged current owner. Settlement, Order, and
+ownership transfer remain deferred.
 
 ## Live Experience V1
 
@@ -141,6 +149,33 @@ bidder identity, Bid history, or authentication metadata is returned. Mobile
 updates countdown presentation locally each second and polls this narrow
 canonical projection every five seconds only while the Public Copy screen is
 focused and live.
+
+## Presence and history V1
+
+An authenticated caller has one global bidder-participation projection for
+Auctions where they placed an accepted Bid. It returns every currently live
+participation plus at most the ten most recent `won` or `ended` results,
+ordered by canonical Auction end time. Each row contains only safe catalog
+presentation and caller-relative state. Live rows expose `leading` or `outbid`;
+resolved rows expose `won`, `lost`, or `ended`. Seller-only and future Auctions
+are excluded.
+
+The mobile shell polls this single projection at a bounded five-second cadence
+only while at least one live or resolving participation exists and the app is foreground.
+The same response atomically moves a row from **En cours** to **Terminées**,
+preserving safe navigation after Market correctly stops showing the resolved
+Auction. Countdowns remain local presentation using one shared clock per
+expanded panel and never appear on resolved rows. Between the canonical
+deadline and server resolution, a narrow `resolving` phase keeps the row visible
+without a countdown or leading/outbid claim, so polling cannot stop before the
+result exists. No acknowledgement state, notification, or full Activity history
+is persisted.
+
+Bid history is newest-first with an internal deterministic Bid-id tie-breaker,
+but the fixed output omits that raw ID and is capped at 50 accepted Bids. A live
+safe Auction viewer may read it. After resolution, the seller, winner, accepted
+losing bidders, or a caller independently allowed by public Copy visibility may
+read it. Raw Bid RLS remains bidder-private.
 
 ## Commercial commitment
 

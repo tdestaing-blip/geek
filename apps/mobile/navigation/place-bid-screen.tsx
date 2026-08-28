@@ -17,6 +17,7 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "../lib/supabase";
+import { useAuctionPresence } from "../lib/auction/auction-presence-provider";
 import { AdaptiveGlassSurface } from "../ui/adaptive-glass-surface";
 import { formatMoney } from "../ui/format-money";
 import { GeekIcon } from "../ui/geek-icon";
@@ -44,6 +45,7 @@ export function PlaceBidScreen(props: Props) {
 function PlaceBidContent({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const mounted = useRef(true);
+  const { refresh: refreshAuctionPresence } = useAuctionPresence();
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [amountInput, setAmountInput] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -120,6 +122,7 @@ function PlaceBidContent({ navigation, route }: Props) {
     const result = submission.result;
 
     if (result.outcome === "ok") {
+      void refreshAuctionPresence();
       navigation.goBack();
       return;
     }
