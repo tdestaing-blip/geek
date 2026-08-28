@@ -31,6 +31,7 @@
     "db:smoke:cancel-listing": "node --experimental-strip-types scripts/supabase-cancel-listing-smoke.mjs",
     "db:smoke:create-auction": "node --experimental-strip-types scripts/supabase-create-auction-smoke.mjs",
     "db:smoke:place-bid": "node --experimental-strip-types scripts/supabase-place-bid-smoke.mjs",
+    "db:smoke:auction-resolution": "node --experimental-strip-types scripts/supabase-auction-resolution-smoke.mjs",
     "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",

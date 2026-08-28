@@ -129,7 +129,12 @@ export type {
   PlaceAuctionBidInput,
   PlaceAuctionBidResult,
 } from "./marketplace/auctions";
-export { createAuction, getAuctionForBidding, placeAuctionBid } from "./marketplace/auctions";
+export {
+  createAuction,
+  getAuctionForBidding,
+  getAuctionResult,
+  placeAuctionBid,
+} from "./marketplace/auctions";
 
 export {
   getListingMatchesForWishlist,

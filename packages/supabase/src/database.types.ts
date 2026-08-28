@@ -1708,6 +1708,14 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      finalize_due_auctions: {
+        Args: { requested_batch_size?: number };
+        Returns: {
+          failed_count: number;
+          processed_count: number;
+          resolved_count: number;
+        }[];
+      };
       get_album_detail: {
         Args: {
           album_id_or_slug: string;
@@ -1778,6 +1786,18 @@ export type Database = {
           shipping_available: boolean;
           starting_amount_minor: number;
           starts_at: string;
+        }[];
+      };
+      get_auction_result: {
+        Args: { target_auction_id: string };
+        Returns: {
+          auction_id: string;
+          bid_count: number;
+          caller_outcome: string;
+          currency: string;
+          ends_at: string;
+          final_amount_minor: number;
+          status: string;
         }[];
       };
       get_buy_discovery: {

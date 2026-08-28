@@ -83,7 +83,12 @@ function MarketplaceOffersContent({ navigation, route }: Props) {
           <MarketplaceOpportunityCard
             artworkUrl={catalog?.artworkUrl ?? null}
             opportunity={item}
-            onPress={() => navigation.navigate("PublicCopy", { copyId: item.copyId })}
+            onPress={() =>
+              navigation.navigate("PublicCopy", {
+                copyId: item.copyId,
+                ...(item.type === "auction" ? { auctionId: item.auctionId } : {}),
+              })
+            }
           />
         )}
         showsVerticalScrollIndicator={false}

@@ -49,6 +49,19 @@ export type AcceptedAuctionBid = AuctionBidState & {
   readonly createdAt: string;
 };
 
+export const AUCTION_CALLER_OUTCOMES = ["seller_won", "seller_no_sale", "won", "lost"] as const;
+
+export type AuctionCallerOutcome = (typeof AUCTION_CALLER_OUTCOMES)[number];
+
+export type AuctionResult = {
+  readonly auctionId: string;
+  readonly status: "ended" | "won";
+  readonly finalPrice: Money | null;
+  readonly bidCount: number;
+  readonly endsAt: string;
+  readonly callerOutcome: AuctionCallerOutcome;
+};
+
 export function parseAuctionStatus(value: string): AuctionStatus | null {
   switch (value) {
     case "draft":
@@ -57,6 +70,18 @@ export function parseAuctionStatus(value: string): AuctionStatus | null {
     case "ended":
     case "cancelled":
     case "sold":
+      return value;
+    default:
+      return null;
+  }
+}
+
+export function parseAuctionCallerOutcome(value: string): AuctionCallerOutcome | null {
+  switch (value) {
+    case "seller_won":
+    case "seller_no_sale":
+    case "won":
+    case "lost":
       return value;
     default:
       return null;

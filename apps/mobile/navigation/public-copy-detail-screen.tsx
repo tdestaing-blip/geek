@@ -1,5 +1,10 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
-import type { Profile, PublicCopyComponentAssessment, PublicCopyDetail } from "@geek/domain";
+import type {
+  AuctionResult,
+  Profile,
+  PublicCopyComponentAssessment,
+  PublicCopyDetail,
+} from "@geek/domain";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useState } from "react";
@@ -14,7 +19,7 @@ import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
 import { StickyCommercialBar } from "../ui/sticky-commercial-bar";
 import { getCatalogRegionPresentation, type CanonicalMarketCatalog } from "./canonical-catalog";
-import { loadCanonicalPublicCopy } from "./marketplace-data";
+import { loadCanonicalAuctionResult, loadCanonicalPublicCopy } from "./marketplace-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PublicCopy">;
@@ -38,30 +43,96 @@ function PublicCopyContent({ navigation, route }: Props) {
   const { width } = useWindowDimensions();
   const heroSize = width - spacing.page * 2;
   const [data, setData] = useState<PublicCopyViewData | null>(null);
-  const [state, setState] = useState<"error" | "loading" | "ready" | "unavailable">("loading");
+  const [auctionResult, setAuctionResult] = useState<AuctionResult | null>(null);
+  const [auctionDeadlineReached, setAuctionDeadlineReached] = useState(false);
+  const [state, setState] = useState<
+    "error" | "loading" | "ready" | "resolving" | "resolved" | "unavailable"
+  >("loading");
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+      let trackedAuctionId = route.params.auctionId ?? null;
+      let knownEndsAt: number | null = null;
+      let resolutionRefreshes = 0;
       setData(null);
+      setAuctionResult(null);
+      setAuctionDeadlineReached(false);
       setState("loading");
-      void loadCanonicalPublicCopy(route.params.copyId).then((result) => {
+
+      const scheduleRefresh = (delayMilliseconds: number) => {
+        if (refreshTimer !== null) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          setAuctionDeadlineReached(true);
+          void refresh();
+        }, delayMilliseconds);
+      };
+
+      const refresh = async () => {
+        const [copyResult, result] = await Promise.all([
+          loadCanonicalPublicCopy(route.params.copyId),
+          trackedAuctionId === null
+            ? Promise.resolve({ outcome: "not_found" } as const)
+            : loadCanonicalAuctionResult(trackedAuctionId),
+        ]);
         if (!active) return;
+
+        const nextData = copyResult.outcome === "ok" ? copyResult.data : null;
+        const opportunity = nextData?.detail.opportunity;
+        if (opportunity?.type === "auction") {
+          trackedAuctionId = opportunity.auctionId;
+          knownEndsAt = Date.parse(opportunity.endsAt);
+        }
+
         if (result.outcome === "ok") {
-          setData(result.data);
+          setData(nextData);
+          setAuctionResult(result.data);
+          setState(nextData === null ? "resolved" : "ready");
+          return;
+        }
+
+        setData(nextData);
+        setAuctionResult(null);
+
+        const now = Date.now();
+        if (knownEndsAt !== null && Number.isFinite(knownEndsAt) && now < knownEndsAt) {
+          setAuctionDeadlineReached(false);
+          setState(nextData === null ? "unavailable" : "ready");
+          scheduleRefresh(Math.max(50, knownEndsAt - now + 50));
+          return;
+        }
+
+        // Once a screen-observed Auction crosses its deadline, refresh only
+        // around the one-minute cron boundary. Postgres remains the finalizer.
+        if (
+          trackedAuctionId !== null &&
+          knownEndsAt !== null &&
+          result.outcome === "not_found" &&
+          resolutionRefreshes < 12
+        ) {
+          resolutionRefreshes += 1;
+          setState(nextData === null ? "resolving" : "ready");
+          scheduleRefresh(10_000);
+          return;
+        }
+
+        if (copyResult.outcome === "ok") {
           setState("ready");
         } else {
-          setData(null);
-          setState(result.outcome === "not_found" ? "unavailable" : "error");
+          setState(copyResult.outcome === "not_found" ? "unavailable" : "error");
         }
-      });
+      };
+
+      void refresh();
       return () => {
         active = false;
+        if (refreshTimer !== null) clearTimeout(refreshTimer);
       };
-    }, [route.params.copyId]),
+    }, [route.params.auctionId, route.params.copyId]),
   );
 
-  if (state !== "ready" || data === null) {
+  if ((state !== "ready" || data === null) && auctionResult === null) {
     return (
       <View style={[styles.page, { paddingTop: insets.top }]}>
         <DetailToolbar title="Copie" onClose={navigation.goBack} onMore={() => undefined} />
@@ -69,14 +140,32 @@ function PublicCopyContent({ navigation, route }: Props) {
           <Text style={styles.unavailableText}>
             {state === "loading"
               ? "Chargement de la copie…"
-              : state === "error"
-                ? "Impossible de charger cette copie. Revenez en arrière pour réessayer."
-                : "Cette copie n’est plus disponible."}
+              : state === "resolving"
+                ? "Résolution de l’enchère en cours…"
+                : state === "error"
+                  ? "Impossible de charger cette copie. Revenez en arrière pour réessayer."
+                  : "Cette copie n’est plus disponible."}
           </Text>
         </View>
       </View>
     );
   }
+
+  if (data === null && auctionResult !== null) {
+    return (
+      <View style={[styles.page, { paddingTop: insets.top }]}>
+        <DetailToolbar title="Enchère" onClose={navigation.goBack} onMore={() => undefined} />
+        <View style={[styles.unavailable, styles.resolvedCopy]}>
+          <Text style={styles.unavailableText}>
+            Le résultat est disponible. Les détails privés de la copie restent masqués.
+          </Text>
+        </View>
+        <StickyCommercialBar auctionResult={auctionResult} opportunity={null} />
+      </View>
+    );
+  }
+
+  if (data === null) return null;
 
   const { catalog, detail } = data;
   const region = getCatalogRegionPresentation(catalog.edition.regionCode);
@@ -91,8 +180,8 @@ function PublicCopyContent({ navigation, route }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          detail.opportunity && styles.contentWithBar,
-          detail.opportunity?.type === "auction" && styles.contentWithAuction,
+          (detail.opportunity || auctionResult) && styles.contentWithBar,
+          (detail.opportunity?.type === "auction" || auctionResult) && styles.contentWithAuction,
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -157,10 +246,13 @@ function PublicCopyContent({ navigation, route }: Props) {
         />
       </ScrollView>
       <StickyCommercialBar
+        auctionResult={auctionResult}
         onBid={
-          auctionId === null ? undefined : () => navigation.navigate("PlaceBid", { auctionId })
+          auctionId === null || auctionResult
+            ? undefined
+            : () => navigation.navigate("PlaceBid", { auctionId })
         }
-        opportunity={detail.opportunity}
+        opportunity={auctionResult || auctionDeadlineReached ? null : detail.opportunity}
         ownerView={authState.status === "authenticated" && authState.user.id === detail.owner.id}
       />
     </View>
@@ -218,6 +310,7 @@ const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
   unavailable: { alignItems: "center", flex: 1, justifyContent: "center", padding: 24 },
   unavailableText: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
+  resolvedCopy: { paddingBottom: 160 },
   content: { gap: 24, paddingBottom: 40 },
   contentWithBar: { paddingBottom: 136 },
   contentWithAuction: { paddingBottom: 168 },
