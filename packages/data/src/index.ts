@@ -132,6 +132,7 @@ export type {
 export {
   createAuction,
   getAuctionForBidding,
+  getAuctionLiveState,
   getAuctionResult,
   placeAuctionBid,
 } from "./marketplace/auctions";

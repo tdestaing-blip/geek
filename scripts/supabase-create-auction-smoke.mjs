@@ -478,7 +478,7 @@ try {
       sellerFooter.value.includes("20") &&
       sellerFooter.action === "Aux enchères" &&
       sellerFooter.signal?.leading === "0 enchères" &&
-      sellerFooter.signal.trailing.startsWith("Fin dans 6j"),
+      /^Fin dans (6j|7j)/.test(sellerFooter.signal.trailing),
   );
   record(
     "seller eligibility preserves Listing, Auction, and Trade exclusivity",

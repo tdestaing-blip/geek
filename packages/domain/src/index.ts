@@ -95,11 +95,14 @@ export type {
   AcceptedAuctionBid,
   Auction,
   AuctionBidState,
+  AuctionCallerBidState,
   AuctionCallerOutcome,
+  AuctionLiveState,
   AuctionResult,
   AuctionStatus,
 } from "./marketplace/auction";
 export {
+  AUCTION_CALLER_BID_STATES,
   AUCTION_CALLER_OUTCOMES,
   AUCTION_STATUSES,
   canCreateAuction,
@@ -107,6 +110,7 @@ export {
   CREATE_AUCTION_V1_MIN_INCREMENT_MINOR,
   createAuctionStartingPrice,
   getAuctionMinimumBid,
+  parseAuctionCallerBidState,
   parseAuctionCallerOutcome,
   parseAuctionStatus,
 } from "./marketplace/auction";

@@ -1788,6 +1788,20 @@ export type Database = {
           starts_at: string;
         }[];
       };
+      get_auction_live_state: {
+        Args: { target_auction_id: string };
+        Returns: {
+          auction_id: string;
+          bid_count: number;
+          caller_bid_state: string;
+          currency: string;
+          current_amount_minor: number;
+          ends_at: string;
+          min_increment_minor: number;
+          minimum_bid_minor: number;
+          status: string;
+        }[];
+      };
       get_auction_result: {
         Args: { target_auction_id: string };
         Returns: {

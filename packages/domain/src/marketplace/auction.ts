@@ -49,6 +49,21 @@ export type AcceptedAuctionBid = AuctionBidState & {
   readonly createdAt: string;
 };
 
+export const AUCTION_CALLER_BID_STATES = ["none", "leading", "outbid"] as const;
+
+export type AuctionCallerBidState = (typeof AUCTION_CALLER_BID_STATES)[number];
+
+export type AuctionLiveState = {
+  readonly auctionId: string;
+  readonly currentPrice: Money;
+  readonly bidCount: number;
+  readonly minIncrement: Money;
+  readonly minimumBid: Money;
+  readonly endsAt: string;
+  readonly status: "scheduled";
+  readonly callerBidState: AuctionCallerBidState | null;
+};
+
 export const AUCTION_CALLER_OUTCOMES = ["seller_won", "seller_no_sale", "won", "lost"] as const;
 
 export type AuctionCallerOutcome = (typeof AUCTION_CALLER_OUTCOMES)[number];
@@ -82,6 +97,17 @@ export function parseAuctionCallerOutcome(value: string): AuctionCallerOutcome |
     case "seller_no_sale":
     case "won":
     case "lost":
+      return value;
+    default:
+      return null;
+  }
+}
+
+export function parseAuctionCallerBidState(value: string): AuctionCallerBidState | null {
+  switch (value) {
+    case "none":
+    case "leading":
+    case "outbid":
       return value;
     default:
       return null;

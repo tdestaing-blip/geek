@@ -1,5 +1,15 @@
-import { getAuctionResult, getEditionMarketOpportunities, getPublicCopyDetail } from "@geek/data";
-import type { AuctionResult, EditionMarketOpportunity, PublicCopyDetail } from "@geek/domain";
+import {
+  getAuctionLiveState,
+  getAuctionResult,
+  getEditionMarketOpportunities,
+  getPublicCopyDetail,
+} from "@geek/data";
+import type {
+  AuctionLiveState,
+  AuctionResult,
+  EditionMarketOpportunity,
+  PublicCopyDetail,
+} from "@geek/domain";
 
 import { supabase } from "../lib/supabase";
 import type { CanonicalMarketCatalog } from "./canonical-catalog";
@@ -48,5 +58,14 @@ export async function loadCanonicalAuctionResult(
   if (result.outcome === "not_found" || result.outcome === "unauthenticated") {
     return { outcome: "not_found" };
   }
+  return { outcome: "error" };
+}
+
+export async function loadCanonicalAuctionLiveState(
+  auctionId: string,
+): Promise<MarketLoadResult<AuctionLiveState>> {
+  const result = await getAuctionLiveState(supabase, auctionId);
+  if (result.outcome === "ok") return { outcome: "ok", data: result.data };
+  if (result.outcome === "not_found") return result;
   return { outcome: "error" };
 }
