@@ -573,7 +573,7 @@ try {
   const presentationText = JSON.stringify(resultPresentations);
   record(
     "resolved UI is non-negative, caller-truthful, and has no payment or bid action",
-    countdown === "Fin dans 0j : 00h : 00m" &&
+    countdown === "00:00" &&
       resultPresentations.every(
         ({ heading, stateLabel }) => heading.length > 0 && stateLabel.length > 0,
       ) &&

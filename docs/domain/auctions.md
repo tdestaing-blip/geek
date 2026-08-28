@@ -121,6 +121,27 @@ projection for the won Copy. Losing bidders and unrelated viewers gain no such
 access. This exception never exposes private Copy photos or details, precise
 location, auth metadata, or private Wishlist preferences.
 
+## Live Experience V1
+
+Bid placement remains serialized on the Auction row and uses the canonical
+database acceptance timestamp. A genuinely new accepted Bid with strictly less
+than 60 seconds remaining moves `ends_at` to that acceptance timestamp plus 60
+seconds. Exactly 60 seconds does not extend. A Bid at or after the current
+canonical deadline is rejected, and an idempotent retry returns its stored Bid
+and stored deadline without applying another extension.
+
+Because `finalize_auction` takes the same Auction lock and rechecks the current
+`ends_at`, a final-minute extension cannot race with resolution against a stale
+deadline. The existing minute-based cron cadence is unchanged.
+
+The live Auction projection exposes only current Money, Bid count, minimum Bid,
+deadline, status, and a caller-relative `none`, `leading`, or `outbid` state.
+Seller and anonymous callers receive no bidder-relative state. No Bid ID,
+bidder identity, Bid history, or authentication metadata is returned. Mobile
+updates countdown presentation locally each second and polls this narrow
+canonical projection every five seconds only while the Public Copy screen is
+focused and live.
+
 ## Commercial commitment
 
 `copy_commercial_commitments` is internal coordination infrastructure, not a

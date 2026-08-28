@@ -1,5 +1,6 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type {
+  AuctionLiveState,
   AuctionResult,
   Profile,
   PublicCopyComponentAssessment,
@@ -8,7 +9,15 @@ import type {
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  AppState,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../lib/auth/auth-provider";
@@ -19,7 +28,11 @@ import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
 import { StickyCommercialBar } from "../ui/sticky-commercial-bar";
 import { getCatalogRegionPresentation, type CanonicalMarketCatalog } from "./canonical-catalog";
-import { loadCanonicalAuctionResult, loadCanonicalPublicCopy } from "./marketplace-data";
+import {
+  loadCanonicalAuctionLiveState,
+  loadCanonicalAuctionResult,
+  loadCanonicalPublicCopy,
+} from "./marketplace-data";
 import type { RootStackParamList } from "./types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PublicCopy">;
@@ -43,6 +56,7 @@ function PublicCopyContent({ navigation, route }: Props) {
   const { width } = useWindowDimensions();
   const heroSize = width - spacing.page * 2;
   const [data, setData] = useState<PublicCopyViewData | null>(null);
+  const [auctionLiveState, setAuctionLiveState] = useState<AuctionLiveState | null>(null);
   const [auctionResult, setAuctionResult] = useState<AuctionResult | null>(null);
   const [auctionDeadlineReached, setAuctionDeadlineReached] = useState(false);
   const [state, setState] = useState<
@@ -54,80 +68,116 @@ function PublicCopyContent({ navigation, route }: Props) {
       let active = true;
       let refreshTimer: ReturnType<typeof setTimeout> | null = null;
       let trackedAuctionId = route.params.auctionId ?? null;
-      let knownEndsAt: number | null = null;
+      let currentData: PublicCopyViewData | null = null;
       let resolutionRefreshes = 0;
+      let generation = 0;
       setData(null);
+      setAuctionLiveState(null);
       setAuctionResult(null);
       setAuctionDeadlineReached(false);
       setState("loading");
 
-      const scheduleRefresh = (delayMilliseconds: number) => {
+      const scheduleRefresh = (delayMilliseconds: number, includeCopy = false) => {
         if (refreshTimer !== null) clearTimeout(refreshTimer);
         refreshTimer = setTimeout(() => {
-          setAuctionDeadlineReached(true);
-          void refresh();
+          void refresh(includeCopy);
         }, delayMilliseconds);
       };
 
-      const refresh = async () => {
-        const [copyResult, result] = await Promise.all([
-          loadCanonicalPublicCopy(route.params.copyId),
-          trackedAuctionId === null
-            ? Promise.resolve({ outcome: "not_found" } as const)
-            : loadCanonicalAuctionResult(trackedAuctionId),
-        ]);
-        if (!active) return;
+      const refresh = async (includeCopy: boolean) => {
+        const requestGeneration = ++generation;
+        let copyOutcome: "error" | "not_found" | "ok" | null = null;
 
-        const nextData = copyResult.outcome === "ok" ? copyResult.data : null;
-        const opportunity = nextData?.detail.opportunity;
-        if (opportunity?.type === "auction") {
-          trackedAuctionId = opportunity.auctionId;
-          knownEndsAt = Date.parse(opportunity.endsAt);
+        if (includeCopy) {
+          const copyResult = await loadCanonicalPublicCopy(route.params.copyId);
+          if (!active || requestGeneration !== generation) return;
+          copyOutcome = copyResult.outcome;
+          currentData = copyResult.outcome === "ok" ? copyResult.data : null;
+          setData(currentData);
+          const opportunity = currentData?.detail.opportunity;
+          if (opportunity?.type === "auction") trackedAuctionId = opportunity.auctionId;
+        }
+
+        if (trackedAuctionId === null) {
+          setAuctionLiveState(null);
+          setAuctionResult(null);
+          setAuctionDeadlineReached(false);
+          setState(
+            currentData !== null ? "ready" : copyOutcome === "error" ? "error" : "unavailable",
+          );
+          return;
+        }
+
+        const liveResult = await loadCanonicalAuctionLiveState(trackedAuctionId);
+        if (!active || requestGeneration !== generation) return;
+
+        if (liveResult.outcome === "ok") {
+          const deadline = Date.parse(liveResult.data.endsAt);
+          setAuctionLiveState(liveResult.data);
+          setAuctionResult(null);
+          if (Number.isFinite(deadline) && Date.now() < deadline) {
+            resolutionRefreshes = 0;
+            setAuctionDeadlineReached(false);
+            setState(currentData === null ? "unavailable" : "ready");
+            scheduleRefresh(Math.min(5_000, Math.max(50, deadline - Date.now() + 50)));
+            return;
+          }
+          setAuctionDeadlineReached(true);
+        } else if (liveResult.outcome === "error") {
+          setState(currentData === null ? "error" : "ready");
+          scheduleRefresh(5_000);
+          return;
+        } else {
+          setAuctionLiveState(null);
+          setAuctionDeadlineReached(true);
+        }
+
+        // At or after the canonical deadline, refresh Copy access as well as
+        // the caller-relative result. Losing bidders must not keep stale Copy
+        // detail merely because this screen was already open.
+        const [copyResult, result] = await Promise.all([
+          includeCopy ? Promise.resolve(null) : loadCanonicalPublicCopy(route.params.copyId),
+          loadCanonicalAuctionResult(trackedAuctionId),
+        ]);
+        if (!active || requestGeneration !== generation) return;
+
+        if (copyResult !== null) {
+          currentData = copyResult.outcome === "ok" ? copyResult.data : null;
+          setData(currentData);
         }
 
         if (result.outcome === "ok") {
-          setData(nextData);
+          setAuctionLiveState(null);
           setAuctionResult(result.data);
-          setState(nextData === null ? "resolved" : "ready");
+          setState(currentData === null ? "resolved" : "ready");
           return;
         }
 
-        setData(nextData);
         setAuctionResult(null);
-
-        const now = Date.now();
-        if (knownEndsAt !== null && Number.isFinite(knownEndsAt) && now < knownEndsAt) {
-          setAuctionDeadlineReached(false);
-          setState(nextData === null ? "unavailable" : "ready");
-          scheduleRefresh(Math.max(50, knownEndsAt - now + 50));
-          return;
-        }
-
-        // Once a screen-observed Auction crosses its deadline, refresh only
-        // around the one-minute cron boundary. Postgres remains the finalizer.
-        if (
-          trackedAuctionId !== null &&
-          knownEndsAt !== null &&
-          result.outcome === "not_found" &&
-          resolutionRefreshes < 12
-        ) {
+        if (result.outcome === "not_found" && resolutionRefreshes < 12) {
           resolutionRefreshes += 1;
-          setState(nextData === null ? "resolving" : "ready");
-          scheduleRefresh(10_000);
+          setState(currentData === null ? "resolving" : "ready");
+          scheduleRefresh(10_000, true);
           return;
         }
 
-        if (copyResult.outcome === "ok") {
+        if (currentData !== null) {
           setState("ready");
         } else {
-          setState(copyResult.outcome === "not_found" ? "unavailable" : "error");
+          setState(result.outcome === "error" ? "error" : "unavailable");
         }
       };
 
-      void refresh();
+      const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+        if (nextState === "active" && active) void refresh(false);
+      });
+
+      void refresh(true);
       return () => {
         active = false;
+        generation += 1;
         if (refreshTimer !== null) clearTimeout(refreshTimer);
+        appStateSubscription.remove();
       };
     }, [route.params.auctionId, route.params.copyId]),
   );
@@ -169,7 +219,11 @@ function PublicCopyContent({ navigation, route }: Props) {
 
   const { catalog, detail } = data;
   const region = getCatalogRegionPresentation(catalog.edition.regionCode);
-  const auctionId = detail.opportunity?.type === "auction" ? detail.opportunity.auctionId : null;
+  const auctionId =
+    auctionLiveState?.auctionId ??
+    (detail.opportunity?.type === "auction" ? detail.opportunity.auctionId : null) ??
+    route.params.auctionId ??
+    null;
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
       <DetailToolbar
@@ -180,8 +234,9 @@ function PublicCopyContent({ navigation, route }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          (detail.opportunity || auctionResult) && styles.contentWithBar,
-          (detail.opportunity?.type === "auction" || auctionResult) && styles.contentWithAuction,
+          (detail.opportunity || auctionLiveState || auctionResult) && styles.contentWithBar,
+          (detail.opportunity?.type === "auction" || auctionLiveState || auctionResult) &&
+            styles.contentWithAuction,
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -246,6 +301,7 @@ function PublicCopyContent({ navigation, route }: Props) {
         />
       </ScrollView>
       <StickyCommercialBar
+        auctionLiveState={auctionLiveState}
         auctionResult={auctionResult}
         onBid={
           auctionId === null || auctionResult

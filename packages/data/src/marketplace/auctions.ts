@@ -2,12 +2,14 @@ import type {
   AcceptedAuctionBid,
   Auction,
   AuctionBidState,
+  AuctionLiveState,
   AuctionResult,
   Money,
 } from "@geek/domain";
 import {
   createAuctionStartingPrice,
   createMoney,
+  parseAuctionCallerBidState,
   parseAuctionCallerOutcome,
   parseAuctionStatus,
   parseCurrencyCode,
@@ -15,7 +17,7 @@ import {
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import { resolveCaller } from "../caller";
-import type { OwnedEntityResult, OwnedResult } from "../result";
+import type { EntityResult, OwnedEntityResult, OwnedResult } from "../result";
 import { databaseFailure, InvalidRowError, mapRows } from "../result";
 
 export const AUCTION_SELECT = `
@@ -144,6 +146,32 @@ export async function getAuctionResult(
     };
   }
   return mapRows(() => toAuctionResult(row));
+}
+
+/** Reads one public-safe live aggregate with caller-relative Bid state. */
+export async function getAuctionLiveState(
+  client: GeekSupabaseClient,
+  auctionId: string,
+): Promise<EntityResult<AuctionLiveState>> {
+  if (!isUuid(auctionId)) {
+    return { outcome: "invalid_data", field: "auctions.id", message: "Invalid Auction id" };
+  }
+
+  const result = await client.rpc("get_auction_live_state", {
+    target_auction_id: auctionId,
+  });
+  if (result.error !== null) return databaseFailure(result.error);
+
+  const [row] = result.data;
+  if (row === undefined) return { outcome: "not_found" };
+  if (result.data.length !== 1) {
+    return {
+      outcome: "invalid_data",
+      field: "get_auction_live_state",
+      message: "get_auction_live_state: expected one live Auction state",
+    };
+  }
+  return mapRows(() => toAuctionLiveState(row));
 }
 
 /** Places one retry-safe bid using a caller-generated stable Bid UUID. */
@@ -384,6 +412,56 @@ function toAuctionResult(row: {
     bidCount: row.bid_count,
     endsAt: row.ends_at,
     callerOutcome,
+  };
+}
+
+function toAuctionLiveState(row: {
+  readonly auction_id: string;
+  readonly bid_count: number;
+  readonly caller_bid_state: string | null;
+  readonly currency: string;
+  readonly current_amount_minor: number;
+  readonly ends_at: string;
+  readonly min_increment_minor: number;
+  readonly minimum_bid_minor: number;
+  readonly status: string;
+}): AuctionLiveState {
+  const currency = parseCurrencyCode(row.currency);
+  const currentPrice = currency === null ? null : createMoney(row.current_amount_minor, currency);
+  const minIncrement = currency === null ? null : createMoney(row.min_increment_minor, currency);
+  const minimumBid = currency === null ? null : createMoney(row.minimum_bid_minor, currency);
+  const callerBidState =
+    row.caller_bid_state === null ? null : parseAuctionCallerBidState(row.caller_bid_state);
+  if (row.status !== "scheduled") {
+    throw new InvalidRowError("get_auction_live_state.status", `unknown status "${row.status}"`);
+  }
+  if (currency === null || currentPrice === null || minIncrement === null || minimumBid === null) {
+    throw new InvalidRowError("get_auction_live_state.money", "invalid canonical Auction money");
+  }
+  if (row.caller_bid_state !== null && callerBidState === null) {
+    throw new InvalidRowError(
+      "get_auction_live_state.caller_bid_state",
+      `unknown caller state "${row.caller_bid_state}"`,
+    );
+  }
+  if (!Number.isSafeInteger(row.bid_count) || row.bid_count < 0) {
+    throw new InvalidRowError("get_auction_live_state.bid_count", `invalid count ${row.bid_count}`);
+  }
+  if (!Number.isFinite(Date.parse(row.ends_at))) {
+    throw new InvalidRowError(
+      "get_auction_live_state.ends_at",
+      `invalid timestamp "${row.ends_at}"`,
+    );
+  }
+  return {
+    auctionId: row.auction_id,
+    currentPrice,
+    bidCount: row.bid_count,
+    minIncrement,
+    minimumBid,
+    endsAt: row.ends_at,
+    status: row.status,
+    callerBidState,
   };
 }
 
