@@ -23,7 +23,7 @@ export function ProfileHero({
   onBack,
   title,
 }: {
-  readonly avatar: ImageSourcePropType;
+  readonly avatar: ImageSourcePropType | null;
   readonly backIcon?: Extract<GeekIconName, "chevron-down" | "chevron-left">;
   readonly gradient: readonly [string, string];
   readonly location: string;
@@ -58,7 +58,13 @@ export function ProfileHero({
       </View>
       <View style={styles.identity}>
         <View>
-          <Image source={avatar} style={styles.avatar} />
+          {avatar ? (
+            <Image source={avatar} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitial}>{name.slice(0, 1).toLocaleUpperCase()}</Text>
+            </View>
+          )}
           <View style={styles.online} />
         </View>
         <View style={styles.identityText}>
@@ -174,6 +180,12 @@ const styles = StyleSheet.create({
   screenTitle: { ...typography.screenTitle },
   identity: { alignItems: "center", flexDirection: "row", gap: spacing.medium, marginTop: 24 },
   avatar: { borderRadius: 36, height: 80, width: 80 },
+  avatarFallback: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.35)",
+    justifyContent: "center",
+  },
+  avatarInitial: { color: colors.controlSelected, fontSize: 28, fontWeight: "700" },
   online: {
     backgroundColor: colors.success,
     borderRadius: 10,

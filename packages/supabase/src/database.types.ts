@@ -1763,6 +1763,20 @@ export type Database = {
           wanted_slots: number;
         }[];
       };
+      get_auction_bid_history: {
+        Args: { target_auction_id: string };
+        Returns: {
+          accepted_at: string;
+          amount_minor: number;
+          currency: string;
+          is_caller: boolean;
+          is_leading: boolean;
+          is_winning: boolean;
+          public_avatar_path: string;
+          public_display_name: string;
+          public_profile_id: string;
+        }[];
+      };
       get_auction_discovery: {
         Args: {
           result_limit?: number;
@@ -1812,6 +1826,9 @@ export type Database = {
           ends_at: string;
           final_amount_minor: number;
           status: string;
+          winner_public_avatar_path: string;
+          winner_public_display_name: string;
+          winner_public_profile_id: string;
         }[];
       };
       get_buy_discovery: {
@@ -1884,6 +1901,26 @@ export type Database = {
           seller_id: string;
           seller_username: string;
           target_kind: string;
+        }[];
+      };
+      get_my_auction_participations: {
+        Args: never;
+        Returns: {
+          auction_id: string;
+          bid_count: number;
+          caller_bid_state: string;
+          caller_outcome: string;
+          copy_id: string;
+          cover_asset_url: string;
+          currency: string;
+          current_amount_minor: number;
+          edition_id: string;
+          ends_at: string;
+          game_id: string;
+          game_title: string;
+          participation_phase: string;
+          platform_name: string;
+          region_code: string;
         }[];
       };
       get_my_discovery_location: {

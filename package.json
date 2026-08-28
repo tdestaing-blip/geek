@@ -33,6 +33,7 @@
     "db:smoke:place-bid": "node --experimental-strip-types scripts/supabase-place-bid-smoke.mjs",
     "db:smoke:auction-resolution": "node --experimental-strip-types scripts/supabase-auction-resolution-smoke.mjs",
     "db:smoke:auction-live": "node --experimental-strip-types scripts/supabase-auction-live-smoke.mjs",
+    "db:smoke:auction-presence-history": "node --experimental-strip-types scripts/supabase-auction-presence-history-smoke.mjs",
     "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",

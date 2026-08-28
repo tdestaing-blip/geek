@@ -92,19 +92,28 @@ export {
 } from "./marketplace/listing";
 
 export type {
+  ActiveAuctionParticipation,
   AcceptedAuctionBid,
   Auction,
+  AuctionParticipation,
+  AuctionBidHistoryEntry,
   AuctionBidState,
   AuctionCallerBidState,
   AuctionCallerOutcome,
   AuctionLiveState,
   AuctionResult,
+  AuctionPublicWinner,
   AuctionStatus,
+  ResolvedAuctionParticipation,
+  ResolvedAuctionParticipationOutcome,
+  ResolvingAuctionParticipation,
 } from "./marketplace/auction";
 export {
   AUCTION_CALLER_BID_STATES,
   AUCTION_CALLER_OUTCOMES,
   AUCTION_STATUSES,
+  parseResolvedAuctionParticipationOutcome,
+  RESOLVED_AUCTION_PARTICIPATION_OUTCOMES,
   canCreateAuction,
   CREATE_AUCTION_V1_DURATION_DAYS,
   CREATE_AUCTION_V1_MIN_INCREMENT_MINOR,

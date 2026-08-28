@@ -1,4 +1,5 @@
 import type { CopyAvailability } from "../ownership/copy";
+import type { Profile } from "../profile/profile";
 import { createMoney, type CurrencyCode, type Money } from "../values";
 import type { OwnedCopyCommercialState } from "./listing";
 
@@ -64,6 +65,53 @@ export type AuctionLiveState = {
   readonly callerBidState: AuctionCallerBidState | null;
 };
 
+type AuctionParticipationDisplay = {
+  readonly auctionId: string;
+  readonly copyId: string;
+  readonly gameId: string;
+  readonly editionId: string;
+  readonly gameTitle: string;
+  readonly platformName: string;
+  readonly regionCode: string | null;
+  readonly coverAssetUrl: string | null;
+  readonly currentPrice: Money;
+  readonly bidCount: number;
+  readonly endsAt: string;
+};
+
+export type ActiveAuctionParticipation = AuctionParticipationDisplay & {
+  readonly phase: "live";
+  readonly callerBidState: "leading" | "outbid";
+};
+
+export type ResolvingAuctionParticipation = AuctionParticipationDisplay & {
+  readonly phase: "resolving";
+};
+
+export const RESOLVED_AUCTION_PARTICIPATION_OUTCOMES = ["won", "lost", "ended"] as const;
+
+export type ResolvedAuctionParticipationOutcome =
+  (typeof RESOLVED_AUCTION_PARTICIPATION_OUTCOMES)[number];
+
+export type ResolvedAuctionParticipation = AuctionParticipationDisplay & {
+  readonly phase: "resolved";
+  readonly callerOutcome: ResolvedAuctionParticipationOutcome;
+};
+
+export type AuctionParticipation =
+  ActiveAuctionParticipation | ResolvingAuctionParticipation | ResolvedAuctionParticipation;
+
+export type AuctionBidHistoryEntry = {
+  readonly amount: Money;
+  readonly acceptedAt: string;
+  readonly bidder: Pick<Profile, "id" | "displayName" | "avatarPath">;
+  readonly isCaller: boolean;
+  readonly isLeading: boolean;
+  readonly isWinning: boolean;
+};
+
+export type AuctionPublicWinner = Pick<Profile, "id" | "displayName" | "avatarPath">;
+
 export const AUCTION_CALLER_OUTCOMES = ["seller_won", "seller_no_sale", "won", "lost"] as const;
 
 export type AuctionCallerOutcome = (typeof AUCTION_CALLER_OUTCOMES)[number];
@@ -75,6 +123,7 @@ export type AuctionResult = {
   readonly bidCount: number;
   readonly endsAt: string;
   readonly callerOutcome: AuctionCallerOutcome;
+  readonly winner: AuctionPublicWinner | null;
 };
 
 export function parseAuctionStatus(value: string): AuctionStatus | null {
@@ -108,6 +157,19 @@ export function parseAuctionCallerBidState(value: string): AuctionCallerBidState
     case "none":
     case "leading":
     case "outbid":
+      return value;
+    default:
+      return null;
+  }
+}
+
+export function parseResolvedAuctionParticipationOutcome(
+  value: string,
+): ResolvedAuctionParticipationOutcome | null {
+  switch (value) {
+    case "won":
+    case "lost":
+    case "ended":
       return value;
     default:
       return null;

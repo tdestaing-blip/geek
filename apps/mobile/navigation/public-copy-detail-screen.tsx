@@ -1,5 +1,6 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type {
+  AuctionBidHistoryEntry,
   AuctionLiveState,
   AuctionResult,
   Profile,
@@ -8,10 +9,11 @@ import type {
 } from "@geek/domain";
 import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AppState,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +34,7 @@ import {
   loadCanonicalAuctionLiveState,
   loadCanonicalAuctionResult,
   loadCanonicalPublicCopy,
+  loadAuctionBidHistory,
 } from "./marketplace-data";
 import type { RootStackParamList } from "./types";
 
@@ -41,6 +44,11 @@ type PublicCopyViewData = {
   readonly detail: PublicCopyDetail;
   readonly catalog: CanonicalMarketCatalog;
 };
+
+type HistoryState =
+  | { readonly status: "idle" | "loading" }
+  | { readonly status: "error" }
+  | { readonly status: "ready"; readonly entries: readonly AuctionBidHistoryEntry[] };
 
 export function PublicCopyDetailScreen(props: Props) {
   return (
@@ -59,9 +67,52 @@ function PublicCopyContent({ navigation, route }: Props) {
   const [auctionLiveState, setAuctionLiveState] = useState<AuctionLiveState | null>(null);
   const [auctionResult, setAuctionResult] = useState<AuctionResult | null>(null);
   const [auctionDeadlineReached, setAuctionDeadlineReached] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [historyRetry, setHistoryRetry] = useState(0);
+  const [historyState, setHistoryState] = useState<HistoryState>({ status: "idle" });
   const [state, setState] = useState<
     "error" | "loading" | "ready" | "resolving" | "resolved" | "unavailable"
   >("loading");
+  const displayedAuctionId =
+    auctionLiveState?.auctionId ??
+    auctionResult?.auctionId ??
+    (data?.detail.opportunity?.type === "auction" ? data.detail.opportunity.auctionId : null) ??
+    route.params.auctionId ??
+    null;
+  const historyRefreshKey = auctionLiveState?.bidCount ?? auctionResult?.bidCount ?? 0;
+
+  useEffect(() => {
+    if (!historyExpanded || displayedAuctionId === null || historyRefreshKey === 0) return;
+
+    let active = true;
+    void loadAuctionBidHistory(displayedAuctionId).then(
+      (result) => {
+        if (!active) return;
+        setHistoryState(
+          result.outcome === "ok" ? { status: "ready", entries: result.data } : { status: "error" },
+        );
+      },
+      () => {
+        if (active) setHistoryState({ status: "error" });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [displayedAuctionId, historyExpanded, historyRefreshKey, historyRetry]);
+
+  const toggleAuctionHistory = () => {
+    const nextExpanded = !historyExpanded;
+    if (nextExpanded && displayedAuctionId !== null && historyRefreshKey > 0) {
+      setHistoryState({ status: "loading" });
+    }
+    setHistoryExpanded(nextExpanded);
+  };
+
+  const retryAuctionHistory = () => {
+    setHistoryState({ status: "loading" });
+    setHistoryRetry((value) => value + 1);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -210,7 +261,15 @@ function PublicCopyContent({ navigation, route }: Props) {
             Le résultat est disponible. Les détails privés de la copie restent masqués.
           </Text>
         </View>
-        <StickyCommercialBar auctionResult={auctionResult} opportunity={null} />
+        <StickyCommercialBar
+          auctionHistory={historyState}
+          auctionHistoryExpanded={historyExpanded}
+          auctionResult={auctionResult}
+          onOpenBidder={(userId) => navigation.navigate("PublicProfile", { userId })}
+          onRetryAuctionHistory={retryAuctionHistory}
+          onToggleAuctionHistory={toggleAuctionHistory}
+          opportunity={null}
+        />
       </View>
     );
   }
@@ -275,6 +334,12 @@ function PublicCopyContent({ navigation, route }: Props) {
           </View>
         </View>
         <OwnerCard owner={detail.owner} />
+        {auctionResult?.winner ? (
+          <AuctionWinnerCard
+            onOpen={(userId) => navigation.navigate("PublicProfile", { userId })}
+            winner={auctionResult.winner}
+          />
+        ) : null}
         {detail.opportunity?.type === "trade" ? <TradeCard /> : null}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Édition</Text>
@@ -301,6 +366,8 @@ function PublicCopyContent({ navigation, route }: Props) {
         />
       </ScrollView>
       <StickyCommercialBar
+        auctionHistory={historyState}
+        auctionHistoryExpanded={historyExpanded}
         auctionLiveState={auctionLiveState}
         auctionResult={auctionResult}
         onBid={
@@ -309,8 +376,45 @@ function PublicCopyContent({ navigation, route }: Props) {
             : () => navigation.navigate("PlaceBid", { auctionId })
         }
         opportunity={auctionResult || auctionDeadlineReached ? null : detail.opportunity}
+        onOpenBidder={(userId) => navigation.navigate("PublicProfile", { userId })}
+        onRetryAuctionHistory={retryAuctionHistory}
+        onToggleAuctionHistory={toggleAuctionHistory}
         ownerView={authState.status === "authenticated" && authState.user.id === detail.owner.id}
       />
+    </View>
+  );
+}
+
+function AuctionWinnerCard({
+  onOpen,
+  winner,
+}: {
+  readonly onOpen: (publicProfileId: string) => void;
+  readonly winner: NonNullable<AuctionResult["winner"]>;
+}) {
+  const name = winner.displayName ?? "Collectionneur Geek";
+  const avatarUri = winner.avatarPath?.startsWith("http") === true ? winner.avatarPath : null;
+  return (
+    <View style={styles.winnerCard}>
+      <Text style={styles.small}>Résultat de l’enchère</Text>
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => onOpen(winner.id)}
+        style={({ pressed }) => [styles.winnerIdentity, pressed && styles.pressed]}
+      >
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.winnerAvatar} />
+        ) : (
+          <View style={[styles.winnerAvatar, styles.winnerAvatarFallback]}>
+            <Text style={styles.avatarText}>{name.slice(0, 1).toLocaleUpperCase()}</Text>
+          </View>
+        )}
+        <View>
+          <Text style={styles.winnerTitle}>Remportée par</Text>
+          <Text style={styles.winnerName}>{name}</Text>
+        </View>
+      </Pressable>
+      <Text style={styles.winnerNotice}>La copie appartient encore à son propriétaire actuel.</Text>
     </View>
   );
 }
@@ -323,7 +427,8 @@ function OwnerCard({ owner }: { readonly owner: Profile }) {
         <Text style={styles.avatarText}>{name.slice(0, 1).toLocaleUpperCase()}</Text>
       </View>
       <View style={styles.ownerCopy}>
-        <Text style={styles.body}>À {name}</Text>
+        <Text style={styles.small}>Propriétaire</Text>
+        <Text style={styles.body}>{name}</Text>
         {owner.bio ? (
           <Text numberOfLines={2} style={styles.small}>
             {owner.bio}
@@ -414,6 +519,24 @@ const styles = StyleSheet.create({
   tradeSignal: { alignItems: "center", flexDirection: "row", gap: 4 },
   tradeText: { color: colors.controlSelected, fontSize: 15, fontWeight: "600" },
   tradeCopy: { ...typography.metadata, color: colors.controlSelected },
+  winnerCard: {
+    backgroundColor: colors.availabilityNotice,
+    borderRadius: radii.detailCard,
+    gap: spacing.micro,
+    marginHorizontal: spacing.medium,
+    padding: spacing.page,
+  },
+  winnerTitle: { ...typography.body, fontWeight: "600" },
+  winnerIdentity: { alignItems: "center", flexDirection: "row", gap: spacing.medium },
+  winnerAvatar: { borderRadius: 22, height: 44, width: 44 },
+  winnerAvatarFallback: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceSelected,
+    justifyContent: "center",
+  },
+  winnerName: { ...typography.sectionTitle },
+  winnerNotice: { ...typography.metadata, color: colors.textSecondary },
+  pressed: { opacity: 0.7 },
   section: { gap: 16, paddingHorizontal: 24 },
   sectionTitle: { ...typography.sectionTitle },
 });

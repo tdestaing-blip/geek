@@ -1,10 +1,14 @@
 import {
+  getMyAuctionParticipations,
+  getAuctionBidHistory,
   getAuctionLiveState,
   getAuctionResult,
   getEditionMarketOpportunities,
   getPublicCopyDetail,
 } from "@geek/data";
 import type {
+  AuctionParticipation,
+  AuctionBidHistoryEntry,
   AuctionLiveState,
   AuctionResult,
   EditionMarketOpportunity,
@@ -65,6 +69,22 @@ export async function loadCanonicalAuctionLiveState(
   auctionId: string,
 ): Promise<MarketLoadResult<AuctionLiveState>> {
   const result = await getAuctionLiveState(supabase, auctionId);
+  if (result.outcome === "ok") return { outcome: "ok", data: result.data };
+  if (result.outcome === "not_found") return result;
+  return { outcome: "error" };
+}
+
+export async function loadMyAuctionParticipations(): Promise<
+  MarketLoadResult<readonly AuctionParticipation[]>
+> {
+  const result = await getMyAuctionParticipations(supabase);
+  return result.outcome === "ok" ? { outcome: "ok", data: result.data } : { outcome: "error" };
+}
+
+export async function loadAuctionBidHistory(
+  auctionId: string,
+): Promise<MarketLoadResult<readonly AuctionBidHistoryEntry[]>> {
+  const result = await getAuctionBidHistory(supabase, auctionId);
   if (result.outcome === "ok") return { outcome: "ok", data: result.data };
   if (result.outcome === "not_found") return result;
   return { outcome: "error" };

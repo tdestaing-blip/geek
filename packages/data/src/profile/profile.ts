@@ -2,7 +2,7 @@ import type { Profile } from "@geek/domain";
 import type { GeekSupabaseClient } from "@geek/supabase";
 
 import { resolveCaller } from "../caller";
-import type { OwnedEntityResult } from "../result";
+import type { EntityResult, OwnedEntityResult } from "../result";
 import { databaseFailure, mapRows } from "../result";
 import { toProfile } from "./mapping";
 
@@ -52,5 +52,26 @@ export async function getMyProfile(
     return { outcome: "not_found" };
   }
 
+  return mapRows(() => toProfile(data));
+}
+
+/** Reads only the canonical fields intentionally exposed by a public Profile. */
+export async function getPublicProfile(
+  client: GeekSupabaseClient,
+  profileId: string,
+): Promise<EntityResult<Profile>> {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId)
+  ) {
+    return { outcome: "invalid_data", field: "profiles.id", message: "Invalid Profile id" };
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .select(PROFILE_COLUMNS)
+    .eq("id", profileId)
+    .maybeSingle();
+  if (error !== null) return databaseFailure(error);
+  if (data === null) return { outcome: "not_found" };
   return mapRows(() => toProfile(data));
 }

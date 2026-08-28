@@ -103,7 +103,7 @@ export {
   updateCopyAvailability,
 } from "./collection/mutations";
 
-export { getMyProfile } from "./profile/profile";
+export { getMyProfile, getPublicProfile } from "./profile/profile";
 
 export {
   compareMarketOpportunities,
@@ -131,9 +131,11 @@ export type {
 } from "./marketplace/auctions";
 export {
   createAuction,
+  getAuctionBidHistory,
   getAuctionForBidding,
   getAuctionLiveState,
   getAuctionResult,
+  getMyAuctionParticipations,
   placeAuctionBid,
 } from "./marketplace/auctions";
 

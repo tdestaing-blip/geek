@@ -1,15 +1,18 @@
 import { colors, spacing, typography } from "@geek/design-tokens";
+import { getPublicProfile } from "@geek/data";
+import type { Profile } from "@geek/domain";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { FlatList, Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import THOMAS_AVATAR from "../assets/profiles/thomas.png";
 import { useAuth } from "../lib/auth/auth-provider";
+import { supabase } from "../lib/supabase";
 import { GameGridItem, type GridItem } from "../ui/game-grid-item";
 import {
   ProfileActions,
@@ -24,7 +27,7 @@ import { MY_GAMES } from "./collection-screen";
 import {
   LEON_PUBLIC_COPY_FIXTURE,
   resolveActiveMarketOpportunitiesForOwner,
-  resolveCollectorFixture,
+  findCollectorFixture,
 } from "./marketplace-fixtures";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
@@ -99,18 +102,72 @@ export function MyProfileScreen({ navigation }: MyProps) {
 }
 
 export function PublicProfileScreen({ navigation, route }: PublicProps) {
-  const collector = resolveCollectorFixture(route.params.userId);
-  const saleItems = getActiveSaleItemsForOwner(collector.id);
-  const isLeon = collector.id === LEON_PUBLIC_COPY_FIXTURE.owner.id;
+  const fixture = findCollectorFixture(route.params.userId);
+  const [canonicalResult, setCanonicalResult] = useState<{
+    readonly userId: string;
+    readonly profile: Profile | null;
+    readonly failed: boolean;
+  } | null>(null);
+  const canonicalProfile =
+    canonicalResult?.userId === route.params.userId ? canonicalResult.profile : null;
+  const loadFailed =
+    canonicalResult?.userId === route.params.userId && canonicalResult.failed === true;
+
+  useEffect(() => {
+    if (fixture !== null) return;
+    let active = true;
+    void getPublicProfile(supabase, route.params.userId).then(
+      (result) => {
+        if (!active) return;
+        setCanonicalResult({
+          userId: route.params.userId,
+          profile: result.outcome === "ok" ? result.data : null,
+          failed: result.outcome !== "ok",
+        });
+      },
+      () => {
+        if (active) {
+          setCanonicalResult({ userId: route.params.userId, profile: null, failed: true });
+        }
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [fixture, route.params.userId]);
+
+  if (fixture === null && canonicalProfile === null) {
+    return (
+      <View style={styles.profileLoadState}>
+        <Text style={styles.profileLoadText}>
+          {loadFailed ? "Ce profil public n’est pas disponible." : "Chargement du profil…"}
+        </Text>
+      </View>
+    );
+  }
+
+  const userId = fixture?.id ?? canonicalProfile?.id ?? route.params.userId;
+  const saleItems = getActiveSaleItemsForOwner(userId);
+  const isLeon = userId === LEON_PUBLIC_COPY_FIXTURE.owner.id;
+  const canonicalAvatar = canonicalProfile?.avatarPath;
   return (
     <ProfileInventory
       actions
-      avatar={collector.avatar}
+      avatar={
+        fixture?.avatar ??
+        (canonicalAvatar?.startsWith("http") === true ? { uri: canonicalAvatar } : null)
+      }
+      bio={canonicalProfile === null ? undefined : (canonicalProfile.bio ?? "")}
       gradient={["#D1BFEB", "#AD94CC"]}
       items={saleItems}
-      location={collector.distance}
+      location={fixture?.distance ?? "Collectionneur Geek"}
       matchCard={isLeon ? <LeonMatchProjection projection={LEON_MATCH_PROJECTION} /> : undefined}
-      name={collector.name}
+      name={
+        fixture?.name ??
+        canonicalProfile?.displayName ??
+        canonicalProfile?.username ??
+        "Collectionneur Geek"
+      }
       onBack={navigation.goBack}
       onOpenCopy={(copyId) => navigation.navigate("PublicCopy", { copyId })}
     />
@@ -120,6 +177,7 @@ export function PublicProfileScreen({ navigation, route }: PublicProps) {
 function ProfileInventory({
   actions = false,
   avatar,
+  bio,
   gradient,
   items,
   location,
@@ -131,6 +189,7 @@ function ProfileInventory({
 }: {
   readonly actions?: boolean;
   readonly avatar: Parameters<typeof ProfileHero>[0]["avatar"];
+  readonly bio?: string;
   readonly gradient: readonly [string, string];
   readonly items: readonly ProfileInventoryItem[];
   readonly location: string;
@@ -166,7 +225,11 @@ function ProfileInventory({
             title={title}
           />
           <ProfileStats stats={STATS} />
-          <ProfileSocialSummary bio="RPG 16 bits, complet en boîte. Échange volontiers en main propre à Nantes." />
+          <ProfileSocialSummary
+            bio={
+              bio ?? "RPG 16 bits, complet en boîte. Échange volontiers en main propre à Nantes."
+            }
+          />
           {actions ? <ProfileActions /> : null}
           {matchCard}
           <View style={styles.segments}>
@@ -256,6 +319,14 @@ function MatchRow({
 }
 
 const styles = StyleSheet.create({
+  profileLoadState: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.page,
+  },
+  profileLoadText: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
   content: { backgroundColor: colors.background, paddingBottom: 112 },
   segments: { paddingHorizontal: spacing.page, paddingVertical: 24 },
   gridRow: { gap: spacing.compact, paddingHorizontal: spacing.page },
