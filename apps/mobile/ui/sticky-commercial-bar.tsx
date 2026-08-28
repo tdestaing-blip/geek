@@ -1,32 +1,49 @@
 import { colors, typography } from "@geek/design-tokens";
-import type { PublicCopyDetail } from "@geek/domain";
+import type { AuctionResult, PublicCopyDetail } from "@geek/domain";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
 import { formatAuctionCountdown } from "./auction-countdown";
+import { getAuctionResultPresentation } from "./auction-result-presentation";
 import { GeekIcon } from "./geek-icon";
 import { formatMoney } from "./format-money";
 
 export function StickyCommercialBar({
+  auctionResult = null,
   onBid,
   opportunity,
   ownerView = false,
 }: {
+  readonly auctionResult?: AuctionResult | null;
   readonly onBid?: () => void;
   readonly opportunity: PublicCopyDetail["opportunity"];
   readonly ownerView?: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  if (!opportunity) return null;
-  const auction = opportunity.type === "auction";
-  const trade = opportunity.type === "trade";
-  const value = trade
-    ? null
-    : formatMoney(auction ? opportunity.currentPrice : opportunity.askingPrice);
+  if (!opportunity && !auctionResult) return null;
+  const resultPresentation =
+    auctionResult === null ? null : getAuctionResultPresentation(auctionResult.callerOutcome);
+  const resultValue =
+    auctionResult === null || auctionResult.finalPrice === null
+      ? null
+      : formatMoney(auctionResult.finalPrice);
+  const auction = opportunity?.type === "auction";
+  const trade = opportunity?.type === "trade";
+  const value =
+    !opportunity || trade
+      ? null
+      : formatMoney(auction ? opportunity.currentPrice : opportunity.askingPrice);
   return (
     <View pointerEvents="box-none" style={styles.position}>
-      {auction ? (
+      {auctionResult ? (
+        <View style={styles.auctionSignal}>
+          <Text style={styles.signalText}>
+            {auctionResult.bidCount} {auctionResult.bidCount === 1 ? "enchère" : "enchères"}
+          </Text>
+          <Text style={styles.signalText}>Auction terminée</Text>
+        </View>
+      ) : auction ? (
         <View style={styles.auctionSignal}>
           <Text style={styles.signalText}>{opportunity.bidCount} enchères</Text>
           <View style={styles.signalRight}>
@@ -38,7 +55,12 @@ export function StickyCommercialBar({
       <AdaptiveGlassSurface
         style={[styles.surface, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
-        {trade ? (
+        {auctionResult && resultPresentation ? (
+          <View style={styles.tradeCopy}>
+            <Text style={styles.label}>{resultPresentation.heading}</Text>
+            <Text style={styles.price}>{resultValue ?? "Aucune enchère"}</Text>
+          </View>
+        ) : trade ? (
           <View style={styles.tradeCopy}>
             <Text style={styles.label}>Échange réciproque</Text>
             <Text style={styles.tradeLabel}>Vos Wishlist se correspondent</Text>
@@ -50,7 +72,11 @@ export function StickyCommercialBar({
           </View>
         )}
         <View style={styles.actions}>
-          {ownerView ? (
+          {resultPresentation ? (
+            <View style={styles.ownerState}>
+              <Text style={styles.buttonText}>{resultPresentation.stateLabel}</Text>
+            </View>
+          ) : ownerView ? (
             <View style={styles.ownerState}>
               <Text style={styles.buttonText}>Votre annonce</Text>
             </View>
@@ -59,7 +85,7 @@ export function StickyCommercialBar({
               <Text style={styles.buttonText}>Faire une offre</Text>
             </Pressable>
           ) : null}
-          {!ownerView ? (
+          {!ownerView && !resultPresentation ? (
             <Pressable
               accessibilityRole="button"
               onPress={auction ? onBid : undefined}

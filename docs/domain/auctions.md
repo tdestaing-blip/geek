@@ -94,6 +94,33 @@ with no Bids or an unmet reserve becomes `ended`; otherwise it becomes `won`
 and retains the winning Bid reference. A future public product may expose only
 a derived reserve-met signal.
 
+## Resolution V1
+
+Postgres is the canonical Auction resolution worker. The `pg_cron` job
+`geek-finalize-due-auctions` runs every minute and asks a trusted bounded batch
+to resolve at most 100 due scheduled Auctions in deterministic end-time and ID
+order. Overlapping runs skip Auction rows already being resolved, and one
+malformed Auction is isolated from the rest of its batch.
+
+`finalize_auction` uses the Auction row as the same serialization boundary as
+Bid placement and samples database time after acquiring that lock. Therefore a
+Bid accepted before the canonical deadline is part of the aggregate seen by
+finalization, while a Bid evaluated at or after the deadline is rejected.
+Retries of an already `ended` or `won` Auction return its unchanged canonical
+row.
+
+Resolution does not create a second winner identity. A `won` Auction's
+`winning_bid_id` references its immutable canonical leading Bid. The
+caller-aware result projection derives seller, winner, and losing-bidder roles
+from `auth.uid()` and exposes only status, final aggregate amount, bid count,
+end time, and the caller-relative outcome. Resolved Auction history is not
+globally readable.
+
+A winner may continue to read the existing marketplace-safe Public Copy
+projection for the won Copy. Losing bidders and unrelated viewers gain no such
+access. This exception never exposes private Copy photos or details, precise
+location, auth metadata, or private Wishlist preferences.
+
 ## Commercial commitment
 
 `copy_commercial_commitments` is internal coordination infrastructure, not a

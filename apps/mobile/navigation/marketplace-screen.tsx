@@ -218,7 +218,12 @@ function MarketplaceContent({ navigation, route }: Props) {
                 key={`${opportunity.type}:${opportunity.copyId}`}
                 artworkUrl={catalog.artworkUrl}
                 opportunity={opportunity}
-                onPress={() => navigation.navigate("PublicCopy", { copyId: opportunity.copyId })}
+                onPress={() =>
+                  navigation.navigate("PublicCopy", {
+                    copyId: opportunity.copyId,
+                    ...(opportunity.type === "auction" ? { auctionId: opportunity.auctionId } : {}),
+                  })
+                }
               />
             ))}
             <Pressable

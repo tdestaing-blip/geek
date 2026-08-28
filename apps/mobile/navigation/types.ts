@@ -54,7 +54,7 @@ export type RootStackParamList = {
   };
   Edition: { readonly editionId: string };
   Copy: { readonly copyId: string };
-  PublicCopy: { readonly copyId: string };
+  PublicCopy: { readonly copyId: string; readonly auctionId?: string };
   PublicProfile: { readonly userId: string };
   AlbumDetail: { readonly albumId: string };
   Listing: { readonly listingId: string };

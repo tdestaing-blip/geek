@@ -1,5 +1,5 @@
-import { getEditionMarketOpportunities, getPublicCopyDetail } from "@geek/data";
-import type { EditionMarketOpportunity, PublicCopyDetail } from "@geek/domain";
+import { getAuctionResult, getEditionMarketOpportunities, getPublicCopyDetail } from "@geek/data";
+import type { AuctionResult, EditionMarketOpportunity, PublicCopyDetail } from "@geek/domain";
 
 import { supabase } from "../lib/supabase";
 import type { CanonicalMarketCatalog } from "./canonical-catalog";
@@ -38,4 +38,15 @@ export async function loadCanonicalPublicCopy(
     return { outcome: "error" };
   }
   return { outcome: "ok", data: { detail, catalog: catalogResult.data } };
+}
+
+export async function loadCanonicalAuctionResult(
+  auctionId: string,
+): Promise<MarketLoadResult<AuctionResult>> {
+  const result = await getAuctionResult(supabase, auctionId);
+  if (result.outcome === "ok") return { outcome: "ok", data: result.data };
+  if (result.outcome === "not_found" || result.outcome === "unauthenticated") {
+    return { outcome: "not_found" };
+  }
+  return { outcome: "error" };
 }

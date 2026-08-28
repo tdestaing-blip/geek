@@ -29,6 +29,7 @@ navigation.navigate("AlbumReveal", {
 });
 navigation.navigate("Copy", { copyId: "copy-id" });
 navigation.navigate("PublicCopy", { copyId: "copy-id" });
+navigation.navigate("PublicCopy", { copyId: "copy-id", auctionId: "auction-id" });
 navigation.navigate("PublicProfile", { userId: "user-id" });
 navigation.navigate("AlbumDetail", { albumId: "album-id" });
 navigation.navigate("AddGameSearch");
