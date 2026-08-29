@@ -317,6 +317,9 @@ function OwnedCopyDetailContent({ navigation, route }: Props) {
           listingCancellationPending={listingCancellationPending}
           onCancelListing={confirmListingCancellation}
           onCreateCommercial={showCommercialCreationOptions}
+          onOpenAuction={(auctionId) =>
+            navigation.navigate("PublicCopy", { auctionId, copyId: route.params.copyId })
+          }
         />
       )}
     </View>
@@ -332,6 +335,7 @@ function CanonicalCopyDetailView({
   listingCancellationPending,
   onCancelListing,
   onCreateCommercial,
+  onOpenAuction,
 }: {
   readonly data: CanonicalCopyDetail;
   readonly onAddPhotos: (photoRole: CopyPhotoRole) => void;
@@ -341,6 +345,7 @@ function CanonicalCopyDetailView({
   readonly listingCancellationPending: boolean;
   readonly onCancelListing: (listingId: string) => void;
   readonly onCreateCommercial: () => void;
+  readonly onOpenAuction: (auctionId: string) => void;
 }) {
   const { detail, catalogArtwork } = data;
   const { state: authState } = useAuth();
@@ -397,6 +402,11 @@ function CanonicalCopyDetailView({
           }
         }}
         onCreateCommercial={onCreateCommercial}
+        onOpenAuction={() => {
+          if (data.commercialState.kind === "auction") {
+            onOpenAuction(data.commercialState.auction.id);
+          }
+        }}
       />
     </>
   );

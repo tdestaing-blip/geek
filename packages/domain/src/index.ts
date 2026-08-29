@@ -108,6 +108,9 @@ export type {
   ResolvedAuctionParticipationOutcome,
   ResolvingAuctionParticipation,
 } from "./marketplace/auction";
+
+export type { AuctionOrderView, Order, OrderItem, OrderStatus } from "./marketplace/order";
+export { ORDER_STATUSES, parseOrderStatus } from "./marketplace/order";
 export {
   AUCTION_CALLER_BID_STATES,
   AUCTION_CALLER_OUTCOMES,

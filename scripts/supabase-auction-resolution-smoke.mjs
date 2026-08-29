@@ -594,6 +594,13 @@ try {
   );
 } finally {
   if (fixture.auctionIds.length) {
+    const orderItems = await admin
+      .from("order_items")
+      .select("order_id")
+      .in("auction_id", fixture.auctionIds);
+    const orderIds = orderItems.data?.map(({ order_id }) => order_id) ?? [];
+    await admin.from("order_items").delete().in("auction_id", fixture.auctionIds);
+    if (orderIds.length) await admin.from("orders").delete().in("id", orderIds);
     // Reserve-detail deletion is intentionally draft-only. Return isolated
     // smoke Auctions to draft before deleting their private fixture rows.
     await admin

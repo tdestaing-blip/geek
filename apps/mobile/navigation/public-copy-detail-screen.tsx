@@ -1,5 +1,6 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type {
+  AuctionOrderView,
   AuctionBidHistoryEntry,
   AuctionLiveState,
   AuctionResult,
@@ -26,11 +27,13 @@ import { useAuth } from "../lib/auth/auth-provider";
 import { AboutGameCard } from "../ui/about-game-card";
 import { CopyComponentCard, getCopyComponentLabel } from "../ui/copy-component-card";
 import { DetailToolbar } from "../ui/detail-toolbar";
+import { formatMoney } from "../ui/format-money";
 import { GeekIcon } from "../ui/geek-icon";
 import { MetadataField } from "../ui/metadata-field";
 import { StickyCommercialBar } from "../ui/sticky-commercial-bar";
 import { getCatalogRegionPresentation, type CanonicalMarketCatalog } from "./canonical-catalog";
 import {
+  loadCanonicalAuctionOrder,
   loadCanonicalAuctionLiveState,
   loadCanonicalAuctionResult,
   loadCanonicalPublicCopy,
@@ -66,6 +69,7 @@ function PublicCopyContent({ navigation, route }: Props) {
   const [data, setData] = useState<PublicCopyViewData | null>(null);
   const [auctionLiveState, setAuctionLiveState] = useState<AuctionLiveState | null>(null);
   const [auctionResult, setAuctionResult] = useState<AuctionResult | null>(null);
+  const [auctionOrder, setAuctionOrder] = useState<AuctionOrderView | null>(null);
   const [auctionDeadlineReached, setAuctionDeadlineReached] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [historyRetry, setHistoryRetry] = useState(0);
@@ -125,6 +129,7 @@ function PublicCopyContent({ navigation, route }: Props) {
       setData(null);
       setAuctionLiveState(null);
       setAuctionResult(null);
+      setAuctionOrder(null);
       setAuctionDeadlineReached(false);
       setState("loading");
 
@@ -152,6 +157,7 @@ function PublicCopyContent({ navigation, route }: Props) {
         if (trackedAuctionId === null) {
           setAuctionLiveState(null);
           setAuctionResult(null);
+          setAuctionOrder(null);
           setAuctionDeadlineReached(false);
           setState(
             currentData !== null ? "ready" : copyOutcome === "error" ? "error" : "unavailable",
@@ -166,6 +172,7 @@ function PublicCopyContent({ navigation, route }: Props) {
           const deadline = Date.parse(liveResult.data.endsAt);
           setAuctionLiveState(liveResult.data);
           setAuctionResult(null);
+          setAuctionOrder(null);
           if (Number.isFinite(deadline) && Date.now() < deadline) {
             resolutionRefreshes = 0;
             setAuctionDeadlineReached(false);
@@ -198,13 +205,21 @@ function PublicCopyContent({ navigation, route }: Props) {
         }
 
         if (result.outcome === "ok") {
+          const canReadOrder =
+            result.data.callerOutcome === "won" || result.data.callerOutcome === "seller_won";
+          const orderResult = canReadOrder
+            ? await loadCanonicalAuctionOrder(trackedAuctionId)
+            : null;
+          if (!active || requestGeneration !== generation) return;
           setAuctionLiveState(null);
           setAuctionResult(result.data);
+          setAuctionOrder(orderResult?.outcome === "ok" ? orderResult.data : null);
           setState(currentData === null ? "resolved" : "ready");
           return;
         }
 
         setAuctionResult(null);
+        setAuctionOrder(null);
         if (result.outcome === "not_found" && resolutionRefreshes < 12) {
           resolutionRefreshes += 1;
           setState(currentData === null ? "resolving" : "ready");
@@ -340,6 +355,12 @@ function PublicCopyContent({ navigation, route }: Props) {
             winner={auctionResult.winner}
           />
         ) : null}
+        {auctionOrder ? (
+          <AuctionOrderCard
+            onOpen={(userId) => navigation.navigate("PublicProfile", { userId })}
+            order={auctionOrder}
+          />
+        ) : null}
         {detail.opportunity?.type === "trade" ? <TradeCard /> : null}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Édition</Text>
@@ -381,6 +402,52 @@ function PublicCopyContent({ navigation, route }: Props) {
         onToggleAuctionHistory={toggleAuctionHistory}
         ownerView={authState.status === "authenticated" && authState.user.id === detail.owner.id}
       />
+    </View>
+  );
+}
+
+function AuctionOrderCard({
+  onOpen,
+  order,
+}: {
+  readonly onOpen: (publicProfileId: string) => void;
+  readonly order: AuctionOrderView;
+}) {
+  const name = order.counterparty.displayName ?? "Collectionneur Geek";
+  const avatarUri =
+    order.counterparty.avatarPath?.startsWith("http") === true
+      ? order.counterparty.avatarPath
+      : null;
+  const buyerView = order.callerRole === "buyer";
+  return (
+    <View style={styles.orderCard}>
+      <View style={styles.orderHeading}>
+        <View>
+          <Text style={styles.small}>Transaction</Text>
+          <Text style={styles.orderStatus}>{buyerView ? "À régler" : "Paiement en attente"}</Text>
+        </View>
+        <Text style={styles.orderAmount}>{formatMoney(order.agreedPrice)}</Text>
+      </View>
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => onOpen(order.counterparty.id)}
+        style={({ pressed }) => [styles.winnerIdentity, pressed && styles.pressed]}
+      >
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.orderAvatar} />
+        ) : (
+          <View style={[styles.orderAvatar, styles.winnerAvatarFallback]}>
+            <Text style={styles.avatarText}>{name.slice(0, 1).toLocaleUpperCase()}</Text>
+          </View>
+        )}
+        <View>
+          <Text style={styles.small}>{buyerView ? "Vendeur" : "Acheteur"}</Text>
+          <Text style={styles.body}>{name}</Text>
+        </View>
+      </Pressable>
+      <Text style={styles.winnerNotice}>
+        Aucun paiement ni transfert de propriété n’a encore eu lieu.
+      </Text>
     </View>
   );
 }
@@ -536,6 +603,21 @@ const styles = StyleSheet.create({
   },
   winnerName: { ...typography.sectionTitle },
   winnerNotice: { ...typography.metadata, color: colors.textSecondary },
+  orderCard: {
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radii.detailCard,
+    gap: spacing.medium,
+    marginHorizontal: spacing.medium,
+    padding: spacing.page,
+  },
+  orderHeading: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  orderStatus: { ...typography.sectionTitle },
+  orderAmount: { ...typography.sectionTitle, fontWeight: "700" },
+  orderAvatar: { borderRadius: 20, height: 40, width: 40 },
   pressed: { opacity: 0.7 },
   section: { gap: 16, paddingHorizontal: 24 },
   sectionTitle: { ...typography.sectionTitle },

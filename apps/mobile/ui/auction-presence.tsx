@@ -227,6 +227,11 @@ function AuctionParticipationRow({
             {stateLabel}
           </Text>
         </View>
+        {participation.phase === "resolved" &&
+        participation.callerOutcome === "won" &&
+        participation.orderStatus === "awaiting_payment" ? (
+          <Text style={styles.orderState}>À régler</Text>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -284,6 +289,7 @@ const styles = StyleSheet.create({
   outbidPill: { backgroundColor: colors.accent },
   endedPill: { backgroundColor: colors.surfaceSelected },
   stateText: { color: colors.controlSelected, fontSize: 10, fontWeight: "600" },
+  orderState: { color: colors.textSecondary, fontSize: 10, fontWeight: "600" },
   endedStateText: { color: colors.textSecondary },
   pressed: { opacity: 0.7 },
 });

@@ -14,6 +14,7 @@ export function StickyAvailabilityBar({
   listingCancellationPending = false,
   onCancelListing,
   onCreateCommercial,
+  onOpenAuction,
 }: {
   readonly availability?: CopyAvailability;
   readonly commercialState: OwnedCopyCommercialState;
@@ -21,6 +22,7 @@ export function StickyAvailabilityBar({
   readonly listingCancellationPending?: boolean;
   readonly onCancelListing: () => void;
   readonly onCreateCommercial: () => void;
+  readonly onOpenAuction: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const canCreateCommercial =
@@ -29,8 +31,10 @@ export function StickyAvailabilityBar({
       canCreateAuction(availability, commercialState));
   const canCancelListing =
     commercialState.kind === "listing" && canCancelDirectListing(commercialState.listing);
+  const canOpenAuction = commercialState.kind === "auction";
   const commercialAmount = commercialState.kind === "listing" || commercialState.kind === "auction";
-  const actionEnabled = !listingCancellationPending && (canCreateCommercial || canCancelListing);
+  const actionEnabled =
+    !listingCancellationPending && (canCreateCommercial || canCancelListing || canOpenAuction);
   const presentation = getStickyAvailabilityPresentation(availability, commercialState);
   return (
     <View style={styles.root}>
@@ -66,7 +70,9 @@ export function StickyAvailabilityBar({
           accessibilityRole="button"
           accessibilityState={{ busy: listingCancellationPending, disabled: !actionEnabled }}
           disabled={!actionEnabled}
-          onPress={canCancelListing ? onCancelListing : onCreateCommercial}
+          onPress={
+            canCancelListing ? onCancelListing : canOpenAuction ? onOpenAuction : onCreateCommercial
+          }
           style={[styles.action, !actionEnabled && styles.actionDisabled]}
         >
           <View>

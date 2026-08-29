@@ -184,9 +184,37 @@ export async function getMyAuctionParticipations(
   const caller = await resolveCaller(client);
   if (caller.outcome !== "ok") return caller;
 
-  const result = await client.rpc("get_my_auction_participations");
-  if (result.error !== null) return databaseFailure(result.error);
-  return mapRows(() => result.data.map(toAuctionParticipation));
+  const [participations, statusByAuctionId] = await Promise.all([
+    client.rpc("get_my_auction_participations"),
+    getOptionalAuctionOrderStatuses(client),
+  ]);
+  if (participations.error !== null) return databaseFailure(participations.error);
+  return mapRows(() =>
+    participations.data.map((row) =>
+      toAuctionParticipation(row, statusByAuctionId.get(row.auction_id) ?? null),
+    ),
+  );
+}
+
+async function getOptionalAuctionOrderStatuses(
+  client: GeekSupabaseClient,
+): Promise<ReadonlyMap<string, "awaiting_payment">> {
+  try {
+    const result = await client.rpc("get_my_auction_order_statuses");
+    if (result.error !== null) return new Map();
+
+    const statuses = new Map<string, "awaiting_payment">();
+    for (const row of result.data) {
+      if (row.status === "awaiting_payment") {
+        statuses.set(row.auction_id, row.status);
+      }
+    }
+    return statuses;
+  } catch {
+    // Settlement status is optional decoration. Canonical Auction participation
+    // must remain visible even when this secondary projection is unavailable.
+    return new Map();
+  }
 }
 
 /** Reads the bounded public-identity history authorized for one Auction. */
@@ -468,23 +496,26 @@ function toAuctionResult(row: {
   };
 }
 
-function toAuctionParticipation(row: {
-  readonly auction_id: string;
-  readonly bid_count: number;
-  readonly caller_bid_state: string | null;
-  readonly caller_outcome: string | null;
-  readonly copy_id: string;
-  readonly cover_asset_url: string | null;
-  readonly currency: string;
-  readonly current_amount_minor: number;
-  readonly edition_id: string;
-  readonly ends_at: string;
-  readonly game_id: string;
-  readonly game_title: string;
-  readonly platform_name: string;
-  readonly participation_phase: string;
-  readonly region_code: string | null;
-}): AuctionParticipation {
+function toAuctionParticipation(
+  row: {
+    readonly auction_id: string;
+    readonly bid_count: number;
+    readonly caller_bid_state: string | null;
+    readonly caller_outcome: string | null;
+    readonly copy_id: string;
+    readonly cover_asset_url: string | null;
+    readonly currency: string;
+    readonly current_amount_minor: number;
+    readonly edition_id: string;
+    readonly ends_at: string;
+    readonly game_id: string;
+    readonly game_title: string;
+    readonly platform_name: string;
+    readonly participation_phase: string;
+    readonly region_code: string | null;
+  },
+  orderStatus: "awaiting_payment" | null,
+): AuctionParticipation {
   const currency = parseCurrencyCode(row.currency);
   const currentPrice = currency === null ? null : createMoney(row.current_amount_minor, currency);
   if (currentPrice === null || currentPrice.amountMinor < 0) {
@@ -551,7 +582,12 @@ function toAuctionParticipation(row: {
       "resolved participation requires won/lost/ended outcome only",
     );
   }
-  return { ...display, phase: "resolved", callerOutcome };
+  return {
+    ...display,
+    phase: "resolved",
+    callerOutcome,
+    orderStatus: callerOutcome === "won" ? orderStatus : null,
+  };
 }
 
 function toAuctionBidHistoryEntry(row: {
