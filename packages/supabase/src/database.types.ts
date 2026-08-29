@@ -1190,6 +1190,103 @@ export type Database = {
           },
         ];
       };
+      order_items: {
+        Row: {
+          amount_minor: number;
+          auction_id: string;
+          copy_id: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          order_id: string;
+          winning_bid_id: string;
+        };
+        Insert: {
+          amount_minor: number;
+          auction_id: string;
+          copy_id: string;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          order_id: string;
+          winning_bid_id: string;
+        };
+        Update: {
+          amount_minor?: number;
+          auction_id?: string;
+          copy_id?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          order_id?: string;
+          winning_bid_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_items_auction_copy_fkey";
+            columns: ["auction_id", "copy_id"];
+            isOneToOne: false;
+            referencedRelation: "auctions";
+            referencedColumns: ["id", "copy_id"];
+          },
+          {
+            foreignKeyName: "order_items_bid_auction_fkey";
+            columns: ["winning_bid_id", "auction_id"];
+            isOneToOne: false;
+            referencedRelation: "auction_bids";
+            referencedColumns: ["id", "auction_id"];
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: true;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      orders: {
+        Row: {
+          buyer_id: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          seller_id: string;
+          status: string;
+        };
+        Insert: {
+          buyer_id: string;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          seller_id: string;
+          status?: string;
+        };
+        Update: {
+          buyer_id?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          seller_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey";
+            columns: ["buyer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey";
+            columns: ["seller_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       platform_provider_mappings: {
         Row: {
           created_at: string;
@@ -1667,6 +1764,22 @@ export type Database = {
         Args: { target_user_id: string };
         Returns: number;
       };
+      ensure_auction_order: {
+        Args: { target_auction_id: string };
+        Returns: {
+          amount_minor: number;
+          auction_id: string;
+          buyer_id: string;
+          copy_id: string;
+          created_at: string;
+          currency: string;
+          order_id: string;
+          order_item_id: string;
+          seller_id: string;
+          status: string;
+          winning_bid_id: string;
+        }[];
+      };
       evaluate_wishlist_copy_match: {
         Args: { candidate_copy_id: string; subject_intent_id: string };
         Returns: {
@@ -1816,6 +1929,22 @@ export type Database = {
           status: string;
         }[];
       };
+      get_auction_order: {
+        Args: { target_auction_id: string };
+        Returns: {
+          amount_minor: number;
+          auction_id: string;
+          caller_role: string;
+          copy_id: string;
+          counterparty_avatar_path: string;
+          counterparty_display_name: string;
+          counterparty_profile_id: string;
+          created_at: string;
+          currency: string;
+          order_id: string;
+          status: string;
+        }[];
+      };
       get_auction_result: {
         Args: { target_auction_id: string };
         Returns: {
@@ -1901,6 +2030,13 @@ export type Database = {
           seller_id: string;
           seller_username: string;
           target_kind: string;
+        }[];
+      };
+      get_my_auction_order_statuses: {
+        Args: never;
+        Returns: {
+          auction_id: string;
+          status: string;
         }[];
       };
       get_my_auction_participations: {

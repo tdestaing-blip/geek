@@ -96,6 +96,7 @@ export type ResolvedAuctionParticipationOutcome =
 export type ResolvedAuctionParticipation = AuctionParticipationDisplay & {
   readonly phase: "resolved";
   readonly callerOutcome: ResolvedAuctionParticipationOutcome;
+  readonly orderStatus: "awaiting_payment" | null;
 };
 
 export type AuctionParticipation =

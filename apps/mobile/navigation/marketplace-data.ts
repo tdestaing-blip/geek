@@ -1,4 +1,5 @@
 import {
+  getAuctionOrder,
   getMyAuctionParticipations,
   getAuctionBidHistory,
   getAuctionLiveState,
@@ -7,6 +8,7 @@ import {
   getPublicCopyDetail,
 } from "@geek/data";
 import type {
+  AuctionOrderView,
   AuctionParticipation,
   AuctionBidHistoryEntry,
   AuctionLiveState,
@@ -58,6 +60,17 @@ export async function loadCanonicalAuctionResult(
   auctionId: string,
 ): Promise<MarketLoadResult<AuctionResult>> {
   const result = await getAuctionResult(supabase, auctionId);
+  if (result.outcome === "ok") return { outcome: "ok", data: result.data };
+  if (result.outcome === "not_found" || result.outcome === "unauthenticated") {
+    return { outcome: "not_found" };
+  }
+  return { outcome: "error" };
+}
+
+export async function loadCanonicalAuctionOrder(
+  auctionId: string,
+): Promise<MarketLoadResult<AuctionOrderView>> {
+  const result = await getAuctionOrder(supabase, auctionId);
   if (result.outcome === "ok") return { outcome: "ok", data: result.data };
   if (result.outcome === "not_found" || result.outcome === "unauthenticated") {
     return { outcome: "not_found" };

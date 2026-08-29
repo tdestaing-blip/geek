@@ -223,6 +223,26 @@ The Auction, seller, winner, and Bid history remain intact. Future workflows
 that acquire locks in another order must handle PostgreSQL deadlock error
 `40P01` by retrying the whole transaction.
 
+## Auction Order V1
+
+A canonically `won` Auction creates exactly one canonical `Order` with exactly
+one `OrderItem`. The Order starts in `awaiting_payment`: buyer and seller have
+an agreed commercial transaction, but payment has not been authorized,
+captured, or completed. The Order does not imply fulfillment, ownership
+transfer, or an Auction `sold` transition.
+
+Order identity, parties, Copy, winning Bid, agreed integer-minor-unit Money, and
+currency derive inside the database from the locked Auction. A trigger runs the
+trusted idempotent creation boundary in the same transaction after winner
+selection. Its unique Auction item relationship and Auction row lock prevent
+duplicate or orphan Orders under retries and concurrency. Existing won Auctions
+are reconciled through the same boundary.
+
+Auction fulfillment fields remain seller capabilities. V1 intentionally stores
+no selected Order fulfillment method because the buyer and seller have not yet
+made that choice. It also introduces no checkout, payment provider, payment
+record, webhook, payout, refund, shipping, or dispute state.
+
 ## Search semantics
 
 Future Geek Search may independently surface:
@@ -239,6 +259,6 @@ but Auction stores no exact coordinates.
 
 ## Deferred behavior
 
-This foundation does not implement Order, checkout, payment, shipping labels,
-addresses, Trade, Search, Matching, messaging, seller offers, proxy bidding,
-automatic bid extension, UI, API clients, or ORM behavior.
+This foundation does not implement checkout, payment, shipping labels,
+addresses, Order fulfillment, Trade, Search, Matching, messaging, seller
+offers, proxy bidding, automatic bid extension, or payment-provider behavior.
