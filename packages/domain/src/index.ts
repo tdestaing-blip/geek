@@ -128,6 +128,28 @@ export {
 } from "./marketplace/auction";
 
 export type {
+  ActivityCounterparty,
+  ActivityCursor,
+  ActivityItem,
+  ActivityKind,
+  ActivityNavigationTarget,
+  ActivityPage,
+  ActivityRole,
+  ActivitySegment,
+  ActivityState,
+} from "./activity/activity";
+export {
+  ACTIVITY_KINDS,
+  ACTIVITY_ROLES,
+  ACTIVITY_SEGMENTS,
+  ACTIVITY_STATES,
+  parseActivityKind,
+  parseActivityRole,
+  parseActivitySegment,
+  parseActivityState,
+} from "./activity/activity";
+
+export type {
   Album,
   AlbumDetail,
   AlbumEditionTarget,

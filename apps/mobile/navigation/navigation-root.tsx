@@ -27,7 +27,8 @@ import { MyProfileScreen, PublicProfileScreen } from "./profile-screen";
 import { AddGameSearchScreen } from "./add-game-search-screen";
 import { PlatformCatalogScreen } from "./platform-catalog-screen";
 import { GameRegionsScreen } from "./game-regions-screen";
-import { ActivityScreen, DiscoverScreen } from "./root-world-screens";
+import { ActivityScreen } from "./activity-screen";
+import { DiscoverScreen } from "./root-world-screens";
 import { INITIAL_ROOT_DESTINATION } from "./navigation-architecture";
 import {
   AuthEntryScreen,

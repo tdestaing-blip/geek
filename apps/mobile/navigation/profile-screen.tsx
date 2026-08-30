@@ -6,10 +6,21 @@ import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from "@react-navigation/native-stack";
-import { type ReactNode, useEffect, useState } from "react";
-import { FlatList, Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  ActionSheetIOS,
+  Alert,
+  FlatList,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 import THOMAS_AVATAR from "../assets/profiles/thomas.png";
+import { signOut } from "../lib/auth/actions";
 import { useAuth } from "../lib/auth/auth-provider";
 import { supabase } from "../lib/supabase";
 import { GameGridItem, type GridItem } from "../ui/game-grid-item";
@@ -29,6 +40,7 @@ import {
   findCollectorFixture,
 } from "./marketplace-fixtures";
 import type { MainTabParamList, RootStackParamList } from "./types";
+import { createAccountSwitchCoordinator } from "./account-switch";
 
 type MyProps = BottomTabScreenProps<MainTabParamList, "Me">;
 type PublicProps = NativeStackScreenProps<RootStackParamList, "PublicProfile">;
@@ -78,6 +90,11 @@ const LEON_MATCH_PROJECTION: ProfileMatchProjection = {
 
 export function MyProfileScreen({ navigation }: MyProps) {
   const { state } = useAuth();
+  const accountSwitchCoordinator = useRef(
+    createAccountSwitchCoordinator({
+      signOut: async () => (await signOut()).error === null,
+    }),
+  );
   if (state.status !== "authenticated") {
     throw new Error("My Profile requires an authenticated user.");
   }
@@ -85,6 +102,48 @@ export function MyProfileScreen({ navigation }: MyProps) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   if (!rootNavigation) throw new Error("Me must be mounted under the application stack.");
   const saleItems = getActiveSaleItemsForOwner(state.user.id);
+
+  async function submitAccountSwitch() {
+    const result = await accountSwitchCoordinator.current.submit();
+    if (result.outcome === "failed") {
+      Alert.alert(
+        "Changement de compte impossible",
+        "Vous êtes toujours connecté à ce compte. Vérifiez votre connexion et réessayez.",
+      );
+    }
+  }
+
+  function confirmAccountSwitch() {
+    Alert.alert("Changer de compte ?", "Vous serez déconnecté de ce compte.", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Changer de compte",
+        style: "destructive",
+        onPress: () => void submitAccountSwitch(),
+      },
+    ]);
+  }
+
+  function showAccountMenu() {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          cancelButtonIndex: 1,
+          options: ["Changer de compte", "Annuler"],
+        },
+        (index) => {
+          if (index === 0) confirmAccountSwitch();
+        },
+      );
+      return;
+    }
+
+    Alert.alert("Compte", undefined, [
+      { text: "Changer de compte", onPress: confirmAccountSwitch },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  }
+
   return (
     <ProfileInventory
       avatar={THOMAS_AVATAR}
@@ -92,6 +151,7 @@ export function MyProfileScreen({ navigation }: MyProps) {
       items={saleItems}
       location="Paris"
       name="Thomas Destaing"
+      onMore={showAccountMenu}
       onOpenCopy={(copyId) => rootNavigation.navigate("Copy", { copyId })}
       title="Profil"
     />
@@ -183,6 +243,7 @@ function ProfileInventory({
   matchCard,
   name,
   onBack,
+  onMore,
   onOpenCopy,
   title,
 }: {
@@ -196,6 +257,7 @@ function ProfileInventory({
   readonly matchCard?: ReactNode;
   readonly name: string;
   readonly onBack?: () => void;
+  readonly onMore?: () => void;
   readonly onOpenCopy: (copyId: string) => void;
   readonly title?: string;
 }) {
@@ -222,6 +284,7 @@ function ProfileInventory({
             location={location}
             name={name}
             onBack={onBack}
+            onMore={onMore}
             title={title}
           />
           <ProfileStats stats={STATS} />

@@ -21,7 +21,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import { AddGameSearchField } from "../ui/add-game-search-field";
 import { AlbumCard } from "../ui/album-card";
-import { SegmentedControl } from "../ui/segmented-control";
 import { CatalogSearchHome } from "./add-game-search-screen";
 import { loadCanonicalAlbums } from "./collection-surfaces-data";
 import type { MainTabParamList, RootStackParamList } from "./types";
@@ -160,30 +159,6 @@ export function DiscoverScreen({ navigation }: DiscoverProps) {
   );
 }
 
-export function ActivityScreen() {
-  const [segment, setSegment] = useState<"current" | "history">("current");
-  return (
-    <SafeAreaView edges={["top"]} style={styles.page}>
-      <View style={styles.shellContent}>
-        <RootTitle title="Activité" />
-        <SegmentedControl
-          onSelect={setSegment}
-          options={[
-            { id: "current", label: "En cours" },
-            { id: "history", label: "Historique" },
-          ]}
-          selected={segment}
-        />
-        <RootState
-          message={
-            segment === "current" ? "Aucune activité en cours." : "Votre historique apparaîtra ici."
-          }
-        />
-      </View>
-    </SafeAreaView>
-  );
-}
-
 function DiscoverFeedHeader({
   albums,
   onOpenAlbum,
@@ -285,10 +260,6 @@ function TradeMatchRow({
   );
 }
 
-function RootTitle({ title }: { readonly title: string }) {
-  return <Text style={styles.rootTitle}>{title}</Text>;
-}
-
 function RootState({
   loading = false,
   message,
@@ -337,7 +308,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.page,
     paddingHorizontal: spacing.page,
   },
-  rootTitle: { ...typography.screenTitle, color: colors.text },
   sectionContent: { gap: spacing.compact },
   fullBleedControl: { marginHorizontal: -spacing.page },
   sectionTitle: { ...typography.sectionTitle, color: colors.text },
@@ -349,7 +319,6 @@ const styles = StyleSheet.create({
   albumCard: { width: 280 },
   state: { alignItems: "center", gap: spacing.compact, padding: 48 },
   stateText: { ...typography.body, color: colors.textSecondary, textAlign: "center" },
-  shellContent: { flex: 1, gap: spacing.page, paddingHorizontal: spacing.page },
   matchRow: {
     alignItems: "center",
     flexDirection: "row",

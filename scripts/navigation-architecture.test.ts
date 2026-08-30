@@ -16,6 +16,7 @@ const platformCatalog = source("apps/mobile/navigation/platform-catalog-screen.t
 const gameRegions = source("apps/mobile/navigation/game-regions-screen.tsx");
 const profile = source("apps/mobile/navigation/profile-screen.tsx");
 const discover = source("apps/mobile/navigation/root-world-screens.tsx");
+const activity = source("apps/mobile/navigation/activity-screen.tsx");
 const searchField = source("apps/mobile/ui/add-game-search-field.tsx");
 const app = source("apps/mobile/App.tsx");
 
@@ -84,9 +85,15 @@ test("Me is the current Profile root while public identity remains modal", () =>
 });
 
 test("Activity owns permanent current and history presentation state", () => {
-  assert.match(discover, /\{ id: "current", label: "En cours" \}/);
-  assert.match(discover, /\{ id: "history", label: "Historique" \}/);
-  assert.doesNotMatch(discover, /activity_events|fake transaction/i);
+  assert.match(
+    navigationRoot,
+    /<MainTabs\.Screen name="Activity" component=\{ActivityScreen\} \/>/,
+  );
+  assert.match(activity, /useState<ActivitySegment>\("current"\)/);
+  assert.match(activity, /\{ id: "current", label: "En cours" \}/);
+  assert.match(activity, /\{ id: "history", label: "Historique" \}/);
+  assert.match(activity, /getMyActivity\(supabase, \{ segment \}\)/);
+  assert.doesNotMatch(activity, /activity_events|fake transaction|fixture/i);
 });
 
 test("Add Game is bounded and canonical completion replaces the action route", () => {
