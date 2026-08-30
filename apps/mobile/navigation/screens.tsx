@@ -1,11 +1,24 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { getGame, getGamePresentationCover, getPrimaryGameArtwork } from "@geek/data";
-import { colors, spacing, typography } from "@geek/design-tokens";
+import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Button, Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Button,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { signInWithPassword } from "../lib/auth/actions";
 import { useAuth } from "../lib/auth/auth-provider";
 import { catalogMediaReadOptions } from "../lib/catalog-media-policy";
 import { supabase } from "../lib/supabase";
@@ -32,12 +45,139 @@ export function BootstrapScreen() {
 }
 
 export function AuthEntryScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const mounted = useRef(true);
+
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+
+  async function submit() {
+    const normalizedEmail = email.trim();
+    if (pending || normalizedEmail.length === 0 || password.length === 0) return;
+
+    setPending(true);
+    setErrorMessage(null);
+    try {
+      const result = await signInWithPassword({ email: normalizedEmail, password });
+      if (!mounted.current) return;
+      if (result.error !== null || result.data.session === null) {
+        setErrorMessage("Email ou mot de passe incorrect.");
+      }
+    } catch {
+      if (mounted.current) {
+        setErrorMessage("Connexion impossible. Vérifiez votre connexion et réessayez.");
+      }
+    } finally {
+      if (mounted.current) setPending(false);
+    }
+  }
+
+  const disabled = pending || email.trim().length === 0 || password.length === 0;
   return (
-    <View>
-      <Text>Auth entry</Text>
-    </View>
+    <SafeAreaView style={authEntryStyles.page}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={authEntryStyles.keyboard}
+      >
+        <View style={authEntryStyles.content}>
+          <Text style={authEntryStyles.title}>Connexion</Text>
+          <View style={authEntryStyles.fieldGroup}>
+            <Text style={authEntryStyles.label}>Email</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              editable={!pending}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="email@exemple.com"
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="next"
+              style={authEntryStyles.input}
+              textContentType="emailAddress"
+              value={email}
+            />
+          </View>
+          <View style={authEntryStyles.fieldGroup}>
+            <Text style={authEntryStyles.label}>Mot de passe</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="current-password"
+              editable={!pending}
+              onChangeText={setPassword}
+              onSubmitEditing={() => void submit()}
+              placeholder="Mot de passe"
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="done"
+              secureTextEntry
+              style={authEntryStyles.input}
+              textContentType="password"
+              value={password}
+            />
+          </View>
+          {errorMessage ? (
+            <Text accessibilityRole="alert" style={authEntryStyles.error}>
+              {errorMessage}
+            </Text>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            disabled={disabled}
+            onPress={() => void submit()}
+            style={({ pressed }) => [
+              authEntryStyles.button,
+              disabled && authEntryStyles.buttonDisabled,
+              pressed && !disabled && authEntryStyles.buttonPressed,
+            ]}
+          >
+            {pending ? (
+              <ActivityIndicator color={colors.controlSelected} />
+            ) : (
+              <Text style={authEntryStyles.buttonLabel}>Se connecter</Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+const authEntryStyles = StyleSheet.create({
+  page: { backgroundColor: colors.background, flex: 1 },
+  keyboard: { flex: 1, justifyContent: "center" },
+  content: { gap: spacing.page, padding: spacing.page },
+  title: { ...typography.screenTitle, color: colors.text },
+  fieldGroup: { gap: spacing.compact },
+  label: { ...typography.body, color: colors.text, fontWeight: "600" },
+  input: {
+    ...typography.body,
+    backgroundColor: colors.control,
+    borderRadius: radii.detailCard,
+    color: colors.text,
+    minHeight: 48,
+    paddingHorizontal: spacing.page,
+    paddingVertical: spacing.medium,
+  },
+  error: { ...typography.metadata, color: colors.accent },
+  button: {
+    alignItems: "center",
+    backgroundColor: colors.text,
+    borderRadius: radii.capsule,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: spacing.page,
+  },
+  buttonDisabled: { backgroundColor: colors.disabledAction },
+  buttonPressed: { opacity: 0.72 },
+  buttonLabel: { ...typography.body, color: colors.controlSelected, fontWeight: "600" },
+});
 
 export function ProfileMissingScreen() {
   const { reload } = useAuth();

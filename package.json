@@ -35,6 +35,7 @@
     "db:smoke:auction-live": "node --experimental-strip-types scripts/supabase-auction-live-smoke.mjs",
     "db:smoke:auction-presence-history": "node --experimental-strip-types scripts/supabase-auction-presence-history-smoke.mjs",
     "db:smoke:auction-orders": "node --experimental-strip-types scripts/supabase-auction-orders-smoke.mjs",
+    "db:smoke:activity": "node --experimental-strip-types scripts/supabase-activity-smoke.mjs",
     "catalog:import:libretro": "pnpm --filter @geek/catalog-import run import:libretro",
     "catalog:import:mobygames": "pnpm --filter @geek/catalog-import run import:mobygames",
     "catalog:import:smoke": "node --experimental-strip-types scripts/supabase-catalog-import-smoke.mjs",

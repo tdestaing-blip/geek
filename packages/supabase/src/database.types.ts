@@ -2032,6 +2032,41 @@ export type Database = {
           target_kind: string;
         }[];
       };
+      get_my_activity: {
+        Args: {
+          activity_segment?: string;
+          cursor_activity_id?: string;
+          cursor_occurred_at?: string;
+          cursor_requires_attention?: boolean;
+          result_limit?: number;
+        };
+        Returns: {
+          activity_id: string;
+          activity_state: string;
+          amount_minor: number;
+          auction_id: string;
+          caller_role: string;
+          copy_id: string;
+          counterparty_avatar_path: string;
+          counterparty_display_name: string;
+          counterparty_profile_id: string;
+          currency: string;
+          edition_id: string;
+          ends_at: string;
+          game_id: string;
+          has_more: boolean;
+          kind: string;
+          navigation_kind: string;
+          object_id: string;
+          occurred_at: string;
+          platform_name: string;
+          region_code: string;
+          requires_attention: boolean;
+          segment: string;
+          thumbnail_url: string;
+          title: string;
+        }[];
+      };
       get_my_auction_order_statuses: {
         Args: never;
         Returns: {

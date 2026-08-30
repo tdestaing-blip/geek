@@ -15,8 +15,8 @@ Collection is the initial root.
   surface without secondary tabs or filters. Market and network opportunities remain content
   dimensions around canonical Games, not persistent roots.
 - Collection owns the caller's Albums, physical Copies, and Wishlist.
-- Activity is the transaction control center. V1 establishes `En cours` and `Historique`; a later
-  data slice will provide complete cross-domain transaction projections.
+- Activity is the transaction control center. Its `En cours` and `Historique` views consume one
+  caller-scoped canonical projection over Auctions, Auction Orders, and seller Listings.
 - Me is the current user's Profile and identity root. Another collector remains the distinct
   `PublicProfile { userId }` fullscreen-modal destination.
 

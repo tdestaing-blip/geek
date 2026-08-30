@@ -21,6 +21,7 @@ export function ProfileHero({
   location,
   name,
   onBack,
+  onMore,
   title,
 }: {
   readonly avatar: ImageSourcePropType | null;
@@ -29,6 +30,7 @@ export function ProfileHero({
   readonly location: string;
   readonly name: string;
   readonly onBack?: () => void;
+  readonly onMore?: () => void;
   readonly title?: string;
 }) {
   const insets = useSafeAreaInsets();
@@ -53,7 +55,7 @@ export function ProfileHero({
         )}
         <View style={styles.toolbarActions}>
           <GlassButton icon="share" label="Partager" />
-          <GlassButton icon="more-horizontal" label="Plus d’options" />
+          <GlassButton icon="more-horizontal" label="Plus d’options" onPress={onMore} />
         </View>
       </View>
       <View style={styles.identity}>

@@ -29,6 +29,9 @@ export { InvalidRowError } from "./result";
 
 export type { Page, PageRequest } from "./pagination";
 
+export type { ActivityRequest } from "./activity/activity";
+export { ACTIVITY_DEFAULT_LIMIT, ACTIVITY_MAX_LIMIT, getMyActivity } from "./activity/activity";
+
 export { getAlbumDetail, getAlbums } from "./albums/albums";
 
 export {
