@@ -6,29 +6,22 @@ import {
   typography,
 } from "@geek/design-tokens";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdaptiveGlassSurface } from "./adaptive-glass-surface";
-import { GeekIcon, type GeekIconName } from "./geek-icon";
-import type { RootStackParamList } from "../navigation/types";
-
-const TAB_ICONS = {
-  Activity: "activity",
-  Collection: "collection",
-  Community: "community",
-  Profile: "profile",
-} satisfies Readonly<Record<string, GeekIconName>>;
+import { GeekIcon } from "./geek-icon";
+import { getRootDestination } from "../navigation/navigation-architecture";
 
 export function GeekTabBar({ navigation, state }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 25) }]}>
       <AdaptiveGlassSurface style={styles.surface}>
         {state.routes.map((route, index) => {
+          const destination = getRootDestination(route.name);
+          if (!destination) throw new Error(`Unknown Geek root destination: ${route.name}`);
           const selected = state.index === index;
           return (
             <Pressable
@@ -53,23 +46,15 @@ export function GeekTabBar({ navigation, state }: BottomTabBarProps) {
             >
               <GeekIcon
                 color={selected ? colors.accent : colors.navigationIcon}
-                name={TAB_ICONS[route.name as keyof typeof TAB_ICONS]}
+                name={destination.icon}
                 size={navigationTokens.iconSize}
               />
-              <Text style={[styles.tabLabel, selected && styles.selectedLabel]}>{route.name}</Text>
+              <Text numberOfLines={1} style={[styles.tabLabel, selected && styles.selectedLabel]}>
+                {destination.label}
+              </Text>
             </Pressable>
           );
         })}
-      </AdaptiveGlassSurface>
-      <AdaptiveGlassSurface style={styles.actionSurface}>
-        <Pressable
-          accessibilityLabel="Ajouter"
-          accessibilityRole="button"
-          onPress={() => rootNavigation?.navigate("AddGameSearch")}
-          style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
-        >
-          <GeekIcon color={colors.accent} name="plus" size={navigationTokens.iconSize} />
-        </Pressable>
       </AdaptiveGlassSurface>
     </View>
   );
@@ -80,18 +65,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "transparent",
     bottom: 0,
-    flexDirection: "row",
-    gap: spacing.page,
     left: 0,
     paddingHorizontal: 20,
     position: "absolute",
     right: 0,
   },
   surface: {
-    flex: 1,
     flexDirection: "row",
     height: navigationTokens.surfaceHeight,
     paddingHorizontal: spacing.hairline,
+    width: "100%",
   },
   tab: {
     alignItems: "center",
@@ -103,15 +86,5 @@ const styles = StyleSheet.create({
   selectedTab: { backgroundColor: colors.navigationSelected },
   tabLabel: { color: colors.navigationIcon, ...typography.tabLabel },
   selectedLabel: { color: colors.accent },
-  actionSurface: {
-    height: navigationTokens.actionSize,
-    width: navigationTokens.actionSize,
-  },
-  addButton: {
-    alignItems: "center",
-    borderRadius: radii.capsule,
-    flex: 1,
-    justifyContent: "center",
-  },
   pressed: { opacity: 0.7 },
 });

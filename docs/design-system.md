@@ -16,10 +16,10 @@ Geek's mobile interface uses a small semantic foundation derived from the approv
 
 Collection currently establishes the first local reusable components:
 
-- `CollectionHeader` for title, album mode, and settings.
+- `CollectionHeader` for title, album mode, and Add Game access.
 - `CollectionSegmentedControl` for My Games / Wishlist state.
 - `GameGridItem` for owned and wanted game presentations.
-- `GeekTabBar` for the four approved product destinations and separate add action.
+- `GeekTabBar` for the four persistent roots: Découvrir, Collection, Activité, and Moi.
 - `AdaptiveGlassSurface` for platform-aware floating material.
 - `GeekIcon` for the small set of Pixelarticons currently used by the mobile product.
 - `CopyComponentCard` for component-specific presence and condition presentation.

@@ -5,31 +5,41 @@ import { GeekIcon } from "./geek-icon";
 
 export function CollectionHeader({
   albumMode,
+  onAddGame,
   onAlbumModeChange,
 }: {
   readonly albumMode: boolean;
+  readonly onAddGame?: () => void;
   readonly onAlbumModeChange: (value: boolean) => void;
 }) {
+  const actions = (
+    <>
+      <GeekIcon name="album" />
+      <Switch
+        accessibilityLabel="Afficher la collection par albums"
+        onValueChange={onAlbumModeChange}
+        value={albumMode}
+      />
+      {onAddGame ? (
+        <>
+          <View style={styles.divider} />
+          <Pressable
+            accessibilityLabel="Ajouter un jeu"
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={onAddGame}
+          >
+            <GeekIcon name="plus" />
+          </Pressable>
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <View style={styles.header}>
       <Text style={styles.title}>Collections</Text>
-      <View style={styles.actions}>
-        <GeekIcon name="album" />
-        <Switch
-          accessibilityLabel="Afficher la collection par albums"
-          onValueChange={onAlbumModeChange}
-          value={albumMode}
-        />
-        <View style={styles.divider} />
-        <Pressable
-          accessibilityLabel="Réglages de la collection"
-          accessibilityRole="button"
-          hitSlop={10}
-          onPress={() => undefined}
-        >
-          <GeekIcon name="settings-2" />
-        </Pressable>
-      </View>
+      <View style={styles.actions}>{actions}</View>
     </View>
   );
 }

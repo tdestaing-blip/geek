@@ -1,5 +1,8 @@
 import { colors, spacing, typography } from "@geek/design-tokens";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -22,11 +25,13 @@ import {
   loadCanonicalPlatformCatalog,
   type CanonicalPlatformCatalog,
 } from "./canonical-catalog-data";
-import type { RootStackParamList } from "./types";
+import type { AddGameStackParamList, RootStackParamList } from "./types";
 
-type Props = NativeStackScreenProps<RootStackParamList, "PlatformCatalog">;
+type Props = NativeStackScreenProps<AddGameStackParamList, "PlatformCatalog">;
 
 export function PlatformCatalogScreen({ navigation, route }: Props) {
+  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  if (!rootNavigation) throw new Error("Add Game must be mounted under the application stack.");
   const [query, setQuery] = useState("");
   const [catalog, setCatalog] = useState<CanonicalPlatformCatalog | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -100,7 +105,9 @@ export function PlatformCatalogScreen({ navigation, route }: Props) {
                       <View key={album.id} style={styles.album}>
                         <AlbumCard
                           album={album}
-                          onPress={() => navigation.navigate("AlbumDetail", { albumId: album.id })}
+                          onPress={() =>
+                            rootNavigation.replace("AlbumDetail", { albumId: album.id })
+                          }
                         />
                       </View>
                     ))}

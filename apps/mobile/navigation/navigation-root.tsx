@@ -27,6 +27,8 @@ import { MyProfileScreen, PublicProfileScreen } from "./profile-screen";
 import { AddGameSearchScreen } from "./add-game-search-screen";
 import { PlatformCatalogScreen } from "./platform-catalog-screen";
 import { GameRegionsScreen } from "./game-regions-screen";
+import { ActivityScreen, DiscoverScreen } from "./root-world-screens";
+import { INITIAL_ROOT_DESTINATION } from "./navigation-architecture";
 import {
   AuthEntryScreen,
   AuthErrorScreen,
@@ -35,18 +37,17 @@ import {
   CollectorScreen,
   EditionScreen,
   GameScreen,
-  ActivityScreen,
-  CommunityScreen,
   ListingScreen,
   PasswordUpdateScreen,
   ProfileMissingScreen,
 } from "./screens";
 import { GeekTabBar } from "../ui/geek-tab-bar";
 import { AuctionPresence } from "../ui/auction-presence";
-import type { MainTabParamList, RootStackParamList } from "./types";
+import type { AddGameStackParamList, MainTabParamList, RootStackParamList } from "./types";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const MainTabs = createBottomTabNavigator<MainTabParamList>();
+const AddGameStack = createNativeStackNavigator<AddGameStackParamList>();
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 /**
@@ -137,17 +138,12 @@ export function NavigationRoot() {
                   <RootStack.Screen name="Collector" component={CollectorScreen} />
                   <RootStack.Screen
                     name="AddGameSearch"
-                    component={AddGameSearchScreen}
+                    component={AddGameFlowNavigator}
                     options={addGameRootOptions}
                   />
                   <RootStack.Screen
-                    name="PlatformCatalog"
-                    component={PlatformCatalogScreen}
-                    options={detailPushOptions}
-                  />
-                  <RootStack.Screen
-                    name="GameRegions"
-                    component={GameRegionsScreen}
+                    name="DiscoverCatalog"
+                    component={AddGameFlowNavigator}
                     options={detailPushOptions}
                   />
                 </RootStack.Group>
@@ -263,15 +259,33 @@ const addGameRootOptions = {
 function MainTabNavigator() {
   return (
     <MainTabs.Navigator
-      initialRouteName="Collection"
+      initialRouteName={INITIAL_ROOT_DESTINATION}
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <GeekTabBar {...props} />}
     >
       <MainTabs.Screen name="Collection" component={MyCollectionScreen} />
-      <MainTabs.Screen name="Community" component={CommunityScreen} />
+      <MainTabs.Screen name="Discover" component={DiscoverScreen} />
       <MainTabs.Screen name="Activity" component={ActivityScreen} />
-      <MainTabs.Screen name="Profile" component={MyProfileScreen} />
+      <MainTabs.Screen name="Me" component={MyProfileScreen} />
     </MainTabs.Navigator>
+  );
+}
+
+function AddGameFlowNavigator() {
+  return (
+    <AddGameStack.Navigator initialRouteName="AddGameHome" screenOptions={{ headerShown: false }}>
+      <AddGameStack.Screen name="AddGameHome" component={AddGameSearchScreen} />
+      <AddGameStack.Screen
+        name="PlatformCatalog"
+        component={PlatformCatalogScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <AddGameStack.Screen
+        name="GameRegions"
+        component={GameRegionsScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+    </AddGameStack.Navigator>
   );
 }
 

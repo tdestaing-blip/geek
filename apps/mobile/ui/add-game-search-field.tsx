@@ -1,5 +1,6 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import type { Ref } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { GeekIcon } from "./geek-icon";
@@ -10,6 +11,8 @@ export function AddGameSearchField({
   onChangeText,
   onSubmitEditing,
   placeholder,
+  prominent = false,
+  style,
   value,
 }: {
   readonly autoFocus?: boolean;
@@ -17,11 +20,13 @@ export function AddGameSearchField({
   readonly onChangeText: (value: string) => void;
   readonly onSubmitEditing?: () => void;
   readonly placeholder: string;
+  readonly prominent?: boolean;
+  readonly style?: StyleProp<ViewStyle>;
   readonly value: string;
 }) {
   return (
-    <View style={styles.field}>
-      <GeekIcon color={colors.textSecondary} name="search" size={22} />
+    <View style={[styles.field, prominent && styles.prominentField, style]}>
+      <GeekIcon color={colors.textSecondary} name="search" size={prominent ? 26 : 22} />
       <TextInput
         autoCorrect={false}
         autoFocus={autoFocus}
@@ -31,7 +36,7 @@ export function AddGameSearchField({
         placeholderTextColor={colors.textSecondary}
         ref={inputRef}
         returnKeyType="search"
-        style={styles.input}
+        style={[styles.input, prominent && styles.prominentInput]}
         value={value}
       />
       {value ? (
@@ -40,7 +45,7 @@ export function AddGameSearchField({
           hitSlop={10}
           onPress={() => onChangeText("")}
         >
-          <GeekIcon color={colors.textSecondary} name="close" size={20} />
+          <GeekIcon color={colors.textSecondary} name="close" size={prominent ? 22 : 20} />
         </Pressable>
       ) : null}
     </View>
@@ -59,4 +64,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
   },
   input: { ...typography.body, color: colors.text, flex: 1, padding: 0 },
+  prominentField: { height: 44, paddingHorizontal: spacing.page },
+  prominentInput: { fontSize: 14, fontWeight: "500" },
 });

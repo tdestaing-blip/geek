@@ -1,6 +1,9 @@
 import { colors, spacing, typography } from "@geek/design-tokens";
 import type { Platform as CatalogPlatform } from "@geek/domain";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -23,15 +26,47 @@ import { PlatformCategoryCard } from "../ui/platform-category-card";
 import { normalizeSearchText, PLATFORM_PRESENTATIONS } from "./add-game-fixtures";
 import { loadCanonicalPlatforms, searchCanonicalGamePlatforms } from "./canonical-catalog-data";
 import type { GamePlatformSearchResult } from "./canonical-catalog";
-import type { RootStackParamList } from "./types";
+import type { AddGameStackParamList, RootStackParamList } from "./types";
 
-type Props = NativeStackScreenProps<RootStackParamList, "AddGameSearch">;
+type Props = NativeStackScreenProps<AddGameStackParamList, "AddGameHome">;
 type Suggestion =
   | { readonly id: string; readonly kind: "query"; readonly label: string }
   | { readonly id: string; readonly kind: "game"; readonly result: GamePlatformSearchResult };
 type LoadState = "idle" | "loading" | "error";
 
 export function AddGameSearchScreen({ navigation }: Props) {
+  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  if (!rootNavigation) throw new Error("Add Game must be mounted under the application stack.");
+  return (
+    <SafeAreaView edges={["top"]} style={styles.page}>
+      <AddGameToolbar mode="close" onPress={() => rootNavigation.goBack()} title="Nouveau jeu" />
+      <CatalogSearchHome
+        autoFocus
+        onOpenPlatform={(platformId) => navigation.navigate("PlatformCatalog", { platformId })}
+        onOpenRegions={({ gameId, platformId }) =>
+          navigation.navigate("GameRegions", { gameId, platformId })
+        }
+      />
+    </SafeAreaView>
+  );
+}
+
+/** Shared canonical search/browse home used by Collection Add Game and Discover. */
+export function CatalogSearchHome({
+  autoFocus = false,
+  cancelLabel,
+  onCancel,
+  onOpenPlatform,
+  onOpenRegions,
+  prominent = false,
+}: {
+  readonly autoFocus?: boolean;
+  readonly cancelLabel?: string;
+  readonly onCancel?: () => void;
+  readonly onOpenPlatform: (platformId: string) => void;
+  readonly onOpenRegions: (result: GamePlatformSearchResult) => void;
+  readonly prominent?: boolean;
+}) {
   const [draftQuery, setDraftQuery] = useState("");
   const [committedQuery, setCommittedQuery] = useState<string | null>(null);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
@@ -100,19 +135,35 @@ export function AddGameSearchScreen({ navigation }: Props) {
   }
   function openRegions(result: GamePlatformSearchResult) {
     Keyboard.dismiss();
-    navigation.navigate("GameRegions", { gameId: result.gameId, platformId: result.platformId });
+    onOpenRegions(result);
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.page}>
-      <AddGameToolbar mode="close" onPress={navigation.goBack} title="Nouveau jeu" />
-      <AddGameSearchField
-        autoFocus
-        onChangeText={updateDraft}
-        onSubmitEditing={() => submit()}
-        placeholder="Chercher un jeu..."
-        value={draftQuery}
-      />
+    <View style={styles.flex}>
+      <View style={onCancel ? styles.inlineSearchRow : undefined}>
+        <View style={onCancel ? styles.inlineSearchField : undefined}>
+          <AddGameSearchField
+            autoFocus={autoFocus}
+            onChangeText={updateDraft}
+            onSubmitEditing={() => submit()}
+            placeholder="Rechercher un jeu"
+            prominent={prominent}
+            style={onCancel ? styles.flushSearchField : undefined}
+            value={draftQuery}
+          />
+        </View>
+        {onCancel ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              Keyboard.dismiss();
+              onCancel();
+            }}
+          >
+            <Text style={styles.cancelLabel}>{cancelLabel ?? "Annuler"}</Text>
+          </Pressable>
+        ) : null}
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
@@ -120,7 +171,10 @@ export function AddGameSearchScreen({ navigation }: Props) {
         {mode === "empty" ? (
           <PlatformGrid
             canonicalPlatforms={platforms}
-            onPress={(platformId) => navigation.navigate("PlatformCatalog", { platformId })}
+            onPress={(platformId) => {
+              Keyboard.dismiss();
+              onOpenPlatform(platformId);
+            }}
           />
         ) : (
           <SearchResults
@@ -138,7 +192,7 @@ export function AddGameSearchScreen({ navigation }: Props) {
           />
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -302,6 +356,15 @@ function ConsoleFilter({
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.background, flex: 1 },
   flex: { flex: 1 },
+  inlineSearchRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.medium,
+    paddingHorizontal: spacing.page,
+  },
+  inlineSearchField: { flex: 1 },
+  flushSearchField: { marginHorizontal: 0 },
+  cancelLabel: { ...typography.body, color: colors.text },
   platformGrid: { gap: spacing.compact, padding: spacing.page },
   platformRow: { gap: spacing.compact },
   results: { flexGrow: 1, paddingBottom: 32, paddingTop: spacing.compact },

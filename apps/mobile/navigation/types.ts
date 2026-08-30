@@ -1,11 +1,18 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
-/** The four product-level destinations in the authenticated app. */
+/** The four persistent product worlds in the authenticated app. */
 export type MainTabParamList = {
+  Discover: undefined;
   Collection: undefined;
-  Community: undefined;
   Activity: undefined;
-  Profile: undefined;
+  Me: undefined;
+};
+
+/** Routes contained by the bounded Add Game action. */
+export type AddGameStackParamList = {
+  AddGameHome: undefined;
+  PlatformCatalog: { readonly platformId: string };
+  GameRegions: { readonly gameId: string; readonly platformId: string };
 };
 
 /**
@@ -33,8 +40,7 @@ export type RootStackParamList = {
   PasswordUpdate: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   AddGameSearch: undefined;
-  PlatformCatalog: { readonly platformId: string };
-  GameRegions: { readonly gameId: string; readonly platformId: string };
+  DiscoverCatalog: NavigatorScreenParams<AddGameStackParamList>;
   Collection: CollectionRouteParams;
   Game: { readonly gameId: string };
   Market: { readonly gameId: string; readonly editionId: string };

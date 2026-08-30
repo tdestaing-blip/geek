@@ -6,9 +6,10 @@
  */
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import type { RootStackParamList } from "./types";
+import type { AddGameStackParamList, RootStackParamList } from "./types";
 
 declare const navigation: NativeStackNavigationProp<RootStackParamList>;
+declare const addGameNavigation: NativeStackNavigationProp<AddGameStackParamList>;
 
 navigation.navigate("Game", { gameId: "game-id" });
 navigation.navigate("Edition", { editionId: "edition-id" });
@@ -33,8 +34,12 @@ navigation.navigate("PublicCopy", { copyId: "copy-id", auctionId: "auction-id" }
 navigation.navigate("PublicProfile", { userId: "user-id" });
 navigation.navigate("AlbumDetail", { albumId: "album-id" });
 navigation.navigate("AddGameSearch");
-navigation.navigate("PlatformCatalog", { platformId: "platform-id" });
-navigation.navigate("GameRegions", { gameId: "game-id", platformId: "platform-id" });
+navigation.navigate("DiscoverCatalog", {
+  screen: "PlatformCatalog",
+  params: { platformId: "platform-id" },
+});
+addGameNavigation.navigate("PlatformCatalog", { platformId: "platform-id" });
+addGameNavigation.navigate("GameRegions", { gameId: "game-id", platformId: "platform-id" });
 navigation.navigate("Listing", { listingId: "listing-id" });
 navigation.navigate("Auction", { auctionId: "auction-id" });
 navigation.navigate("Collector", { collectorId: "collector-id" });
