@@ -115,15 +115,17 @@ export const MY_GAMES: readonly GridItem[] = [
 
 export function MyCollectionScreen({ navigation }: MyCollectionProps) {
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  if (!rootNavigation) throw new Error("Collection must be mounted under the application stack.");
   return (
     <CollectionView
-      onOpenCopy={(copyId) => rootNavigation?.navigate("Copy", { copyId })}
+      onAddGame={() => rootNavigation.navigate("AddGameSearch")}
+      onOpenCopy={(copyId) => rootNavigation.navigate("Copy", { copyId })}
       onOpenGame={(gameId, editionId) =>
         editionId
-          ? rootNavigation?.navigate("Market", { gameId, editionId })
-          : rootNavigation?.navigate("Game", { gameId })
+          ? rootNavigation.navigate("Market", { gameId, editionId })
+          : rootNavigation.navigate("Game", { gameId })
       }
-      onOpenAlbum={(albumId) => rootNavigation?.navigate("AlbumDetail", { albumId })}
+      onOpenAlbum={(albumId) => rootNavigation.navigate("AlbumDetail", { albumId })}
     />
   );
 }
@@ -147,10 +149,12 @@ export function CollectionScreen({ navigation }: CollectionRouteProps) {
 }
 
 function CollectionView({
+  onAddGame,
   onOpenCopy,
   onOpenGame,
   onOpenAlbum,
 }: {
+  readonly onAddGame?: () => void;
   readonly onOpenCopy: (copyId: string) => void;
   readonly onOpenGame: (gameId: string, editionId?: string) => void;
   readonly onOpenAlbum: (albumId: string) => void;
@@ -163,9 +167,14 @@ function CollectionView({
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       {albumMode ? (
-        <AlbumsList onAlbumModeChange={setAlbumMode} onOpenAlbum={onOpenAlbum} />
+        <AlbumsList
+          onAddGame={onAddGame}
+          onAlbumModeChange={setAlbumMode}
+          onOpenAlbum={onOpenAlbum}
+        />
       ) : (
         <CollectionGrid
+          onAddGame={onAddGame}
           onAlbumModeChange={setAlbumMode}
           onOpenCopy={onOpenCopy}
           onOpenGame={onOpenGame}
@@ -183,9 +192,11 @@ function CollectionView({
 }
 
 function AlbumsList({
+  onAddGame,
   onAlbumModeChange,
   onOpenAlbum,
 }: {
+  readonly onAddGame?: () => void;
   readonly onAlbumModeChange: (value: boolean) => void;
   readonly onOpenAlbum: (albumId: string) => void;
 }) {
@@ -195,7 +206,9 @@ function AlbumsList({
       contentContainerStyle={styles.albumContent}
       data={albums.items}
       keyExtractor={({ id }) => id}
-      ListHeaderComponent={<CollectionHeader albumMode onAlbumModeChange={onAlbumModeChange} />}
+      ListHeaderComponent={
+        <CollectionHeader albumMode onAddGame={onAddGame} onAlbumModeChange={onAlbumModeChange} />
+      }
       ListEmptyComponent={<CollectionSurfaceState kind="albums" status={albums.status} />}
       renderItem={({ item }) => <AlbumCard album={item} onPress={() => onOpenAlbum(item.id)} />}
       showsVerticalScrollIndicator={false}
@@ -204,6 +217,7 @@ function AlbumsList({
 }
 
 function CollectionGrid({
+  onAddGame,
   onAlbumModeChange,
   onOpenCopy,
   onOpenGame,
@@ -215,6 +229,7 @@ function CollectionGrid({
   wishlistItems,
   wishlistStatus,
 }: {
+  readonly onAddGame?: () => void;
   readonly onAlbumModeChange: (value: boolean) => void;
   readonly onOpenCopy: (copyId: string) => void;
   readonly onOpenGame: (gameId: string, editionId?: string) => void;
@@ -240,7 +255,11 @@ function CollectionGrid({
       keyExtractor={(item) => ("intentId" in item ? item.intentId : item.copyId)}
       ListHeaderComponent={
         <View style={styles.topContent}>
-          <CollectionHeader albumMode={false} onAlbumModeChange={onAlbumModeChange} />
+          <CollectionHeader
+            albumMode={false}
+            onAddGame={onAddGame}
+            onAlbumModeChange={onAlbumModeChange}
+          />
           <CollectionSegmentedControl
             ownedCount={ownedItems.length}
             wishlistCount={wishlistItems.length}

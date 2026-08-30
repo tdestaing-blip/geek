@@ -1,6 +1,9 @@
 import { colors, radii, spacing, typography } from "@geek/design-tokens";
 import { useFocusEffect } from "@react-navigation/native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,11 +14,13 @@ import { getCatalogRegionPresentation, getEditionVariantLabel } from "./canonica
 import { loadCanonicalGameRegions, type CanonicalGameRegions } from "./canonical-catalog-data";
 import type { GameRegionVariant } from "./canonical-catalog";
 import { findActiveWishlistIntent, toggleWishlistIntent } from "./collection-surfaces-data";
-import type { RootStackParamList } from "./types";
+import type { AddGameStackParamList, RootStackParamList } from "./types";
 
-type Props = NativeStackScreenProps<RootStackParamList, "GameRegions">;
+type Props = NativeStackScreenProps<AddGameStackParamList, "GameRegions">;
 
 export function GameRegionsScreen({ navigation, route }: Props) {
+  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  if (!rootNavigation) throw new Error("Add Game must be mounted under the application stack.");
   const [catalog, setCatalog] = useState<CanonicalGameRegions | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [wishlistIntentId, setWishlistIntentId] = useState<string | null | undefined>(undefined);
@@ -95,7 +100,10 @@ export function GameRegionsScreen({ navigation, route }: Props) {
           <GameRegionRow
             item={item}
             onPress={() =>
-              navigation.navigate("Market", { gameId: item.gameId, editionId: item.editionId })
+              rootNavigation.replace("Market", {
+                gameId: item.gameId,
+                editionId: item.editionId,
+              })
             }
           />
         )}

@@ -2,7 +2,6 @@ import { colors, spacing, typography } from "@geek/design-tokens";
 import { getPublicProfile } from "@geek/data";
 import type { Profile } from "@geek/domain";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
 import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
@@ -31,10 +30,7 @@ import {
 } from "./marketplace-fixtures";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
-type MyProps = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, "Profile">,
-  NativeStackScreenProps<RootStackParamList>
->;
+type MyProps = BottomTabScreenProps<MainTabParamList, "Me">;
 type PublicProps = NativeStackScreenProps<RootStackParamList, "PublicProfile">;
 
 type ProfileInventoryItem = GridItem & { readonly copyId: string };
@@ -87,6 +83,7 @@ export function MyProfileScreen({ navigation }: MyProps) {
   }
 
   const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  if (!rootNavigation) throw new Error("Me must be mounted under the application stack.");
   const saleItems = getActiveSaleItemsForOwner(state.user.id);
   return (
     <ProfileInventory
@@ -95,8 +92,8 @@ export function MyProfileScreen({ navigation }: MyProps) {
       items={saleItems}
       location="Paris"
       name="Thomas Destaing"
-      onOpenCopy={(copyId) => rootNavigation?.navigate("Copy", { copyId })}
-      title="Profile"
+      onOpenCopy={(copyId) => rootNavigation.navigate("Copy", { copyId })}
+      title="Profil"
     />
   );
 }
@@ -168,6 +165,7 @@ export function PublicProfileScreen({ navigation, route }: PublicProps) {
         canonicalProfile?.username ??
         "Collectionneur Geek"
       }
+      backIcon="chevron-down"
       onBack={navigation.goBack}
       onOpenCopy={(copyId) => navigation.navigate("PublicCopy", { copyId })}
     />
@@ -177,6 +175,7 @@ export function PublicProfileScreen({ navigation, route }: PublicProps) {
 function ProfileInventory({
   actions = false,
   avatar,
+  backIcon,
   bio,
   gradient,
   items,
@@ -189,6 +188,7 @@ function ProfileInventory({
 }: {
   readonly actions?: boolean;
   readonly avatar: Parameters<typeof ProfileHero>[0]["avatar"];
+  readonly backIcon?: "chevron-down" | "chevron-left";
   readonly bio?: string;
   readonly gradient: readonly [string, string];
   readonly items: readonly ProfileInventoryItem[];
@@ -217,7 +217,7 @@ function ProfileInventory({
         <View>
           <ProfileHero
             avatar={avatar}
-            backIcon={onBack ? "chevron-down" : undefined}
+            backIcon={backIcon}
             gradient={gradient}
             location={location}
             name={name}

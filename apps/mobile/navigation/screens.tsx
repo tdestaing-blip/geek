@@ -69,30 +69,6 @@ export function PasswordUpdateScreen() {
   );
 }
 
-export function CommunityScreen() {
-  return (
-    <View>
-      <Text>Community</Text>
-    </View>
-  );
-}
-
-export function ActivityScreen() {
-  return (
-    <View>
-      <Text>Activity</Text>
-    </View>
-  );
-}
-
-export function ProfileScreen() {
-  return (
-    <View>
-      <Text>Profile</Text>
-    </View>
-  );
-}
-
 export function GameScreen(props: GameScreenProps) {
   return (
     <SafeAreaProvider>
